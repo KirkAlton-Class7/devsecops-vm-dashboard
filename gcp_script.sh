@@ -46,9 +46,25 @@ retry() {
 }
 
 # -------------------------------
+# Wait for apt lock
+# -------------------------------
+wait_for_apt() {
+  log "Waiting for apt lock..."
+
+  while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+    sleep 2
+  done
+
+  log "Apt lock released"
+}
+
+# -------------------------------
 # Install packages
 # -------------------------------
+wait_for_apt
 apt-get update -y
+
+wait_for_apt
 apt-get install -y \
   nginx \
   python3 \
