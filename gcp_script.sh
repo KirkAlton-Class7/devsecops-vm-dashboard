@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+APP_USER="kirk_cochran_cloud"
+
+
 exec > /var/log/startup-script.log 2>&1
 set -x
 
@@ -80,7 +84,7 @@ retry apt-get install -y \
 mkdir -p "${APP_DIR}" "${DATA_DIR}"
 
 # -------------------------------
-# Install Node.js early
+# Install Node.js
 # -------------------------------
 if ! command -v node >/dev/null; then
   log "Installing Node.js"
@@ -215,21 +219,10 @@ trap \"rm -f \$LOCK_FILE\" EXIT
 
 echo \"[DEPLOY] Checking for updates...\"
 
-cd /opt/cloud-quotes || exit 1
+cd /opt/cloud-quotes/dashboard || exit 1
 
-# Smart dependency install
-if [ -d "node_modules" ]; then
-  echo "[DEPLOY] Using cached node_modules"
-  npm ci --prefer-offline || exit 1
-else
-  echo "[DEPLOY] Fresh install"
-  for i in 1 2 3; do npm ci && break || sleep 2; done
-
-  if [ $? -ne 0 ]; then
-    echo "[DEPLOY] npm ci failed"
-    exit 1
-  fi
-fi
+# Ensure ownership before deploy
+chown -R ${APP_USER}:${APP_USER} /opt/cloud-quotes
 
 LOCAL=\$(git rev-parse HEAD)
 REMOTE=\$(git rev-parse origin/main)
@@ -237,28 +230,26 @@ REMOTE=\$(git rev-parse origin/main)
 if [ \"\$LOCAL\" != \"\$REMOTE\" ]; then
   echo \"[DEPLOY] Changes detected, deploying...\"
 
-  git pull &&
-  cd dashboard &&
+  git pull || exit 1
 
-  # Install npm ci with retry
-  for i in 1 2 3; do npm ci && break || sleep 2; done
+  # Run install + build as app user
+  sudo -u ${APP_USER} bash <<EOF
+cd /opt/cloud-quotes/dashboard
 
-  if [ $? -ne 0 ]; then
-    echo "[DEPLOY] npm ci failed"
-    exit 1
-  fi
+if ! npm ci; then
+  npm install || exit 1
+fi
 
-  # Build
-  if ! npm run build; then
-    echo "[DEPLOY] Build failed"
-    exit 1
-  fi
+npm run build || exit 1
+EOF
 
   if [ ! -d "dist" ]; then
     echo "[DEPLOY] dist missing — skipping deploy"
     exit 0
   fi
-  
+
+  # Atomic deploy
+  rm -rf ${APP_DIR}/*
   cp -r dist/* ${APP_DIR}/
 
   echo \"[DEPLOY] Deployment complete\"
@@ -411,11 +402,13 @@ PY
 # Ensure /opt permissions
 # -------------------------------
 mkdir -p /opt
-chown -R "$(whoami)":"$(whoami)" /opt
 
-# -------------------------------
-# Clone Repo + Build Dashboard
-# -------------------------------
+# Only fix repo path (NOT entire /opt)
+chown -R ${APP_USER}:${APP_USER} /opt/cloud-quotes 2>/dev/null || true
+
+# --------------------------------
+# Clone Repo
+# --------------------------------
 log "Cloning dashboard repo"
 
 REPO_URL="https://github.com/KirkAlton-Class7/cloud-quotes.git"
@@ -423,18 +416,16 @@ REPO_DIR="/opt/cloud-quotes"
 
 if [ ! -d "$REPO_DIR" ]; then
   retry git clone "$REPO_URL" "$REPO_DIR"
-else
-  cd "$REPO_DIR" && git pull
 fi
 
-# Install Node.js (if not present)
-if ! command -v node >/dev/null; then
-  log "Installing Node.js"
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-  apt-get install -y nodejs
-fi
+cd "$REPO_DIR" && git pull
 
-# Build dashboard
+# CRITICAL: fix ownership immediately after clone/pull
+chown -R ${APP_USER}:${APP_USER} "$REPO_DIR"
+
+# -------------------------------
+# Build and Deploy Dashboard
+# -------------------------------
 log "Building dashboard"
 
 cd "$REPO_DIR/dashboard" || {
@@ -442,16 +433,20 @@ cd "$REPO_DIR/dashboard" || {
   exit 1
 }
 
+# Ensure ownership before build
+chown -R ${APP_USER}:${APP_USER} "$REPO_DIR"
 
-if ! retry npm ci; then
-  log "npm ci failed, attempting fallback install"
+# Run build as application user
+sudo -u ${APP_USER} bash <<EOF
+cd "$REPO_DIR/dashboard"
+
+if ! npm ci; then
+  echo "npm ci failed, trying npm install"
   npm install || exit 1
 fi
 
-if ! npm run build; then
-  log "Build failed — keeping existing deployment"
-  exit 1
-fi
+npm run build || exit 1
+EOF
 
 # Deploy to nginx directory
 log "Deploying dashboard"
@@ -461,7 +456,8 @@ if [ ! -d "dist" ]; then
   exit 1
 fi
 
-cp -r dist/* "$APP_DIR/"
+rm -rf ${APP_DIR}/*
+cp -r dist/* ${APP_DIR}/
 
 # -------------------------------
 # Ensure index.html exists (safety)
