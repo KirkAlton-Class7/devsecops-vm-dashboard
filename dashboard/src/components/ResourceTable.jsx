@@ -52,6 +52,7 @@ export default function ResourceTable({ rows, title = "Resources", subtitle = "C
                   <>
                     <th className="px-4 py-3 font-medium">Time</th>
                     <th className="px-4 py-3 font-medium">Level</th>
+                    <th className="px-4 py-3 font-medium">Source</th>
                     <th className="px-4 py-3 font-medium">Message</th>
                   </>
                 ) : (
@@ -63,7 +64,7 @@ export default function ResourceTable({ rows, title = "Resources", subtitle = "C
                     <th className="px-4 py-3 font-medium w-8"></th>
                   </>
                 )}
-               </tr>
+                </tr>
             </thead>
             <tbody>
               {rows.map((row, idx) => {
@@ -94,6 +95,11 @@ export default function ResourceTable({ rows, title = "Resources", subtitle = "C
                           "bg-cyan-500/20 text-cyan-400"
                         }`}>
                           {row.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-300">
+                          {row.scope}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-300">{row.status}</td>

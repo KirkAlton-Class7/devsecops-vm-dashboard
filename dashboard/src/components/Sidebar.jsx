@@ -60,11 +60,11 @@ export default function Sidebar() {
             animate={{ x: 0 }}
             exit={{ x: -300 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed top-0 left-0 h-full w-72 bg-gradient-to-b from-slate-900/95 to-slate-950/95 backdrop-blur-xl border-r border-white/10 shadow-2xl z-40 xl:block overflow-y-auto pt-16"
+            className="fixed top-0 left-0 h-full w-72 bg-gradient-to-b from-slate-900/95 to-slate-950/95 backdrop-blur-xl border-r border-white/10 shadow-2xl z-30 xl:block overflow-y-auto"
           >
             <div className="flex flex-col h-full">
               {/* Header */}
-              <div className="p-6 border-b border-white/10">
+              <div className="p-6 border-b border-white/10 mt-16">
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}

@@ -332,6 +332,15 @@ def get_network_info():
     except:
         return os.environ.get('RX_BYTES', '0') + " / " + os.environ.get('TX_BYTES', '0')
 
+def get_load_average():
+    """Get 1-minute load average"""
+    try:
+        with open('/proc/loadavg', 'r') as f:
+            load = f.read().split()
+            return float(load[0])
+    except:
+        return 0.0
+
 def get_cost_estimate():
     """Estimate cost based on machine type, provider, and actual usage"""
     try:
@@ -505,11 +514,13 @@ quote = random.choice(quotes)
 
 # Generate sample logs (you can replace with real logs from your system)
 logs = [
-    {"time": datetime.now().strftime("%H:%M:%S"), "level": "info", "message": "Dashboard initialized"},
-    {"time": (datetime.now() - timedelta(minutes=5)).strftime("%H:%M:%S"), "level": "info", "message": "Metrics collection started"},
-    {"time": (datetime.now() - timedelta(minutes=10)).strftime("%H:%M:%S"), "level": "info", "message": "System health check passed"},
-    {"time": (datetime.now() - timedelta(minutes=15)).strftime("%H:%M:%S"), "level": "warning", "message": "High memory usage detected (cleared)"},
-    {"time": (datetime.now() - timedelta(minutes=30)).strftime("%H:%M:%S"), "level": "info", "message": "Quotes refreshed from GitHub"},
+    {"time": datetime.now().strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "Dashboard initialized"},
+    {"time": (datetime.now() - timedelta(minutes=5)).strftime("%H:%M:%S"), "level": "info", "scope": "metrics", "message": "Metrics collection started"},
+    {"time": (datetime.now() - timedelta(minutes=10)).strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "System health check passed"},
+    {"time": (datetime.now() - timedelta(minutes=15)).strftime("%H:%M:%S"), "level": "warning", "scope": "system", "message": "High memory usage detected (cleared)"},
+    {"time": (datetime.now() - timedelta(minutes=30)).strftime("%H:%M:%S"), "level": "info", "scope": "quotes", "message": "Quotes refreshed from GitHub"},
+    {"time": (datetime.now() - timedelta(minutes=45)).strftime("%H:%M:%S"), "level": "info", "scope": "nginx", "message": "Nginx request rate: 12 req/s"},
+    {"time": (datetime.now() - timedelta(hours=1)).strftime("%H:%M:%S"), "level": "warning", "scope": "security", "message": "12 failed login attempts detected"},
 ]
 
 # Sample resource table (you can replace with real resources)
@@ -526,7 +537,7 @@ data = {
         {"label":"CPU","value":f"{os.environ.get('CPU_USAGE', '0')}%","status":status(os.environ.get('CPU_USAGE', '0'))},
         {"label":"Memory","value":f"{os.environ.get('MEM_PERCENT', '0')}%","status":status(os.environ.get('MEM_PERCENT', '0'))},
         {"label":"Disk","value":os.environ.get('DISK_PERCENT', '0%'),"status":status(os.environ.get('DISK_PERCENT', '0').replace('%',''))},
-        {"label":"Network","value":get_network_info(),"status":"healthy"}
+        {"label":"Cost","value":get_cost_estimate(),"status":"info"}
     ],
     "vmInformation": [
         {"label":"Hostname","value":os.environ.get('HOSTNAME_VM', 'unknown')},

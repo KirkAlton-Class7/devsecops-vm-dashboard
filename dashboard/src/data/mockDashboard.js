@@ -1,77 +1,105 @@
 export const mockDashboard = {
   summaryCards: [
-    { label: "CPU", value: "18%", status: "healthy" },
-    { label: "Memory", value: "42%", status: "healthy" },
-    { label: "Network", value: "Moderate", status: "warning" },
+    { label: "CPU", value: "72%", status: "warning" },
+    { label: "Memory", value: "68%", status: "warning" },
+    { label: "Disk", value: "45%", status: "healthy" },
+    { label: "Cost", value: "$12.48/month", status: "info" },
   ],
+  
   vmInformation: [
-    { label: "Hostname", value: "sandbox.internal", status: "healthy" },
+    { label: "Hostname", value: "prod-worker-03.internal", status: "healthy" },
     { label: "Instance ID", value: "1234567890123456789", status: "healthy" },
     { label: "Zone", value: "us-central1-a", status: "healthy" },
-    { label: "Machine Type", value: "e2-micro", status: "healthy" },
+    { label: "Machine Type", value: "e2-standard-2", status: "healthy" },
     { label: "OS", value: "Ubuntu 24.04 LTS", status: "healthy" },
-    { label: "Project ID", value: "devsecops-sandbox-demo", status: "healthy" },
-    { label: "Estimated Cost (Usage)", value: "$0.50/month", status: "info" }
+    { label: "Project ID", value: "devsecops-production", status: "healthy" },
+    { label: "Estimated Cost (Usage)", value: "$45.50/month", status: "info" }
   ],
   services: [
-    { label: "Nginx", value: "Running", status: "healthy" },
+    { label: "Nginx", value: "Running (12 req/s)", status: "healthy" },
     { label: "Python", value: "Installed", status: "healthy" },
     { label: "Metadata Service", value: "Reachable", status: "healthy" },
-    { label: "HTTP Service", value: "Serving", status: "healthy" },
+    { label: "HTTP Service", value: "Serving (1.2k req/min)", status: "warning" },
     { label: "Startup Script", value: "Completed", status: "healthy" },
     { label: "GitHub Quotes Sync", value: "Successful", status: "healthy" },
     { label: "Bootstrap Packages", value: "nginx, python3, curl, jq", status: "healthy" },
   ],
   security: [
     { label: "Host Firewall (UFW)", value: "active", status: "healthy" },
-    { label: "SSH Service", value: "Running", status: "warning" },
-    { label: "System Updates", value: "Pending (4)", status: "warning" },
+    { label: "SSH Service", value: "Running (22/tcp)", status: "healthy" },
+    { label: "System Updates", value: "Pending (2)", status: "warning" },
     { label: "Internal IP", value: "10.128.0.5", status: "healthy" },
     { label: "Public IP", value: "34.122.10.22", status: "warning" },
+    { label: "Failed Login Attempts", value: "12 (last hour)", status: "warning" },
   ],
-  chartSeries: [
-    { name: "Mon", value: 14 },
-    { name: "Tue", value: 22 },
-    { name: "Wed", value: 19 },
-    { name: "Thu", value: 27 },
-    { name: "Fri", value: 24 },
-    { name: "Sat", value: 18 },
-    { name: "Sun", value: 21 },
-  ],
+  
+  systemLoad: "2.45",
+  
   resourceTable: [
     { name: "nginx.service", type: "systemd", status: "Running", scope: "vm" },
     { name: "python3", type: "runtime", status: "Installed", scope: "vm" },
+    { name: "postgresql", type: "database", status: "Running", scope: "vm" },
+    { name: "redis", type: "cache", status: "Running", scope: "vm" },
     { name: "metadata", type: "cloud", status: "Reachable", scope: "gcp" },
     { name: "quotes.json", type: "content", status: "Ready", scope: "app" },
   ],
-  logs: [
-    { time: "startup", message: "Bootstrap completed successfully", level: "info" },
-    { time: "services", message: "GitHub quotes sync: Successful", level: "info" },
-    { time: "security", message: "Public IP exposure detected", level: "warn" },
+  
+    // Fixed logs structure - proper columns for ResourceTable
+    logs: [
+    { 
+      time: "14:32:15", 
+      level: "warn", 
+      message: "High CPU usage detected (72%)",
+      scope: "system"
+    },
+    { 
+      time: "14:30:22", 
+      level: "info", 
+      message: "Nginx request rate increased to 12 req/s",
+      scope: "nginx"
+    },
+    { 
+      time: "14:28:05", 
+      level: "info", 
+      message: "Database connection pool at 85%",
+      scope: "postgres"
+    },
+    { 
+      time: "14:25:30", 
+      level: "info", 
+      message: "GitHub quotes sync: Successful",
+      scope: "app"
+    },
+    { 
+      time: "14:20:00", 
+      level: "warn", 
+      message: "12 failed login attempts detected",
+      scope: "security"
+    },
   ],
   meta: {
-    appName: "DevSecOps Sandbox",
-    tagline: "Cloud VM posture, service health, and metadata visibility",
-    uptime: "up 11 minutes",
+    appName: "DevSecOps",
+    tagline: "Production monitoring • High activity detected",
+    uptime: "up 6 days, 14 hours",
   },
 };
 
 export const mockQuotes = [
   {
     id: 1,
-    text: "Automation turns good habits into repeatable systems.",
+    text: "High load means you're doing something right. Just make sure it scales.",
     author: "DevSecOps Sandbox",
-    tag: "automation",
+    tag: "performance",
   },
   {
     id: 2,
-    text: "Security works best when it is built in early, not bolted on later.",
+    text: "Security never sleeps, and neither does your production workload.",
     author: "DevSecOps Sandbox",
-    tag: "shift-left",
+    tag: "security",
   },
   {
     id: 3,
-    text: "Logs are evidence, not decoration.",
+    text: "Logs are evidence, not decoration. Your 12 failed logins prove it.",
     author: "DevSecOps Sandbox",
     tag: "observability",
   },

@@ -1,18 +1,18 @@
 import { motion } from "framer-motion";
-import { Activity, Cpu, HardDrive, Network, TrendingUp, TrendingDown, Zap } from "lucide-react";
+import { Activity, Cpu, HardDrive, Network, TrendingUp, TrendingDown, Zap, DollarSign } from "lucide-react";
 
 const icons = {
   CPU: Cpu,
   Memory: Activity,
   Disk: HardDrive,
   Network: Network,
+  Cost: DollarSign,
   default: Zap
 };
 
 export default function StatCard({ label, value, status }) {
   const Icon = icons[label] || icons.default;
   const isWarning = status === "warning";
-  const numericValue = parseFloat(value);
   
   const getGradient = () => {
     if (isWarning) return "from-orange-500/20 via-amber-500/20 to-yellow-500/20";
@@ -34,15 +34,17 @@ export default function StatCard({ label, value, status }) {
     return "text-emerald-400 bg-emerald-500/10";
   };
 
-  // Calculate percentage for progress bar
+  // Calculate percentage for progress bar - only for CPU, Memory, Disk
   let percentage = null;
-  if (value.includes('%')) {
-    percentage = parseInt(value);
+  if (label === "CPU" || label === "Memory" || label === "Disk") {
+    if (value && value.includes('%')) {
+      percentage = parseInt(value);
+    }
   }
 
   return (
     <motion.div
-      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${getGradient()} backdrop-blur-xl border ${getBorderColor()} shadow-xl group h-full`}
+      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${getGradient()} backdrop-blur-xl border ${getBorderColor()} shadow-xl group w-full`}
       whileHover={{ 
         y: -5,
         scale: 1.02,
@@ -52,17 +54,7 @@ export default function StatCard({ label, value, status }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 200, damping: 25 }}
     >
-      {/* Animated background glow */}
-      <motion.div
-        className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${isWarning ? 'bg-orange-500/5' : 'bg-emerald-500/5'}`}
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0, 0.5, 0]
-        }}
-        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-      />
-      
-      <div className="relative p-6 z-10 h-full flex flex-col">
+      <div className="relative p-6 z-10">
         <div className="flex items-start justify-between mb-4">
           <motion.div 
             className={`p-3 rounded-xl bg-white/5 backdrop-blur-sm border ${getBorderColor()}`}
@@ -90,7 +82,7 @@ export default function StatCard({ label, value, status }) {
         </div>
         
         <motion.div 
-          className="space-y-2 flex-1"
+          className="space-y-2"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -105,7 +97,7 @@ export default function StatCard({ label, value, status }) {
           <p className="text-sm text-slate-400 font-medium tracking-wide uppercase">{label}</p>
         </motion.div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar - only for CPU, Memory, Disk */}
         {percentage !== null && (
           <div className="mt-4">
             <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
@@ -127,9 +119,9 @@ export default function StatCard({ label, value, status }) {
           </div>
         )}
         
-        {/* Network indicator - consistent height with progress bar */}
+        {/* Network/Cost indicator - no progress bar */}
         {!percentage && (
-          <div className="mt-4 h-6">
+          <div className="mt-4">
             <div className="flex items-center gap-2">
               <div className="flex-1 h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
                 <motion.div 

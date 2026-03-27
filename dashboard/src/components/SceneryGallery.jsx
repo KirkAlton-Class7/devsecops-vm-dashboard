@@ -155,7 +155,7 @@ export default function SceneryGallery() {
   // Show loading while shuffling
   if (!shuffledImages.length) {
     return (
-      <Card title="Scenes from Around the World" subtitle="Which of these beautiful places will you go next?">
+      <Card title="Scenes from Around the World" subtitle="Where will you go next?">
         <div className="flex items-center justify-center h-64">
           <div className="relative">
             <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500 to-purple-600 blur-xl animate-pulse"></div>
@@ -172,7 +172,7 @@ export default function SceneryGallery() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card title="Scenes from Around the World" subtitle="Which of these beautiful places will you go next?">
+      <Card title="Scenes from Around the World" subtitle="Where will you go next?">
         <div className="relative">
           <AnimatePresence mode="wait">
             <motion.div

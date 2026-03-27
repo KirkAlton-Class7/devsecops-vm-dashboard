@@ -6,7 +6,7 @@ import SceneryGallery from "./components/SceneryGallery";
 import ResourceTable from "./components/ResourceTable";
 import SectionList from "./components/SectionList";
 import Sidebar from "./components/Sidebar";
-import SimpleBarChart from "./components/SimpleBarChart";
+import RealTimeMetrics from "./components/RealTimeMetrics";
 import StatCard from "./components/StatCard";
 import { mockDashboard, mockQuotes } from "./data/mockDashboard";
 
@@ -90,7 +90,7 @@ export default function App() {
       <Sidebar />
 
       <motion.div 
-        className="lg:ml-64"
+        className="lg:ml-72"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -110,28 +110,29 @@ export default function App() {
           {/* Stats Cards */}
           <motion.section 
             id="overview" 
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full"
             variants={itemVariants}
           >
             {dashboard.summaryCards?.map((card, idx) => (
-              <motion.div
-                key={card.label}
-                className="h-full"
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: idx * 0.1, type: "spring", stiffness: 200 }}
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              >
-                <StatCard
-                  label={card.label}
-                  value={card.value}
-                  status={card.status}
-                />
-              </motion.div>
+              <div key={card.label} className="w-full">
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: idx * 0.1, type: "spring", stiffness: 200 }}
+                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                  className="h-full"
+                >
+                  <StatCard
+                    label={card.label}
+                    value={card.value}
+                    status={card.status}
+                  />
+                </motion.div>
+              </div>
             ))}
           </motion.section>
 
-          {/* Chart & Quote & Gallery */}
+          {/* Real-time Metrics & Quote & Gallery */}
           <motion.section 
             className="grid grid-cols-1 gap-6 lg:grid-cols-3"
             variants={itemVariants}
@@ -141,7 +142,7 @@ export default function App() {
               whileHover={{ scale: 1.01 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <SimpleBarChart data={dashboard.chartSeries || []} />
+              <RealTimeMetrics />
             </motion.div>
             <div className="space-y-6">
               <motion.div
