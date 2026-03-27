@@ -3,7 +3,6 @@ export const mockDashboard = {
     { label: "CPU", value: "18%", status: "healthy" },
     { label: "Memory", value: "42%", status: "healthy" },
     { label: "Network", value: "Moderate", status: "warning" },
-    { label: "Cost", value: "$3.12", status: "healthy" },
   ],
   vmInformation: [
     { label: "Hostname", value: "sandbox.internal", status: "healthy" },
@@ -12,6 +11,7 @@ export const mockDashboard = {
     { label: "Machine Type", value: "e2-micro", status: "healthy" },
     { label: "OS", value: "Ubuntu 24.04 LTS", status: "healthy" },
     { label: "Project ID", value: "devsecops-sandbox-demo", status: "healthy" },
+    { label: "Estimated Cost (Usage)", value: "$0.50/month", status: "info" }
   ],
   services: [
     { label: "Nginx", value: "Running", status: "healthy" },

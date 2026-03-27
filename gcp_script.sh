@@ -395,7 +395,7 @@ data = {
         {"label":"Updates","value":get_update_status(),"status":"info"},
         {"label":"Internal IP","value":os.environ.get('INTERNAL_IP', 'unknown'),"status":"info"},
         {"label":"Public IP","value":os.environ.get('PUBLIC_IP', 'unknown'),"status":"info"},
-        {"label":"Estimated Cost","value":get_cost_estimate(),"status":"info"}
+        {"label":"Estimated Cost (Usage)","value":get_cost_estimate(),"status":"info"}
     ],
     "meta": {
         "appName": "DevSecOps Sandbox",
