@@ -65,10 +65,10 @@ wait_for_apt() {
 # Install packages
 # -------------------------------
 wait_for_apt
-apt-get update -y
+retry apt-get update -y
 
 wait_for_apt
-apt-get install -y \
+retry apt-get install -y \
   nginx \
   python3 \
   curl \
@@ -217,7 +217,19 @@ echo \"[DEPLOY] Checking for updates...\"
 
 cd /opt/cloud-quotes || exit 1
 
-for i in 1 2 3; do git fetch origin && break || sleep 2; done
+# Smart dependency install
+if [ -d "node_modules" ]; then
+  echo "[DEPLOY] Using cached node_modules"
+  npm ci --prefer-offline || exit 1
+else
+  echo "[DEPLOY] Fresh install"
+  for i in 1 2 3; do npm ci && break || sleep 2; done
+
+  if [ $? -ne 0 ]; then
+    echo "[DEPLOY] npm ci failed"
+    exit 1
+  fi
+fi
 
 LOCAL=\$(git rev-parse HEAD)
 REMOTE=\$(git rev-parse origin/main)
@@ -242,6 +254,11 @@ if [ \"\$LOCAL\" != \"\$REMOTE\" ]; then
     exit 1
   fi
 
+  if [ ! -d "dist" ]; then
+    echo "[DEPLOY] dist missing — skipping deploy"
+    exit 0
+  fi
+  
   cp -r dist/* ${APP_DIR}/
 
   echo \"[DEPLOY] Deployment complete\"
@@ -391,6 +408,12 @@ with open("/var/www/devsecops-sandbox/data/dashboard-data.json","w") as f:
 PY
 
 # -------------------------------
+# Ensure /opt permissions
+# -------------------------------
+mkdir -p /opt
+chown -R "$(whoami)":"$(whoami)" /opt
+
+# -------------------------------
 # Clone Repo + Build Dashboard
 # -------------------------------
 log "Cloning dashboard repo"
@@ -413,7 +436,12 @@ fi
 
 # Build dashboard
 log "Building dashboard"
-cd "$REPO_DIR/dashboard"
+
+cd "$REPO_DIR/dashboard" || {
+  log "ERROR: dashboard directory not found"
+  exit 1
+}
+
 
 if ! retry npm ci; then
   log "npm ci failed, attempting fallback install"
@@ -427,6 +455,12 @@ fi
 
 # Deploy to nginx directory
 log "Deploying dashboard"
+
+if [ ! -d "dist" ]; then
+  log "ERROR: dist directory missing"
+  exit 1
+fi
+
 cp -r dist/* "$APP_DIR/"
 
 # -------------------------------
@@ -470,9 +504,9 @@ rm -f /etc/nginx/sites-enabled/default
 
 # Enable custom site by creating a symlink (sites-available → sites-enabled)
 # Nginx ONLY loads configs from sites-enabled/
-ln -s "${NGINX_SITE}" /etc/nginx/sites-enabled/
+ln -sf "${NGINX_SITE}" /etc/nginx/sites-enabled/
 
-# Validate nginx config
+# Test to validate nginx config
 nginx -t
 
 # -------------------------------
@@ -486,8 +520,15 @@ systemctl restart nginx
 # -------------------------------
 log "Validating deployment"
 
+# Check backend/data
 if ! curl -f http://127.0.0.1/data/dashboard-data.json >/dev/null; then
   log "ERROR: Dashboard data endpoint not reachable"
+  exit 1
+fi
+
+# Check frontend/app
+if ! curl -f http://127.0.0.1 >/dev/null; then
+  log "ERROR: App not serving"
   exit 1
 fi
 
