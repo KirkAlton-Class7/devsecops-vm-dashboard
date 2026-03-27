@@ -42,7 +42,7 @@ export default function StatCard({ label, value, status }) {
 
   return (
     <motion.div
-      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${getGradient()} backdrop-blur-xl border ${getBorderColor()} shadow-xl group`}
+      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${getGradient()} backdrop-blur-xl border ${getBorderColor()} shadow-xl group h-full`}
       whileHover={{ 
         y: -5,
         scale: 1.02,
@@ -62,7 +62,7 @@ export default function StatCard({ label, value, status }) {
         transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
       />
       
-      <div className="relative p-6 z-10">
+      <div className="relative p-6 z-10 h-full flex flex-col">
         <div className="flex items-start justify-between mb-4">
           <motion.div 
             className={`p-3 rounded-xl bg-white/5 backdrop-blur-sm border ${getBorderColor()}`}
@@ -90,7 +90,7 @@ export default function StatCard({ label, value, status }) {
         </div>
         
         <motion.div 
-          className="space-y-2"
+          className="space-y-2 flex-1"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -124,6 +124,23 @@ export default function StatCard({ label, value, status }) {
             >
               {percentage}% utilized
             </motion.p>
+          </div>
+        )}
+        
+        {/* Network indicator - consistent height with progress bar */}
+        {!percentage && (
+          <div className="mt-4 h-6">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                <motion.div 
+                  className="h-full bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full"
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 1, delay: 0.3 }}
+                />
+              </div>
+              <span className="text-xs text-cyan-400 animate-pulse">● Active</span>
+            </div>
           </div>
         )}
       </div>

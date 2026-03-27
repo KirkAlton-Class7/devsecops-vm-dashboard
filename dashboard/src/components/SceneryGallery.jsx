@@ -6,13 +6,13 @@ import Card from "./Card";
 const sceneryImages = [
   {
     filename: "chiang_mai_mountain_sunrise.jpeg",
-    title: "Chiang Mai Mountain Sunrise",
+    title: "Mountain Sunrise",
     location: "Chiang Mai, Thailand",
     tags: ["mountains", "sunrise", "landscape"]
   },
   {
     filename: "chiang_mai_temple_sunset.jpg",
-    title: "Chiang Mai Temple Sunset",
+    title: "Temple Sunset",
     location: "Chiang Mai, Thailand",
     tags: ["temple", "sunset", "culture"]
   },
@@ -96,21 +96,38 @@ const sceneryImages = [
   }
 ];
 
+// Shuffle function
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 export default function SceneryGallery() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [liked, setLiked] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [shuffledImages, setShuffledImages] = useState([]);
 
-  const currentImage = sceneryImages[currentIndex];
-  const imageUrl = `/data/images/${currentImage.filename}`;
+  // Shuffle images on component mount
+  useEffect(() => {
+    setShuffledImages(shuffleArray(sceneryImages));
+  }, []);
+
+  const currentImage = shuffledImages[currentIndex];
+  const imageUrl = currentImage ? `/data/images/${currentImage.filename}` : "";
 
   const handleRefresh = () => {
+    if (!shuffledImages.length) return;
     setIsRefreshing(true);
     let newIndex;
     do {
-      newIndex = Math.floor(Math.random() * sceneryImages.length);
-    } while (newIndex === currentIndex && sceneryImages.length > 1);
+      newIndex = Math.floor(Math.random() * shuffledImages.length);
+    } while (newIndex === currentIndex && shuffledImages.length > 1);
     setCurrentIndex(newIndex);
     setLiked(false);
     setImageError(false);
@@ -118,13 +135,15 @@ export default function SceneryGallery() {
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % sceneryImages.length);
+    if (!shuffledImages.length) return;
+    setCurrentIndex((prev) => (prev + 1) % shuffledImages.length);
     setLiked(false);
     setImageError(false);
   };
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + sceneryImages.length) % sceneryImages.length);
+    if (!shuffledImages.length) return;
+    setCurrentIndex((prev) => (prev - 1 + shuffledImages.length) % shuffledImages.length);
     setLiked(false);
     setImageError(false);
   };
@@ -133,13 +152,27 @@ export default function SceneryGallery() {
     setLiked(!liked);
   };
 
+  // Show loading while shuffling
+  if (!shuffledImages.length) {
+    return (
+      <Card title="Scenes from Around the World" subtitle="Which of these beautiful places will you go next?">
+        <div className="flex items-center justify-center h-64">
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500 to-purple-600 blur-xl animate-pulse"></div>
+            <div className="relative animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-400"></div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card title="Scenic Escape" subtitle="Take a moment to enjoy these beautiful places">
+      <Card title="Scenes from Around the World" subtitle="Which of these beautiful places will you go next?">
         <div className="relative">
           <AnimatePresence mode="wait">
             <motion.div
@@ -162,27 +195,18 @@ export default function SceneryGallery() {
                   <ImageOff className="w-12 h-12 text-slate-600" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               
-              {/* Image Info Overlay */}
+              {/* Image Info Overlay - Only title and location */}
               <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                 <h3 className="text-lg font-semibold">{currentImage.title}</h3>
-                <p className="text-sm text-white/80">{currentImage.location}</p>
-                {currentImage.tags && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {currentImage.tags.map(tag => (
-                      <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-black/50 text-white/80">
-                        {tag.replace('_', ' ')}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <p className="text-sm text-white/80 mt-1">{currentImage.location}</p>
               </div>
             </motion.div>
           </AnimatePresence>
 
           {/* Navigation Buttons */}
-          {sceneryImages.length > 1 && (
+          {shuffledImages.length > 1 && (
             <>
               <button
                 onClick={handlePrev}
@@ -226,7 +250,7 @@ export default function SceneryGallery() {
           </div>
           
           <p className="text-xs text-slate-500">
-            {currentIndex + 1} / {sceneryImages.length}
+            {currentIndex + 1} / {shuffledImages.length}
           </p>
         </div>
       </Card>
