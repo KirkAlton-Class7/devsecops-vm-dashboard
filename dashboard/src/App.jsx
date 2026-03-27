@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import Header from "./components/Header";
 import QuoteCard from "./components/QuoteCard";
+import SceneryGallery from "./components/SceneryGallery";
 import ResourceTable from "./components/ResourceTable";
 import SectionList from "./components/SectionList";
 import Sidebar from "./components/Sidebar";
@@ -129,7 +130,7 @@ export default function App() {
             ))}
           </motion.section>
 
-          {/* Chart & Quote */}
+          {/* Chart & Quote & Gallery */}
           <motion.section 
             className="grid grid-cols-1 gap-6 xl:grid-cols-3"
             variants={itemVariants}
@@ -141,12 +142,20 @@ export default function App() {
             >
               <SimpleBarChart data={dashboard.chartSeries || []} />
             </motion.div>
-            <motion.div
-              whileHover={{ y: -5 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <QuoteCard quote={featuredQuote} />
-            </motion.div>
+            <div className="space-y-6">
+              <motion.div
+                whileHover={{ y: -5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <QuoteCard quote={featuredQuote} />
+              </motion.div>
+              <motion.div
+                whileHover={{ y: -3 }}
+                transition={{ duration: 0.2 }}
+              >
+                <SceneryGallery />
+              </motion.div>
+            </div>
           </motion.section>
 
           {/* Info Sections */}

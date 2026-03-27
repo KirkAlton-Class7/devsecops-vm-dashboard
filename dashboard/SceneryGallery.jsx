@@ -1,45 +1,98 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { RefreshCw, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { RefreshCw, Heart, ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 import Card from "./Card";
 
-// Beautiful scenery images (using Unsplash or Pexels)
 const sceneryImages = [
   {
-    url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4",
-    title: "Swiss Alps",
-    location: "Switzerland",
-    photographer: "Mountain Explorer"
+    filename: "chiang_mai_mountain_sunrise.jpeg",
+    title: "Chiang Mai Mountain Sunrise",
+    location: "Chiang Mai, Thailand",
+    tags: ["mountains", "sunrise", "landscape"]
   },
   {
-    url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e",
-    title: "Maldives Beach",
-    location: "Maldives",
-    photographer: "Tropical Dreams"
+    filename: "chiang_mai_temple_sunset.jpg",
+    title: "Chiang Mai Temple Sunset",
+    location: "Chiang Mai, Thailand",
+    tags: ["temple", "sunset", "culture"]
   },
   {
-    url: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05",
-    title: "Forest Mist",
-    location: "Pacific Northwest",
-    photographer: "Nature Lens"
+    filename: "chiang_mai_misty_valley.jpeg",
+    title: "Misty Valley",
+    location: "Chiang Mai, Thailand",
+    tags: ["valley", "fog", "nature"]
   },
   {
-    url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b",
-    title: "Northern Lights",
-    location: "Iceland",
-    photographer: "Aurora Hunter"
+    filename: "madagascar_baobab_trees.jpeg",
+    title: "Baobab Trees",
+    location: "Madagascar",
+    tags: ["baobab", "trees", "dry_landscape"]
   },
   {
-    url: "https://images.unsplash.com/photo-1519681393784-d120267933ba",
-    title: "Milky Way",
-    location: "Death Valley",
-    photographer: "Star Gazer"
+    filename: "madagascar_lemur_forest.jpeg",
+    title: "Lemur in the Forest",
+    location: "Madagascar",
+    tags: ["lemur", "wildlife", "forest"]
   },
   {
-    url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e",
-    title: "Sunset Forest",
-    location: "Oregon",
-    photographer: "Golden Hour"
+    filename: "madagascar_chameleon_macro.jpeg",
+    title: "Chameleon Close-up",
+    location: "Madagascar",
+    tags: ["chameleon", "macro", "wildlife"]
+  },
+  {
+    filename: "madagascar_waterfall_canyon.jpeg",
+    title: "Waterfall Canyon",
+    location: "Madagascar",
+    tags: ["waterfall", "canyon", "nature"]
+  },
+  {
+    filename: "madagascar_zebra_grasslands.jpeg",
+    title: "Zebra in the Grasslands",
+    location: "Madagascar",
+    tags: ["zebra", "savanna", "wildlife"]
+  },
+  {
+    filename: "madagascar_tropical_beach.jpeg",
+    title: "Tropical Beach",
+    location: "Madagascar",
+    tags: ["beach", "tropical", "ocean"]
+  },
+  {
+    filename: "madagascar_highlands_sunset.jpeg",
+    title: "Highlands Sunset",
+    location: "Madagascar",
+    tags: ["highlands", "sunset", "landscape"]
+  },
+  {
+    filename: "madagascar_rainforest_canopy.jpg",
+    title: "Rainforest Canopy",
+    location: "Madagascar",
+    tags: ["rainforest", "canopy", "jungle"]
+  },
+  {
+    filename: "madagascar_baobab_avenue.jpeg",
+    title: "Avenue of the Baobabs",
+    location: "Madagascar",
+    tags: ["baobab", "avenue", "iconic"]
+  },
+  {
+    filename: "madagascar_jungle_stream.jpeg",
+    title: "Jungle Stream",
+    location: "Madagascar",
+    tags: ["jungle", "stream", "nature"]
+  },
+  {
+    filename: "madagascar_lagoon_aerial.jpeg",
+    title: "Lagoon Aerial View",
+    location: "Madagascar",
+    tags: ["lagoon", "aerial", "coast"]
+  },
+  {
+    filename: "madagascar_forest_waterfall.jpeg",
+    title: "Forest Waterfall",
+    location: "Madagascar",
+    tags: ["forest", "waterfall", "lush"]
   }
 ];
 
@@ -47,8 +100,10 @@ export default function SceneryGallery() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [liked, setLiked] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const currentImage = sceneryImages[currentIndex];
+  const imageUrl = `/data/images/${currentImage.filename}`;
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -58,17 +113,20 @@ export default function SceneryGallery() {
     } while (newIndex === currentIndex && sceneryImages.length > 1);
     setCurrentIndex(newIndex);
     setLiked(false);
+    setImageError(false);
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % sceneryImages.length);
     setLiked(false);
+    setImageError(false);
   };
 
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev - 1 + sceneryImages.length) % sceneryImages.length);
     setLiked(false);
+    setImageError(false);
   };
 
   const handleLike = () => {
@@ -90,37 +148,56 @@ export default function SceneryGallery() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.3 }}
-              className="relative rounded-xl overflow-hidden aspect-video"
+              className="relative rounded-xl overflow-hidden aspect-video bg-gradient-to-br from-slate-800 to-slate-900"
             >
-              <img
-                src={`${currentImage.url}?w=800&h=450&fit=crop`}
-                alt={currentImage.title}
-                className="w-full h-full object-cover"
-              />
+              {!imageError ? (
+                <img
+                  src={imageUrl}
+                  alt={currentImage.title}
+                  className="w-full h-full object-cover"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <ImageOff className="w-12 h-12 text-slate-600" />
+                </div>
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               
               {/* Image Info Overlay */}
               <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                 <h3 className="text-lg font-semibold">{currentImage.title}</h3>
                 <p className="text-sm text-white/80">{currentImage.location}</p>
-                <p className="text-xs text-white/60 mt-1">📸 {currentImage.photographer}</p>
+                {currentImage.tags && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {currentImage.tags.map(tag => (
+                      <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-black/50 text-white/80">
+                        {tag.replace('_', ' ')}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </motion.div>
           </AnimatePresence>
 
           {/* Navigation Buttons */}
-          <button
-            onClick={handlePrev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={handleNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+          {sceneryImages.length > 1 && (
+            <>
+              <button
+                onClick={handlePrev}
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white backdrop-blur-sm"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleNext}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white backdrop-blur-sm"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Action Buttons */}

@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "filename": "swiss-alps.jpg",
+    "title": "Swiss Alps",
+    "location": "Switzerland",
+    "photographer": "Mountain Explorer",
+    "tags": ["mountains", "alps", "nature"]
+  },
+  {
+    "id": 2,
+    "filename": "maldives-beach.jpg",
+    "title": "Tropical Paradise",
+    "location": "Maldives",
+    "photographer": "Tropical Dreams",
+    "tags": ["beach", "ocean", "tropical"]
+  },
+  {
+    "id": 3,
+    "filename": "northern-lights.jpg",
+    "title": "Aurora Borealis",
+    "location": "Iceland",
+    "photographer": "Aurora Hunter",
+    "tags": ["northern lights", "aurora", "night sky"]
+  },
+  {
+    "id": 4,
+    "filename": "milky-way.jpg",
+    "title": "Milky Way",
+    "location": "Death Valley",
+    "photographer": "Star Gazer",
+    "tags": ["stars", "night sky", "astronomy"]
+  },
+  {
+    "id": 5,
+    "filename": "forest-mist.jpg",
+    "title": "Misty Forest",
+    "location": "Pacific Northwest",
+    "photographer": "Nature Lens",
+    "tags": ["forest", "mist", "trees"]
+  },
+  {
+    "id": 6,
+    "filename": "sunset-ocean.jpg",
+    "title": "Golden Sunset",
+    "location": "California Coast",
+    "photographer": "Golden Hour",
+    "tags": ["sunset", "ocean", "coast"]
+  }
+]

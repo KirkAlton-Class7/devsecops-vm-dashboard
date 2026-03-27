@@ -182,6 +182,39 @@ CRON_CMD="*/10 * * * * curl -fsSL ${GITHUB_QUOTES_URL} -o ${DATA_DIR}/quotes.jso
 (crontab -l 2>/dev/null | grep -v 'cloud-quotes-sync'; echo "$CRON_CMD") | crontab -
 
 # -------------------------------
+# Scenery Images (from repo root/images)
+# -------------------------------
+
+log "Setting up scenery gallery"
+
+# Create images directory
+mkdir -p "${DATA_DIR}/images"
+
+# Copy images from repo root/images to data directory
+if [ -d "$REPO_DIR/images" ]; then
+    cp -r "$REPO_DIR/images/"* "${DATA_DIR}/images/" 2>/dev/null && log "Images copied successfully" || log "No images found in repo/images"
+else
+    log "Images directory not found in repo"
+fi
+
+# Copy images.json from repo root to data directory
+if [ -f "$REPO_DIR/images.json" ]; then
+    cp "$REPO_DIR/images.json" "${DATA_DIR}/images.json" && log "Images metadata copied successfully"
+else
+    log "images.json not found in repo root"
+fi
+
+# Set proper permissions
+chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}/images" 2>/dev/null || true
+chmod -R 755 "${DATA_DIR}/images" 2>/dev/null || true
+
+# Also ensure images are in the deployed dashboard directory (optional)
+if [ -d "$REPO_DIR/images" ]; then
+    mkdir -p "${APP_DIR}/data/images"
+    cp -r "$REPO_DIR/images/"* "${APP_DIR}/data/images/" 2>/dev/null || true
+fi
+
+# -------------------------------
 # Metadata
 # -------------------------------
 
@@ -300,22 +333,145 @@ def get_network_info():
         return os.environ.get('RX_BYTES', '0') + " / " + os.environ.get('TX_BYTES', '0')
 
 def get_cost_estimate():
-    """Estimate cost based on resource usage"""
+    """Estimate cost based on machine type, provider, and actual usage"""
     try:
-        cpu = float(os.environ.get('CPU_USAGE', '0'))
-        mem = float(os.environ.get('MEM_PERCENT', '0'))
+        # Get machine type with fallback
+        machine_type = os.environ.get('MACHINE_TYPE', 'e2-micro').lower()
         
-        # Simple cost calculation (adjust based on your provider)
-        base_cost = 0.05  # $0.05 per hour base
-        cpu_cost = (cpu / 100) * 0.02
-        mem_cost = (mem / 100) * 0.01
+        # Get usage metrics with safe defaults
+        try:
+            cpu = float(os.environ.get('CPU_USAGE', '0'))
+            mem = float(os.environ.get('MEM_PERCENT', '0'))
+        except (ValueError, TypeError):
+            cpu = 0
+            mem = 0
         
-        hourly_cost = base_cost + cpu_cost + mem_cost
-        monthly_cost = hourly_cost * 24 * 30
+        # Detect cloud provider from metadata (with timeout and error handling)
+        provider = "unknown"
+        try:
+            import subprocess
+            
+            # GCP detection (most reliable on GCP)
+            if not provider == "unknown":
+                gcp_check = subprocess.run(
+                    ['curl', '-s', '--max-time', '2', '-H', 'Metadata-Flavor: Google', 
+                     'http://metadata.google.internal/computeMetadata/v1/instance/zone'],
+                    capture_output=True, text=True, timeout=2
+                )
+                if gcp_check.returncode == 0 and gcp_check.stdout:
+                    provider = "gcp"
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, ImportError):
+            pass
         
-        return f"${monthly_cost:.2f}/month"
-    except:
-        return "Calculating..."
+        # AWS detection
+        if provider == "unknown":
+            try:
+                aws_check = subprocess.run(
+                    ['curl', '-s', '--max-time', '2', 'http://169.254.169.254/latest/meta-data/instance-id'],
+                    capture_output=True, text=True, timeout=2
+                )
+                if aws_check.returncode == 0 and aws_check.stdout:
+                    provider = "aws"
+            except (subprocess.TimeoutExpired, subprocess.SubprocessError):
+                pass
+        
+        # Azure detection
+        if provider == "unknown":
+            try:
+                azure_check = subprocess.run(
+                    ['curl', '-s', '--max-time', '2', '-H', 'Metadata:true', 
+                     'http://169.254.169.254/metadata/instance?api-version=2017-08-01'],
+                    capture_output=True, text=True, timeout=2
+                )
+                if azure_check.returncode == 0 and azure_check.stdout:
+                    provider = "azure"
+            except (subprocess.TimeoutExpired, subprocess.SubprocessError):
+                pass
+        
+        # Parse machine type to extract size (handles various formats)
+        # GCP: e2-micro, e2-small, e2-medium, n1-standard-1, etc.
+        # AWS: t2.micro, t3.small, etc.
+        # Azure: Standard_B1s, etc.
+        machine_size = "unknown"
+        
+        # Extract size indicators
+        if "micro" in machine_type:
+            machine_size = "micro"
+        elif "small" in machine_type:
+            machine_size = "small"
+        elif "medium" in machine_type:
+            machine_size = "medium"
+        elif "large" in machine_type:
+            machine_size = "large"
+        else:
+            # Default to micro for unknown sizes
+            machine_size = "micro"
+        
+        # Pricing based on provider and machine size (hourly rates)
+        # Using conservative estimates - adjust based on your region
+        pricing = {
+            "gcp": {
+                "micro": 0.012,   # e2-micro: ~$8.64/month
+                "small": 0.025,   # e2-small: ~$18/month
+                "medium": 0.050,  # e2-medium: ~$36/month
+                "large": 0.100,   # e2-large: ~$72/month
+            },
+            "aws": {
+                "micro": 0.0116,  # t2.micro: ~$8.35/month
+                "small": 0.023,   # t2.small: ~$16.56/month
+                "medium": 0.046,  # t2.medium: ~$33.12/month
+                "large": 0.092,   # t2.large: ~$66.24/month
+            },
+            "azure": {
+                "micro": 0.012,   # B1s: ~$8.64/month
+                "small": 0.024,   # B1ms: ~$17.28/month
+                "medium": 0.048,  # B2s: ~$34.56/month
+                "large": 0.096,   # B2ms: ~$69.12/month
+            }
+        }
+        
+        # Get base hourly rate with fallback
+        if provider in pricing and machine_size in pricing[provider]:
+            base_hourly = pricing[provider][machine_size]
+        elif provider in pricing:
+            base_hourly = pricing[provider]["micro"]  # fallback to micro
+        else:
+            base_hourly = 0.015  # generic fallback
+        
+        # Calculate usage factor (0-1 range, with minimum 0.1 for idle VMs)
+        cpu_usage_multiplier = min(max(cpu / 100, 0.1), 1.0)
+        mem_usage_multiplier = min(max(mem / 100, 0.1), 1.0)
+        usage_factor = (cpu_usage_multiplier + mem_usage_multiplier) / 2
+        
+        # Calculate monthly cost (720 hours/month)
+        monthly_cost = base_hourly * 720 * usage_factor
+        
+        # Storage cost estimate (varies by provider, but ~$0.10/GB/month)
+        # Assuming 10GB root disk
+        storage_cost = 1.00
+        
+        total_monthly = monthly_cost + storage_cost
+        
+        # Format based on provider and machine type
+        provider_names = {
+            "gcp": "GCP",
+            "aws": "AWS",
+            "azure": "Azure"
+        }
+        provider_display = provider_names.get(provider, "")
+        
+        # Clean up machine type display
+        machine_display = machine_type.replace('-', ' ').replace('_', ' ').title()
+        
+        if provider_display:
+            return f"${total_monthly:.2f}/month ({provider_display} {machine_display})"
+        else:
+            return f"${total_monthly:.2f}/month (est.)"
+            
+    except Exception as e:
+        # Ultimate fallback - don't crash the whole script
+        machine_type = os.environ.get('MACHINE_TYPE', 'standard')
+        return f"Based on {machine_type} usage"
 
 def get_ssh_status():
     """Get SSH status with more detail"""
