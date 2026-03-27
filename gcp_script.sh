@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+exec > /var/log/startup-script.log 2>&1
+set -x
+
 set -euo pipefail
 
 APP_NAME="devsecops-sandbox"
@@ -224,8 +227,21 @@ if [ \"\$LOCAL\" != \"\$REMOTE\" ]; then
 
   git pull &&
   cd dashboard &&
-  npm ci &&
-  npm run build &&
+
+  # Install npm ci with retry
+  for i in 1 2 3; do npm ci && break || sleep 2; done
+
+  if [ $? -ne 0 ]; then
+    echo "[DEPLOY] npm ci failed"
+    exit 1
+  fi
+
+  # Build
+  if ! npm run build; then
+    echo "[DEPLOY] Build failed"
+    exit 1
+  fi
+
   cp -r dist/* ${APP_DIR}/
 
   echo \"[DEPLOY] Deployment complete\"
@@ -267,9 +283,6 @@ TX_BYTES="$(cat /sys/class/net/${IFACE}/statistics/tx_bytes 2>/dev/null || echo 
 # -------------------------------
 # Services
 # -------------------------------
-systemctl enable nginx
-systemctl restart nginx
-
 NGINX_STATUS="$(service_status nginx)"
 PYTHON_STATUS="$(command_status python3)"
 STARTUP_STATUS="Completed"
@@ -386,7 +399,7 @@ REPO_URL="https://github.com/KirkAlton-Class7/cloud-quotes.git"
 REPO_DIR="/opt/cloud-quotes"
 
 if [ ! -d "$REPO_DIR" ]; then
-  git clone "$REPO_URL" "$REPO_DIR"
+  retry git clone "$REPO_URL" "$REPO_DIR"
 else
   cd "$REPO_DIR" && git pull
 fi
@@ -402,19 +415,36 @@ fi
 log "Building dashboard"
 cd "$REPO_DIR/dashboard"
 
-npm ci
-npm run build
+if ! retry npm ci; then
+  log "npm ci failed, attempting fallback install"
+  npm install || exit 1
+fi
+
+if ! npm run build; then
+  log "Build failed — keeping existing deployment"
+  exit 1
+fi
 
 # Deploy to nginx directory
 log "Deploying dashboard"
 cp -r dist/* "$APP_DIR/"
 
 # -------------------------------
-# Nginx config
+# Ensure index.html exists (safety)
+# -------------------------------
+if [ ! -f "${APP_DIR}/index.html" ]; then
+  log "Creating fallback index.html"
+  echo "<h1>Dashboard initializing...</h1>" > "${APP_DIR}/index.html"
+fi
+
+# -------------------------------
+# Nginx Config
 # -------------------------------
 cat > "${NGINX_SITE}" <<EOF
 server {
-    listen 80;
+    listen 80 default_server;
+    server_name _;
+    
     root ${APP_DIR};
     index index.html;
 
@@ -430,10 +460,26 @@ server {
 }
 EOF
 
+# -------------------------------
+# Activate Nginx Site
+# -------------------------------
+
+# Remove default nginx welcome site
+# Prevents nginx from serving the default page instead of custom page
 rm -f /etc/nginx/sites-enabled/default
+
+# Enable custom site by creating a symlink (sites-available → sites-enabled)
+# Nginx ONLY loads configs from sites-enabled/
 ln -s "${NGINX_SITE}" /etc/nginx/sites-enabled/
 
-nginx -t && systemctl reload nginx
+# Validate nginx config
+nginx -t
+
+# -------------------------------
+# Enable + Restart Nginx (FINAL)
+# -------------------------------
+systemctl enable nginx
+systemctl restart nginx
 
 # -------------------------------
 # Final validation
