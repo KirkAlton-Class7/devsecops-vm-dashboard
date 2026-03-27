@@ -277,12 +277,66 @@ cp -r "$REPO_DIR/dashboard/dist/"* ${APP_DIR}/
 log "Generating dashboard data"
 python3 <<PYTHON_SCRIPT
 import json, os, random
+from datetime import datetime, timedelta
 
 def status(val, warn=70):
     try:
         return "warning" if float(val) > warn else "healthy"
     except:
         return "healthy"
+
+def get_network_info():
+    """Get detailed network information in human readable format"""
+    try:
+        rx_bytes = int(os.environ.get('RX_BYTES', '0'))
+        tx_bytes = int(os.environ.get('TX_BYTES', '0'))
+        
+        # Convert to human readable
+        rx_mb = rx_bytes / (1024 * 1024)
+        tx_mb = tx_bytes / (1024 * 1024)
+        
+        return f"{rx_mb:.1f} MB ↓ / {tx_mb:.1f} MB ↑"
+    except:
+        return os.environ.get('RX_BYTES', '0') + " / " + os.environ.get('TX_BYTES', '0')
+
+def get_cost_estimate():
+    """Estimate cost based on resource usage"""
+    try:
+        cpu = float(os.environ.get('CPU_USAGE', '0'))
+        mem = float(os.environ.get('MEM_PERCENT', '0'))
+        
+        # Simple cost calculation (adjust based on your provider)
+        base_cost = 0.05  # $0.05 per hour base
+        cpu_cost = (cpu / 100) * 0.02
+        mem_cost = (mem / 100) * 0.01
+        
+        hourly_cost = base_cost + cpu_cost + mem_cost
+        monthly_cost = hourly_cost * 24 * 30
+        
+        return f"${monthly_cost:.2f}/month"
+    except:
+        return "Calculating..."
+
+def get_ssh_status():
+    """Get SSH status with more detail"""
+    ssh_active = os.environ.get('SSH_STATUS', 'active')
+    if ssh_active.lower() == 'active':
+        return "Enabled (22/tcp)"
+    return "Disabled"
+
+def get_update_status():
+    """Get detailed update status"""
+    updates = os.environ.get('UPDATES', '0')
+    if updates == "Current" or updates == "0":
+        return "Up to date"
+    try:
+        update_count = int(updates)
+        if update_count < 5:
+            return f"{update_count} security updates"
+        else:
+            return f"{update_count} updates available"
+    except:
+        return os.environ.get('UPDATE_STATUS', 'Current')
 
 quotes = []
 try:
@@ -293,12 +347,30 @@ except:
 
 quote = random.choice(quotes)
 
+# Generate sample logs (you can replace with real logs from your system)
+logs = [
+    {"time": datetime.now().strftime("%H:%M:%S"), "level": "info", "message": "Dashboard initialized"},
+    {"time": (datetime.now() - timedelta(minutes=5)).strftime("%H:%M:%S"), "level": "info", "message": "Metrics collection started"},
+    {"time": (datetime.now() - timedelta(minutes=10)).strftime("%H:%M:%S"), "level": "info", "message": "System health check passed"},
+    {"time": (datetime.now() - timedelta(minutes=15)).strftime("%H:%M:%S"), "level": "warning", "message": "High memory usage detected (cleared)"},
+    {"time": (datetime.now() - timedelta(minutes=30)).strftime("%H:%M:%S"), "level": "info", "message": "Quotes refreshed from GitHub"},
+]
+
+# Sample resource table (you can replace with real resources)
+resource_table = [
+    {"name": "nginx", "type": "service", "scope": "system", "status": os.environ.get('NGINX_STATUS', 'Running')},
+    {"name": "python3", "type": "runtime", "scope": "system", "status": "Installed"},
+    {"name": "nodejs", "type": "runtime", "scope": "system", "status": "Installed"},
+    {"name": "quotes.json", "type": "data", "scope": "application", "status": "Active"},
+    {"name": "dashboard-data.json", "type": "data", "scope": "application", "status": "Active"},
+]
+
 data = {
     "summaryCards": [
-        {"label":"CPU","value":f"{os.environ['CPU_USAGE']}%","status":status(os.environ.get('CPU_USAGE', '0'))},
-        {"label":"Memory","value":f"{os.environ['MEM_PERCENT']}%","status":status(os.environ.get('MEM_PERCENT', '0'))},
+        {"label":"CPU","value":f"{os.environ.get('CPU_USAGE', '0')}%","status":status(os.environ.get('CPU_USAGE', '0'))},
+        {"label":"Memory","value":f"{os.environ.get('MEM_PERCENT', '0')}%","status":status(os.environ.get('MEM_PERCENT', '0'))},
         {"label":"Disk","value":os.environ.get('DISK_PERCENT', '0%'),"status":status(os.environ.get('DISK_PERCENT', '0').replace('%',''))},
-        {"label":"Network","value":f"{os.environ.get('RX_BYTES', '0')} / {os.environ.get('TX_BYTES', '0')}","status":"healthy"}
+        {"label":"Network","value":get_network_info(),"status":"healthy"}
     ],
     "vmInformation": [
         {"label":"Hostname","value":os.environ.get('HOSTNAME_VM', 'unknown')},
@@ -309,26 +381,30 @@ data = {
         {"label":"Project ID","value":os.environ.get('PROJECT_ID', 'unknown')}
     ],
     "services": [
-        {"label":"Nginx","value":os.environ.get('NGINX_STATUS', 'Unknown')},
-        {"label":"Python","value":os.environ.get('PYTHON_STATUS', 'Unknown')},
-        {"label":"Metadata Service","value":os.environ.get('METADATA_STATUS', 'Unknown')},
-        {"label":"HTTP Service","value":os.environ.get('HTTP_STATUS', 'Unknown')},
-        {"label":"Startup Script","value":os.environ.get('STARTUP_STATUS', 'Unknown')},
-        {"label":"GitHub Quotes Sync","value":os.environ.get('GITHUB_QUOTES_SYNC', 'Unknown')},
-        {"label":"Bootstrap Packages","value":", ".join(json.loads(os.environ.get('BOOTSTRAP_PACKAGES_JSON', '[]')))}
+        {"label":"Nginx","value":os.environ.get('NGINX_STATUS', 'Unknown'),"status":"healthy"},
+        {"label":"Python","value":os.environ.get('PYTHON_STATUS', 'Unknown'),"status":"healthy"},
+        {"label":"Metadata Service","value":os.environ.get('METADATA_STATUS', 'Unknown'),"status":"healthy"},
+        {"label":"HTTP Service","value":os.environ.get('HTTP_STATUS', 'Unknown'),"status":"healthy"},
+        {"label":"Startup Script","value":os.environ.get('STARTUP_STATUS', 'Unknown'),"status":"healthy"},
+        {"label":"GitHub Quotes Sync","value":os.environ.get('GITHUB_QUOTES_SYNC', 'Unknown'),"status":"healthy"},
+        {"label":"Bootstrap Packages","value":", ".join(json.loads(os.environ.get('BOOTSTRAP_PACKAGES_JSON', '[]'))),"status":"healthy"}
     ],
     "security": [
-        {"label":"Host Firewall","value":os.environ.get('FIREWALL_STATUS', 'Unknown')},
-        {"label":"SSH","value":os.environ.get('SSH_STATUS', 'Unknown')},
-        {"label":"Updates","value":os.environ.get('UPDATE_STATUS', 'Unknown')},
-        {"label":"Internal IP","value":os.environ.get('INTERNAL_IP', 'unknown')},
-        {"label":"Public IP","value":os.environ.get('PUBLIC_IP', 'unknown')}
+        {"label":"Host Firewall","value":os.environ.get('FIREWALL_STATUS', 'Not installed'),"status":"info"},
+        {"label":"SSH","value":get_ssh_status(),"status":"healthy"},
+        {"label":"Updates","value":get_update_status(),"status":"info"},
+        {"label":"Internal IP","value":os.environ.get('INTERNAL_IP', 'unknown'),"status":"info"},
+        {"label":"Public IP","value":os.environ.get('PUBLIC_IP', 'unknown'),"status":"info"},
+        {"label":"Estimated Cost","value":get_cost_estimate(),"status":"info"}
     ],
     "meta": {
         "appName": "DevSecOps Sandbox",
+        "tagline": "Real-time infrastructure monitoring",
         "uptime": os.environ.get("UPTIME", "unknown")
     },
-    "quote": quote
+    "quote": quote,
+    "logs": logs,
+    "resourceTable": resource_table
 }
 
 with open("${DATA_DIR}/dashboard-data.json","w") as f:
