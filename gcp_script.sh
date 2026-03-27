@@ -144,9 +144,30 @@ fi
 # -------------------------------
 log "Setting up cron job to refresh quotes"
 
-CRON_CMD="*/5 * * * * curl -fsSL ${GITHUB_QUOTES_URL} -o ${DATA_DIR}/quotes.json.tmp && mv ${DATA_DIR}/quotes.json.tmp ${DATA_DIR}/quotes.json && cp ${DATA_DIR}/quotes.json ${DATA_DIR}/quotes_local.json >> /var/log/quotes-cron.log 2>&1 # cloud-quotes-sync"
+CRON_CMD="*/10 * * * * curl -fsSL ${GITHUB_QUOTES_URL} -o ${DATA_DIR}/quotes.json.tmp && mv ${DATA_DIR}/quotes.json.tmp ${DATA_DIR}/quotes.json && cp ${DATA_DIR}/quotes.json ${DATA_DIR}/quotes_local.json >> /var/log/quotes-cron.log 2>&1 # cloud-quotes-sync"
 
 (crontab -l 2>/dev/null | grep -v 'cloud-quotes-sync'; echo "$CRON_CMD") | crontab -
+
+# -------------------------------
+# Auto-deploy Dashboard Updates
+# -------------------------------
+log "Setting up dashboard auto-deploy"
+
+DEPLOY_CMD="*/15 * * * * bash -c '
+cd /opt/cloud-quotes &&
+git fetch origin &&
+LOCAL=\$(git rev-parse HEAD) &&
+REMOTE=\$(git rev-parse origin/main) &&
+if [ \"\$LOCAL\" != \"\$REMOTE\" ]; then
+  git pull &&
+  cd dashboard &&
+  npm install &&
+  npm run build &&
+  cp -r dist/* ${APP_DIR}/
+fi
+' >> /var/log/dashboard-deploy.log 2>&1 # dashboard-auto-deploy"
+
+(crontab -l 2>/dev/null | grep -v 'dashboard-auto-deploy'; echo "$DEPLOY_CMD") | crontab -
 
 # -------------------------------
 # Metadata
@@ -287,6 +308,38 @@ data = {
 with open("/var/www/devsecops-sandbox/data/dashboard-data.json","w") as f:
     json.dump(data, f, indent=2)
 PY
+
+# -------------------------------
+# Clone Repo + Build Dashboard
+# -------------------------------
+log "Cloning dashboard repo"
+
+REPO_URL="https://github.com/KirkAlton-Class7/cloud-quotes.git"
+REPO_DIR="/opt/cloud-quotes"
+
+if [ ! -d "$REPO_DIR" ]; then
+  git clone "$REPO_URL" "$REPO_DIR"
+else
+  cd "$REPO_DIR" && git pull
+fi
+
+# Install Node.js (if not present)
+if ! command -v node >/dev/null; then
+  log "Installing Node.js"
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y nodejs
+fi
+
+# Build dashboard
+log "Building dashboard"
+cd "$REPO_DIR/dashboard"
+
+npm install
+npm run build
+
+# Deploy to nginx directory
+log "Deploying dashboard"
+cp -r dist/* "$APP_DIR/"
 
 # -------------------------------
 # Nginx config
