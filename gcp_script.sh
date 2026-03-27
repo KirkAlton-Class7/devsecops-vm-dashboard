@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-APP_USER="kirk_cochran_cloud"
+APP_USER="appuser"
 
 exec > /var/log/startup-script.log 2>&1
 set -x
@@ -94,10 +94,27 @@ if ! command -v node >/dev/null; then
   apt-get install -y nodejs
 fi
 
+# ---------------------------------
+# Create App User for App Installs
+# ---------------------------------
+if ! id "${APP_USER}" >/dev/null 2>&1; then
+  log "Creating user ${APP_USER}"
+  useradd -m -s /bin/bash "${APP_USER}"
+fi
+
 # -------------------------------
 # Application Directory Setup
 # -------------------------------
 mkdir -p "${APP_DIR}" "${DATA_DIR}"
+
+chown -R ${APP_USER}:${APP_USER} "${APP_DIR}"
+chmod -R 755 "${APP_DIR}"
+
+# -------------------------------
+# Set App Directory Ownership
+# -------------------------------
+chown -R ${APP_USER}:${APP_USER} "${APP_DIR}"
+chmod -R 755 "${APP_DIR}"
 
 # --------------------------------
 # Clone Repo
@@ -412,8 +429,13 @@ if [ ! -f "${APP_DIR}/index.html" ]; then
 fi
 
 # -------------------------------
-# Nginx Config
+# Nginx Config (FORCE OVERRIDE)
 # -------------------------------
+log "REACHED NGINX CONFIG"
+
+log "Configuring nginx"
+
+# Write config
 cat > "${NGINX_SITE}" <<EOF
 server {
     listen 80 default_server;
@@ -425,7 +447,7 @@ server {
     location /data/ {
       add_header Access-Control-Allow-Origin *;
       add_header Cache-Control "no-store";
-      try_files $uri =404;
+      try_files \$uri =404;
     }
 
     location / {
@@ -433,6 +455,23 @@ server {
     }
 }
 EOF
+
+# HARD RESET nginx sites
+rm -rf /etc/nginx/sites-enabled/*
+ln -sf "${NGINX_SITE}" /etc/nginx/sites-enabled/${APP_NAME}
+
+# Ensure permissions (important)
+chmod 644 "${NGINX_SITE}"
+
+# Validate config
+nginx -t || {
+  log "ERROR: nginx config test failed"
+  exit 1
+}
+
+# Restart nginx AFTER everything
+systemctl daemon-reexec
+systemctl restart nginx
 
 # -------------------------------
 # Activate Nginx Site
@@ -482,6 +521,10 @@ log "Setting up dashboard auto-deploy"
 DEPLOY_CMD="*/15 * * * * bash -c '
 LOCK_FILE=/tmp/dashboard.lock
 
+REPO_DIR=/opt/cloud-quotes
+APP_DIR=/var/www/devsecops-sandbox
+TMP_DIR=/tmp/dashboard-build
+
 if [ -f \$LOCK_FILE ]; then
   exit 0
 fi
@@ -491,10 +534,10 @@ trap \"rm -f \$LOCK_FILE\" EXIT
 
 echo \"[DEPLOY] Checking for updates...\"
 
-cd /opt/cloud-quotes || exit 0
+cd \$REPO_DIR || exit 0
 
 # Ensure ownership ALWAYS
-chown -R ${APP_USER}:${APP_USER} /opt/cloud-quotes
+chown -R ${APP_USER}:${APP_USER} \$REPO_DIR
 
 cd dashboard || exit 0
 
@@ -505,11 +548,14 @@ if [ \"\$LOCAL\" != \"\$REMOTE\" ]; then
   echo \"[DEPLOY] Changes detected, deploying...\"
 
   git pull || exit 1
+  
+  cd \$REPO_DIR/dashboard || exit 1
 
-  # Run install + build as app user
-  sudo -u ${APP_USER} bash -c \"cd /opt/cloud-quotes/dashboard && \
-    (npm ci || npm install) && \
-    npm run build\"
+  if ! npm ci; then
+    npm install || exit 1
+  fi
+
+  npm run build || exit 1
 
   if [ ! -d \"dist\" ]; then
     echo \"[DEPLOY] dist missing — skipping deploy\"
@@ -517,8 +563,11 @@ if [ \"\$LOCAL\" != \"\$REMOTE\" ]; then
   fi
 
   # Atomic deploy
-  rm -rf ${APP_DIR}/*
-  cp -r dist/* ${APP_DIR}/
+  rm -rf \$TMP_DIR
+  cp -r \$REPO_DIR/dashboard/dist \$TMP_DIR
+
+  rm -rf \$APP_DIR/*
+  cp -r \$TMP_DIR/* \$APP_DIR/
 
   echo \"[DEPLOY] Deployment complete\"
 else
