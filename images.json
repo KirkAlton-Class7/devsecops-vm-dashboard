@@ -1,50 +1,122 @@
 [
   {
     "id": 1,
-    "filename": "swiss-alps.jpg",
-    "title": "Swiss Alps",
-    "location": "Switzerland",
-    "photographer": "Mountain Explorer",
-    "tags": ["mountains", "alps", "nature"]
+    "filename": "chiang_mai_mountain_sunrise.jpeg",
+    "title": "Chiang Mai Mountain Sunrise",
+    "location": "Chiang Mai, Thailand",
+    "photographer": null,
+    "tags": ["mountains", "sunrise", "landscape"]
   },
   {
     "id": 2,
-    "filename": "maldives-beach.jpg",
-    "title": "Tropical Paradise",
-    "location": "Maldives",
-    "photographer": "Tropical Dreams",
-    "tags": ["beach", "ocean", "tropical"]
+    "filename": "chiang_mai_temple_sunset.jpg",
+    "title": "Chiang Mai Temple Sunset",
+    "location": "Chiang Mai, Thailand",
+    "photographer": null,
+    "tags": ["temple", "sunset", "culture"]
   },
   {
     "id": 3,
-    "filename": "northern-lights.jpg",
-    "title": "Aurora Borealis",
-    "location": "Iceland",
-    "photographer": "Aurora Hunter",
-    "tags": ["northern lights", "aurora", "night sky"]
+    "filename": "chiang_mai_misty_valley.jpeg",
+    "title": "Misty Valley",
+    "location": "Chiang Mai, Thailand",
+    "photographer": null,
+    "tags": ["valley", "fog", "nature"]
   },
   {
     "id": 4,
-    "filename": "milky-way.jpg",
-    "title": "Milky Way",
-    "location": "Death Valley",
-    "photographer": "Star Gazer",
-    "tags": ["stars", "night sky", "astronomy"]
+    "filename": "madagascar_baobab_trees.jpeg",
+    "title": "Baobab Trees",
+    "location": "Madagascar",
+    "photographer": null,
+    "tags": ["baobab", "trees", "dry_landscape"]
   },
   {
     "id": 5,
-    "filename": "forest-mist.jpg",
-    "title": "Misty Forest",
-    "location": "Pacific Northwest",
-    "photographer": "Nature Lens",
-    "tags": ["forest", "mist", "trees"]
+    "filename": "madagascar_lemur_forest.jpeg",
+    "title": "Lemur in the Forest",
+    "location": "Madagascar",
+    "photographer": null,
+    "tags": ["lemur", "wildlife", "forest"]
   },
   {
     "id": 6,
-    "filename": "sunset-ocean.jpg",
-    "title": "Golden Sunset",
-    "location": "California Coast",
-    "photographer": "Golden Hour",
-    "tags": ["sunset", "ocean", "coast"]
+    "filename": "madagascar_chameleon_macro.jpeg",
+    "title": "Chameleon Close-up",
+    "location": "Madagascar",
+    "photographer": null,
+    "tags": ["chameleon", "macro", "wildlife"]
+  },
+  {
+    "id": 7,
+    "filename": "madagascar_waterfall_canyon.jpeg",
+    "title": "Waterfall Canyon",
+    "location": "Madagascar",
+    "photographer": null,
+    "tags": ["waterfall", "canyon", "nature"]
+  },
+  {
+    "id": 8,
+    "filename": "madagascar_zebra_grasslands.jpeg",
+    "title": "Zebra in the Grasslands",
+    "location": "Madagascar",
+    "photographer": null,
+    "tags": ["zebra", "savanna", "wildlife"]
+  },
+  {
+    "id": 9,
+    "filename": "madagascar_tropical_beach.jpeg",
+    "title": "Tropical Beach",
+    "location": "Madagascar",
+    "photographer": null,
+    "tags": ["beach", "tropical", "ocean"]
+  },
+  {
+    "id": 10,
+    "filename": "madagascar_highlands_sunset.jpeg",
+    "title": "Highlands Sunset",
+    "location": "Madagascar",
+    "photographer": null,
+    "tags": ["highlands", "sunset", "landscape"]
+  },
+  {
+    "id": 11,
+    "filename": "madagascar_rainforest_canopy.jpg",
+    "title": "Rainforest Canopy",
+    "location": "Madagascar",
+    "photographer": null,
+    "tags": ["rainforest", "canopy", "jungle"]
+  },
+  {
+    "id": 12,
+    "filename": "madagascar_baobab_avenue.jpeg",
+    "title": "Avenue of the Baobabs",
+    "location": "Madagascar",
+    "photographer": null,
+    "tags": ["baobab", "avenue", "iconic"]
+  },
+  {
+    "id": 13,
+    "filename": "madagascar_jungle_stream.jpeg",
+    "title": "Jungle Stream",
+    "location": "Madagascar",
+    "photographer": null,
+    "tags": ["jungle", "stream", "nature"]
+  },
+  {
+    "id": 14,
+    "filename": "madagascar_lagoon_aerial.jpeg",
+    "title": "Lagoon Aerial View",
+    "location": "Madagascar",
+    "photographer": null,
+    "tags": ["lagoon", "aerial", "coast"]
+  },
+  {
+    "id": 15,
+    "filename": "madagascar_forest_waterfall.jpeg",
+    "title": "Forest Waterfall",
+    "location": "Madagascar",
+    "photographer": null,
+    "tags": ["forest", "waterfall", "lush"]
   }
 ]
