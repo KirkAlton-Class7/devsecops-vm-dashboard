@@ -270,6 +270,22 @@ export NGINX_STATUS PYTHON_STATUS STARTUP_STATUS METADATA_STATUS HTTP_STATUS GIT
 export FIREWALL_STATUS SSH_STATUS UPDATE_STATUS UPTIME BOOTSTRAP_PACKAGES_JSON
 export CPU_USAGE MEM_PERCENT DISK_PERCENT RX_BYTES TX_BYTES
 
+
+# -------------------------------
+# Ensure Quotes are Available
+# -------------------------------
+
+log "Ensuring quotes are available before building dashboard"
+if [ ! -f "${ACTIVE_QUOTES}" ] || [ ! -s "${ACTIVE_QUOTES}" ]; then
+    log "Quotes file missing or empty, forcing fetch from GitHub"
+    retry curl -fsSL "${GITHUB_QUOTES_URL}" -o "${ACTIVE_QUOTES}.tmp" && \
+        mv "${ACTIVE_QUOTES}.tmp" "${ACTIVE_QUOTES}" && \
+        cp "${ACTIVE_QUOTES}" "${LOCAL_QUOTES}" && \
+        log "GitHub quotes fetched successfully"
+else
+    log "Quotes file exists and has content"
+fi
+
 # -------------------------------
 # Build Dashboard
 # -------------------------------
