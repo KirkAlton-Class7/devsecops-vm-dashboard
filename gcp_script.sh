@@ -30,13 +30,44 @@ command_status() {
 }
 
 # -------------------------------
+# Retry Helper (network resilience)
+# -------------------------------
+retry() {
+  local n=0
+  local max=5
+  local delay=2
+  until [ "$n" -ge "$max" ]; do
+    "$@" && return 0
+    n=$((n+1))
+    log "Retry $n/$max..."
+    sleep "$delay"
+  done
+  return 1
+}
+
+# -------------------------------
 # Install packages
 # -------------------------------
-log "Installing packages"
 apt-get update -y
-apt-get install -y nginx python3 curl jq ca-certificates
+apt-get install -y \
+  nginx \
+  python3 \
+  curl \
+  jq \
+  ca-certificates \
+  git \
+  build-essential
 
 mkdir -p "${APP_DIR}" "${DATA_DIR}"
+
+# -------------------------------
+# Install Node.js early
+# -------------------------------
+if ! command -v node >/dev/null; then
+  log "Installing Node.js"
+  retry curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y nodejs
+fi
 
 # -------------------------------
 # Quotes (local fallback + cache)
@@ -123,7 +154,7 @@ EOF
 log "Fetching GitHub quotes"
 GITHUB_QUOTES_SYNC="Failed"
 
-if curl -fsSL "${GITHUB_QUOTES_URL}" -o "${ACTIVE_QUOTES}.tmp"; then
+if retry curl -fsSL "${GITHUB_QUOTES_URL}" -o "${ACTIVE_QUOTES}.tmp"; then
   if python3 -c "import json; json.load(open('${ACTIVE_QUOTES}.tmp'))"; then
     mv "${ACTIVE_QUOTES}.tmp" "${ACTIVE_QUOTES}"
     
@@ -154,16 +185,36 @@ CRON_CMD="*/10 * * * * curl -fsSL ${GITHUB_QUOTES_URL} -o ${DATA_DIR}/quotes.jso
 log "Setting up dashboard auto-deploy"
 
 DEPLOY_CMD="*/15 * * * * bash -c '
-cd /opt/cloud-quotes &&
-git fetch origin &&
-LOCAL=\$(git rev-parse HEAD) &&
-REMOTE=\$(git rev-parse origin/main) &&
+LOCK_FILE=/tmp/dashboard.lock
+
+if [ -f \$LOCK_FILE ]; then
+  exit 0
+fi
+
+touch \$LOCK_FILE
+trap \"rm -f \$LOCK_FILE\" EXIT
+
+echo \"[DEPLOY] Checking for updates...\"
+
+cd /opt/cloud-quotes || exit 1
+
+for i in 1 2 3; do git fetch origin && break || sleep 2; done
+
+LOCAL=\$(git rev-parse HEAD)
+REMOTE=\$(git rev-parse origin/main)
+
 if [ \"\$LOCAL\" != \"\$REMOTE\" ]; then
+  echo \"[DEPLOY] Changes detected, deploying...\"
+
   git pull &&
   cd dashboard &&
-  npm install &&
+  npm ci &&
   npm run build &&
   cp -r dist/* ${APP_DIR}/
+
+  echo \"[DEPLOY] Deployment complete\"
+else
+  echo \"[DEPLOY] No changes\"
 fi
 ' >> /var/log/dashboard-deploy.log 2>&1 # dashboard-auto-deploy"
 
@@ -193,8 +244,9 @@ CPU_USAGE="$(top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}')"
 MEM_PERCENT="$(free | awk '/Mem:/ {printf("%.0f"), $3/$2 * 100.0}')"
 DISK_PERCENT="$(df / | tail -1 | awk '{print $5}')"
 
-RX_BYTES="$(cat /sys/class/net/eth0/statistics/rx_bytes 2>/dev/null || echo 0)"
-TX_BYTES="$(cat /sys/class/net/eth0/statistics/tx_bytes 2>/dev/null || echo 0)"
+IFACE=$(ip route get 1 | awk '{print $5}')
+RX_BYTES="$(cat /sys/class/net/${IFACE}/statistics/rx_bytes 2>/dev/null || echo 0)"
+TX_BYTES="$(cat /sys/class/net/${IFACE}/statistics/tx_bytes 2>/dev/null || echo 0)"
 
 # -------------------------------
 # Services
@@ -334,7 +386,7 @@ fi
 log "Building dashboard"
 cd "$REPO_DIR/dashboard"
 
-npm install
+npm ci
 npm run build
 
 # Deploy to nginx directory
@@ -351,8 +403,9 @@ server {
     index index.html;
 
     location /data/ {
-        add_header Cache-Control "no-store";
-        try_files \$uri =404;
+      add_header Access-Control-Allow-Origin *;
+      add_header Cache-Control "no-store";
+      try_files $uri =404;
     }
 
     location / {
@@ -365,5 +418,15 @@ rm -f /etc/nginx/sites-enabled/default
 ln -s "${NGINX_SITE}" /etc/nginx/sites-enabled/
 
 nginx -t && systemctl reload nginx
+
+# -------------------------------
+# Final validation
+# -------------------------------
+log "Validating deployment"
+
+if ! curl -f http://127.0.0.1/data/dashboard-data.json >/dev/null; then
+  log "ERROR: Dashboard data endpoint not reachable"
+  exit 1
+fi
 
 log "Startup complete"
