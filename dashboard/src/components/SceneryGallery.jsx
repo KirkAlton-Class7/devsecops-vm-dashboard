@@ -186,7 +186,7 @@ export default function SceneryGallery() {
               {!imageError ? (
                 <img
                   src={imageUrl}
-                  alt={currentImage.title}
+                  alt={currentImage.location}
                   className="w-full h-full object-cover"
                   onError={() => setImageError(true)}
                 />
@@ -197,10 +197,9 @@ export default function SceneryGallery() {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               
-              {/* Image Info Overlay - Only title and location */}
+              {/* Image Info Overlay - Only location, no title */}
               <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                <h3 className="text-lg font-semibold">{currentImage.title}</h3>
-                <p className="text-sm text-white/80 mt-1">{currentImage.location}</p>
+                <p className="text-sm text-white/80">{currentImage.location}</p>
               </div>
             </motion.div>
           </AnimatePresence>
