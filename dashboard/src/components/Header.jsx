@@ -15,36 +15,76 @@ export default function Header({ appName, tagline, uptime }) {
   // Detect cloud provider dynamically
   useEffect(() => {
     async function detectCloudProvider() {
+      // Add a small delay to let the page load
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Check for GCP metadata endpoint first (most reliable)
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
         const gcpCheck = await fetch('http://metadata.google.internal/computeMetadata/v1/instance/zone', {
-          headers: { 'Metadata-Flavor': 'Google' }
+          headers: { 'Metadata-Flavor': 'Google' },
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
+        
         if (gcpCheck.ok) {
+          console.log("✅ Detected: Google Cloud");
           setCloudProvider({ name: "Google Cloud", color: "from-emerald-500 to-green-400" });
           return;
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log("GCP metadata not available:", e.message);
+      }
 
+      // Check for AWS metadata endpoint
       try {
-        const awsCheck = await fetch('http://169.254.169.254/latest/meta-data/instance-id');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const awsCheck = await fetch('http://169.254.169.254/latest/meta-data/instance-id', {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
         if (awsCheck.ok) {
+          console.log("✅ Detected: AWS");
           setCloudProvider({ name: "AWS", color: "from-orange-500 to-amber-400" });
           return;
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log("AWS metadata not available");
+      }
 
+      // Check for Azure metadata endpoint
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
         const azureCheck = await fetch('http://169.254.169.254/metadata/instance?api-version=2017-08-01', {
-          headers: { 'Metadata': 'true' }
+          headers: { 'Metadata': 'true' },
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
+        
         if (azureCheck.ok) {
+          console.log("✅ Detected: Azure");
           setCloudProvider({ name: "Azure", color: "from-blue-500 to-blue-400" });
           return;
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log("Azure metadata not available");
+      }
 
+      // Fallback - check hostname (works locally and when metadata fails)
       const hostname = window.location.hostname;
-      if (hostname.includes('google') || hostname.includes('gcp')) {
+      console.log("Hostname detection:", hostname);
+      
+      if (hostname.includes('google') || hostname.includes('gcp') || hostname.includes('.internal')) {
         setCloudProvider({ name: "Google Cloud", color: "from-emerald-500 to-green-400" });
       } else if (hostname.includes('amazon') || hostname.includes('aws')) {
         setCloudProvider({ name: "AWS", color: "from-orange-500 to-amber-400" });

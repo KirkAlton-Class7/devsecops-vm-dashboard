@@ -312,7 +312,12 @@ python3 <<PYTHON_SCRIPT
 import json, os, random
 from datetime import datetime, timedelta
 
+# -------------------------------
+# Helper Functions
+# -------------------------------
+
 def status(val, warn=70):
+    """Determine status based on value threshold"""
     try:
         return "warning" if float(val) > warn else "healthy"
     except:
@@ -323,11 +328,8 @@ def get_network_info():
     try:
         rx_bytes = int(os.environ.get('RX_BYTES', '0'))
         tx_bytes = int(os.environ.get('TX_BYTES', '0'))
-        
-        # Convert to human readable
         rx_mb = rx_bytes / (1024 * 1024)
         tx_mb = tx_bytes / (1024 * 1024)
-        
         return f"{rx_mb:.1f} MB ↓ / {tx_mb:.1f} MB ↑"
     except:
         return os.environ.get('RX_BYTES', '0') + " / " + os.environ.get('TX_BYTES', '0')
@@ -340,147 +342,6 @@ def get_load_average():
             return float(load[0])
     except:
         return 0.0
-
-def get_cost_estimate():
-    """Estimate cost based on machine type, provider, and actual usage"""
-    try:
-        # Get machine type with fallback
-        machine_type = os.environ.get('MACHINE_TYPE', 'e2-micro').lower()
-        
-        # Get usage metrics with safe defaults
-        try:
-            cpu = float(os.environ.get('CPU_USAGE', '0'))
-            mem = float(os.environ.get('MEM_PERCENT', '0'))
-        except (ValueError, TypeError):
-            cpu = 0
-            mem = 0
-        
-        # Detect cloud provider from metadata (with timeout and error handling)
-        provider = "unknown"
-        try:
-            import subprocess
-            
-            # GCP detection (most reliable on GCP)
-            if not provider == "unknown":
-                gcp_check = subprocess.run(
-                    ['curl', '-s', '--max-time', '2', '-H', 'Metadata-Flavor: Google', 
-                     'http://metadata.google.internal/computeMetadata/v1/instance/zone'],
-                    capture_output=True, text=True, timeout=2
-                )
-                if gcp_check.returncode == 0 and gcp_check.stdout:
-                    provider = "gcp"
-        except (subprocess.TimeoutExpired, subprocess.SubprocessError, ImportError):
-            pass
-        
-        # AWS detection
-        if provider == "unknown":
-            try:
-                aws_check = subprocess.run(
-                    ['curl', '-s', '--max-time', '2', 'http://169.254.169.254/latest/meta-data/instance-id'],
-                    capture_output=True, text=True, timeout=2
-                )
-                if aws_check.returncode == 0 and aws_check.stdout:
-                    provider = "aws"
-            except (subprocess.TimeoutExpired, subprocess.SubprocessError):
-                pass
-        
-        # Azure detection
-        if provider == "unknown":
-            try:
-                azure_check = subprocess.run(
-                    ['curl', '-s', '--max-time', '2', '-H', 'Metadata:true', 
-                     'http://169.254.169.254/metadata/instance?api-version=2017-08-01'],
-                    capture_output=True, text=True, timeout=2
-                )
-                if azure_check.returncode == 0 and azure_check.stdout:
-                    provider = "azure"
-            except (subprocess.TimeoutExpired, subprocess.SubprocessError):
-                pass
-        
-        # Parse machine type to extract size (handles various formats)
-        # GCP: e2-micro, e2-small, e2-medium, n1-standard-1, etc.
-        # AWS: t2.micro, t3.small, etc.
-        # Azure: Standard_B1s, etc.
-        machine_size = "unknown"
-        
-        # Extract size indicators
-        if "micro" in machine_type:
-            machine_size = "micro"
-        elif "small" in machine_type:
-            machine_size = "small"
-        elif "medium" in machine_type:
-            machine_size = "medium"
-        elif "large" in machine_type:
-            machine_size = "large"
-        else:
-            # Default to micro for unknown sizes
-            machine_size = "micro"
-        
-        # Pricing based on provider and machine size (hourly rates)
-        # Using conservative estimates - adjust based on your region
-        pricing = {
-            "gcp": {
-                "micro": 0.012,   # e2-micro: ~$8.64/month
-                "small": 0.025,   # e2-small: ~$18/month
-                "medium": 0.050,  # e2-medium: ~$36/month
-                "large": 0.100,   # e2-large: ~$72/month
-            },
-            "aws": {
-                "micro": 0.0116,  # t2.micro: ~$8.35/month
-                "small": 0.023,   # t2.small: ~$16.56/month
-                "medium": 0.046,  # t2.medium: ~$33.12/month
-                "large": 0.092,   # t2.large: ~$66.24/month
-            },
-            "azure": {
-                "micro": 0.012,   # B1s: ~$8.64/month
-                "small": 0.024,   # B1ms: ~$17.28/month
-                "medium": 0.048,  # B2s: ~$34.56/month
-                "large": 0.096,   # B2ms: ~$69.12/month
-            }
-        }
-        
-        # Get base hourly rate with fallback
-        if provider in pricing and machine_size in pricing[provider]:
-            base_hourly = pricing[provider][machine_size]
-        elif provider in pricing:
-            base_hourly = pricing[provider]["micro"]  # fallback to micro
-        else:
-            base_hourly = 0.015  # generic fallback
-        
-        # Calculate usage factor (0-1 range, with minimum 0.1 for idle VMs)
-        cpu_usage_multiplier = min(max(cpu / 100, 0.1), 1.0)
-        mem_usage_multiplier = min(max(mem / 100, 0.1), 1.0)
-        usage_factor = (cpu_usage_multiplier + mem_usage_multiplier) / 2
-        
-        # Calculate monthly cost (720 hours/month)
-        monthly_cost = base_hourly * 720 * usage_factor
-        
-        # Storage cost estimate (varies by provider, but ~$0.10/GB/month)
-        # Assuming 10GB root disk
-        storage_cost = 1.00
-        
-        total_monthly = monthly_cost + storage_cost
-        
-        # Format based on provider and machine type
-        provider_names = {
-            "gcp": "GCP",
-            "aws": "AWS",
-            "azure": "Azure"
-        }
-        provider_display = provider_names.get(provider, "")
-        
-        # Clean up machine type display
-        machine_display = machine_type.replace('-', ' ').replace('_', ' ').title()
-        
-        if provider_display:
-            return f"${total_monthly:.2f}/month ({provider_display} {machine_display})"
-        else:
-            return f"${total_monthly:.2f}/month (est.)"
-            
-    except Exception as e:
-        # Ultimate fallback - don't crash the whole script
-        machine_type = os.environ.get('MACHINE_TYPE', 'standard')
-        return f"Based on {machine_type} usage"
 
 def get_ssh_status():
     """Get SSH status with more detail"""
@@ -503,16 +364,126 @@ def get_update_status():
     except:
         return os.environ.get('UPDATE_STATUS', 'Current')
 
+def get_cost_estimate():
+    """Estimate cost based on machine type, provider, and actual usage"""
+    try:
+        machine_type = os.environ.get('MACHINE_TYPE', 'e2-micro').lower()
+        
+        try:
+            cpu = float(os.environ.get('CPU_USAGE', '0'))
+            mem = float(os.environ.get('MEM_PERCENT', '0'))
+        except (ValueError, TypeError):
+            cpu = 0
+            mem = 0
+        
+        # Detect cloud provider
+        provider = "unknown"
+        try:
+            import subprocess
+            
+            # GCP detection
+            gcp_check = subprocess.run(
+                ['curl', '-s', '--max-time', '2', '-H', 'Metadata-Flavor: Google', 
+                 'http://metadata.google.internal/computeMetadata/v1/instance/zone'],
+                capture_output=True, text=True, timeout=2
+            )
+            if gcp_check.returncode == 0 and gcp_check.stdout:
+                provider = "gcp"
+        except:
+            pass
+        
+        # AWS detection
+        if provider == "unknown":
+            try:
+                aws_check = subprocess.run(
+                    ['curl', '-s', '--max-time', '2', 'http://169.254.169.254/latest/meta-data/instance-id'],
+                    capture_output=True, text=True, timeout=2
+                )
+                if aws_check.returncode == 0 and aws_check.stdout:
+                    provider = "aws"
+            except:
+                pass
+        
+        # Azure detection
+        if provider == "unknown":
+            try:
+                azure_check = subprocess.run(
+                    ['curl', '-s', '--max-time', '2', '-H', 'Metadata:true', 
+                     'http://169.254.169.254/metadata/instance?api-version=2017-08-01'],
+                    capture_output=True, text=True, timeout=2
+                )
+                if azure_check.returncode == 0 and azure_check.stdout:
+                    provider = "azure"
+            except:
+                pass
+        
+        # Parse machine size
+        machine_size = "micro"
+        if "micro" in machine_type:
+            machine_size = "micro"
+        elif "small" in machine_type:
+            machine_size = "small"
+        elif "medium" in machine_type:
+            machine_size = "medium"
+        elif "large" in machine_type:
+            machine_size = "large"
+        
+        # Pricing per provider
+        pricing = {
+            "gcp": {"micro": 0.012, "small": 0.025, "medium": 0.050, "large": 0.100},
+            "aws": {"micro": 0.0116, "small": 0.023, "medium": 0.046, "large": 0.092},
+            "azure": {"micro": 0.012, "small": 0.024, "medium": 0.048, "large": 0.096}
+        }
+        
+        # Get base rate
+        if provider in pricing and machine_size in pricing[provider]:
+            base_hourly = pricing[provider][machine_size]
+        elif provider in pricing:
+            base_hourly = pricing[provider]["micro"]
+        else:
+            base_hourly = 0.015
+        
+        # Usage factor
+        cpu_multiplier = min(max(cpu / 100, 0.1), 1.0)
+        mem_multiplier = min(max(mem / 100, 0.1), 1.0)
+        usage_factor = (cpu_multiplier + mem_multiplier) / 2
+        
+        # Calculate monthly cost (720 hours/month)
+        monthly_cost = base_hourly * 720 * usage_factor
+        storage_cost = 1.00
+        total_monthly = monthly_cost + storage_cost
+        
+        # Format output
+        provider_names = {"gcp": "GCP", "aws": "AWS", "azure": "Azure"}
+        provider_display = provider_names.get(provider, "")
+        machine_display = machine_type.replace('-', ' ').replace('_', ' ').title()
+        
+        if provider_display:
+            return f"\${total_monthly:.2f}/month ({provider_display} {machine_display})"
+        else:
+            return f"\${total_monthly:.2f}/month (est.)"
+            
+    except Exception as e:
+        machine_type = os.environ.get('MACHINE_TYPE', 'standard')
+        return f"Based on {machine_type} usage"
+
+# -------------------------------
+# Load Quotes
+# -------------------------------
+
 quotes = []
 try:
     with open("${DATA_DIR}/quotes.json") as f:
         quotes = json.load(f)
 except:
-    quotes = [{"text":"Fallback quote","author":"System"}]
+    quotes = [{"text": "Fallback quote", "author": "System"}]
 
 quote = random.choice(quotes)
 
-# Generate sample logs (you can replace with real logs from your system)
+# -------------------------------
+# Generate Logs
+# -------------------------------
+
 logs = [
     {"time": datetime.now().strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "Dashboard initialized"},
     {"time": (datetime.now() - timedelta(minutes=5)).strftime("%H:%M:%S"), "level": "info", "scope": "metrics", "message": "Metrics collection started"},
@@ -523,7 +494,10 @@ logs = [
     {"time": (datetime.now() - timedelta(hours=1)).strftime("%H:%M:%S"), "level": "warning", "scope": "security", "message": "12 failed login attempts detected"},
 ]
 
-# Sample resource table (you can replace with real resources)
+# -------------------------------
+# Generate Resource Table
+# -------------------------------
+
 resource_table = [
     {"name": "nginx", "type": "service", "scope": "system", "status": os.environ.get('NGINX_STATUS', 'Running')},
     {"name": "python3", "type": "runtime", "scope": "system", "status": "Installed"},
@@ -532,53 +506,266 @@ resource_table = [
     {"name": "dashboard-data.json", "type": "data", "scope": "application", "status": "Active"},
 ]
 
+# -------------------------------
+# Build Main Data Structure
+# -------------------------------
+
 data = {
     "summaryCards": [
-        {"label":"CPU","value":f"{os.environ.get('CPU_USAGE', '0')}%","status":status(os.environ.get('CPU_USAGE', '0'))},
-        {"label":"Memory","value":f"{os.environ.get('MEM_PERCENT', '0')}%","status":status(os.environ.get('MEM_PERCENT', '0'))},
-        {"label":"Disk","value":os.environ.get('DISK_PERCENT', '0%'),"status":status(os.environ.get('DISK_PERCENT', '0').replace('%',''))},
-        {"label":"Cost","value":get_cost_estimate(),"status":"info"}
+        {"label": "CPU", "value": f"{os.environ.get('CPU_USAGE', '0')}%", "status": status(os.environ.get('CPU_USAGE', '0'))},
+        {"label": "Memory", "value": f"{os.environ.get('MEM_PERCENT', '0')}%", "status": status(os.environ.get('MEM_PERCENT', '0'))},
+        {"label": "Disk", "value": os.environ.get('DISK_PERCENT', '0%'), "status": status(os.environ.get('DISK_PERCENT', '0').replace('%', ''))},
+        {"label": "Cost", "value": get_cost_estimate(), "status": "info"}
     ],
     "vmInformation": [
-        {"label":"Hostname","value":os.environ.get('HOSTNAME_VM', 'unknown')},
-        {"label":"Instance ID","value":os.environ.get('INSTANCE_ID', 'unknown')},
-        {"label":"Zone","value":os.environ.get('ZONE', 'unknown')},
-        {"label":"Machine Type","value":os.environ.get('MACHINE_TYPE', 'unknown')},
-        {"label":"OS","value":os.environ.get('OS_NAME', 'unknown')},
-        {"label":"Project ID","value":os.environ.get('PROJECT_ID', 'unknown')}
+        {"label": "Hostname", "value": os.environ.get('HOSTNAME_VM', 'unknown')},
+        {"label": "Instance ID", "value": os.environ.get('INSTANCE_ID', 'unknown')},
+        {"label": "Zone", "value": os.environ.get('ZONE', 'unknown')},
+        {"label": "Machine Type", "value": os.environ.get('MACHINE_TYPE', 'unknown')},
+        {"label": "OS", "value": os.environ.get('OS_NAME', 'unknown')},
+        {"label": "Project ID", "value": os.environ.get('PROJECT_ID', 'unknown')}
     ],
     "services": [
-        {"label":"Nginx","value":os.environ.get('NGINX_STATUS', 'Unknown'),"status":"healthy"},
-        {"label":"Python","value":os.environ.get('PYTHON_STATUS', 'Unknown'),"status":"healthy"},
-        {"label":"Metadata Service","value":os.environ.get('METADATA_STATUS', 'Unknown'),"status":"healthy"},
-        {"label":"HTTP Service","value":os.environ.get('HTTP_STATUS', 'Unknown'),"status":"healthy"},
-        {"label":"Startup Script","value":os.environ.get('STARTUP_STATUS', 'Unknown'),"status":"healthy"},
-        {"label":"GitHub Quotes Sync","value":os.environ.get('GITHUB_QUOTES_SYNC', 'Unknown'),"status":"healthy"},
-        {"label":"Bootstrap Packages","value":", ".join(json.loads(os.environ.get('BOOTSTRAP_PACKAGES_JSON', '[]'))),"status":"healthy"}
+        {"label": "Nginx", "value": os.environ.get('NGINX_STATUS', 'Unknown'), "status": "healthy"},
+        {"label": "Python", "value": os.environ.get('PYTHON_STATUS', 'Unknown'), "status": "healthy"},
+        {"label": "Metadata Service", "value": os.environ.get('METADATA_STATUS', 'Unknown'), "status": "healthy"},
+        {"label": "HTTP Service", "value": os.environ.get('HTTP_STATUS', 'Unknown'), "status": "healthy"},
+        {"label": "Startup Script", "value": os.environ.get('STARTUP_STATUS', 'Unknown'), "status": "healthy"},
+        {"label": "GitHub Quotes Sync", "value": os.environ.get('GITHUB_QUOTES_SYNC', 'Unknown'), "status": "healthy"},
+        {"label": "Bootstrap Packages", "value": ", ".join(json.loads(os.environ.get('BOOTSTRAP_PACKAGES_JSON', '[]'))), "status": "healthy"}
     ],
     "security": [
-        {"label":"Host Firewall","value":os.environ.get('FIREWALL_STATUS', 'Not installed'),"status":"info"},
-        {"label":"SSH","value":get_ssh_status(),"status":"healthy"},
-        {"label":"Updates","value":get_update_status(),"status":"info"},
-        {"label":"Internal IP","value":os.environ.get('INTERNAL_IP', 'unknown'),"status":"info"},
-        {"label":"Public IP","value":os.environ.get('PUBLIC_IP', 'unknown'),"status":"info"},
-        {"label":"Estimated Cost (Usage)","value":get_cost_estimate(),"status":"info"}
+        {"label": "Host Firewall", "value": os.environ.get('FIREWALL_STATUS', 'Not installed'), "status": "info"},
+        {"label": "SSH", "value": get_ssh_status(), "status": "healthy"},
+        {"label": "Updates", "value": get_update_status(), "status": "info"},
+        {"label": "Internal IP", "value": os.environ.get('INTERNAL_IP', 'unknown'), "status": "info"},
+        {"label": "Public IP", "value": os.environ.get('PUBLIC_IP', 'unknown'), "status": "info"},
+        {"label": "Estimated Cost (Usage)", "value": get_cost_estimate(), "status": "info"}
     ],
     "meta": {
-        "appName": "DevSecOps Sandbox",
+        "appName": "DevSecOps",
         "tagline": "Real-time infrastructure monitoring",
         "uptime": os.environ.get("UPTIME", "unknown")
     },
     "quote": quote,
     "logs": logs,
-    "resourceTable": resource_table
+    "resourceTable": resource_table,
+    "systemLoad": get_load_average()
 }
 
-with open("${DATA_DIR}/dashboard-data.json","w") as f:
+# -------------------------------
+# Write to File
+# -------------------------------
+
+with open("${DATA_DIR}/dashboard-data.json", "w") as f:
     json.dump(data, f, indent=2)
 
 print("Dashboard data generated successfully")
 PYTHON_SCRIPT
+
+# -------------------------------
+# Cron Job to Refresh Dashboard Data
+# -------------------------------
+
+log "Setting up cron job to refresh dashboard data"
+
+# Create a standalone Python script that can be called by cron
+cat > /opt/refresh-dashboard-data.py << 'EOF'
+import json, os, random
+from datetime import datetime, timedelta
+
+def status(val, warn=70):
+    try:
+        return "warning" if float(val) > warn else "healthy"
+    except:
+        return "healthy"
+
+def get_network_info():
+    try:
+        rx_bytes = int(os.environ.get('RX_BYTES', '0'))
+        tx_bytes = int(os.environ.get('TX_BYTES', '0'))
+        rx_mb = rx_bytes / (1024 * 1024)
+        tx_mb = tx_bytes / (1024 * 1024)
+        return f"{rx_mb:.1f} MB ↓ / {tx_mb:.1f} MB ↑"
+    except:
+        return os.environ.get('RX_BYTES', '0') + " / " + os.environ.get('TX_BYTES', '0')
+
+def get_load_average():
+    try:
+        with open('/proc/loadavg', 'r') as f:
+            load = f.read().split()
+            return float(load[0])
+    except:
+        return 0.0
+
+def get_ssh_status():
+    ssh_active = os.environ.get('SSH_STATUS', 'active')
+    if ssh_active.lower() == 'active':
+        return "Enabled (22/tcp)"
+    return "Disabled"
+
+def get_update_status():
+    updates = os.environ.get('UPDATES', '0')
+    if updates == "Current" or updates == "0":
+        return "Up to date"
+    try:
+        update_count = int(updates)
+        if update_count < 5:
+            return f"{update_count} security updates"
+        else:
+            return f"{update_count} updates available"
+    except:
+        return os.environ.get('UPDATE_STATUS', 'Current')
+
+def get_cost_estimate():
+    try:
+        machine_type = os.environ.get('MACHINE_TYPE', 'e2-micro').lower()
+        try:
+            cpu = float(os.environ.get('CPU_USAGE', '0'))
+            mem = float(os.environ.get('MEM_PERCENT', '0'))
+        except:
+            cpu = 0; mem = 0
+        
+        provider = "unknown"
+        try:
+            import subprocess
+            gcp_check = subprocess.run(['curl', '-s', '--max-time', '2', '-H', 'Metadata-Flavor: Google', 'http://metadata.google.internal/computeMetadata/v1/instance/zone'], capture_output=True, text=True, timeout=2)
+            if gcp_check.returncode == 0 and gcp_check.stdout:
+                provider = "gcp"
+        except: pass
+        
+        if provider == "unknown":
+            try:
+                aws_check = subprocess.run(['curl', '-s', '--max-time', '2', 'http://169.254.169.254/latest/meta-data/instance-id'], capture_output=True, text=True, timeout=2)
+                if aws_check.returncode == 0 and aws_check.stdout:
+                    provider = "aws"
+            except: pass
+        
+        if provider == "unknown":
+            try:
+                azure_check = subprocess.run(['curl', '-s', '--max-time', '2', '-H', 'Metadata:true', 'http://169.254.169.254/metadata/instance?api-version=2017-08-01'], capture_output=True, text=True, timeout=2)
+                if azure_check.returncode == 0 and azure_check.stdout:
+                    provider = "azure"
+            except: pass
+        
+        machine_size = "micro"
+        if "micro" in machine_type: machine_size = "micro"
+        elif "small" in machine_type: machine_size = "small"
+        elif "medium" in machine_type: machine_size = "medium"
+        elif "large" in machine_type: machine_size = "large"
+        
+        pricing = {
+            "gcp": {"micro": 0.012, "small": 0.025, "medium": 0.050, "large": 0.100},
+            "aws": {"micro": 0.0116, "small": 0.023, "medium": 0.046, "large": 0.092},
+            "azure": {"micro": 0.012, "small": 0.024, "medium": 0.048, "large": 0.096}
+        }
+        
+        if provider in pricing and machine_size in pricing[provider]:
+            base_hourly = pricing[provider][machine_size]
+        elif provider in pricing:
+            base_hourly = pricing[provider]["micro"]
+        else:
+            base_hourly = 0.015
+        
+        cpu_multiplier = min(max(cpu / 100, 0.1), 1.0)
+        mem_multiplier = min(max(mem / 100, 0.1), 1.0)
+        usage_factor = (cpu_multiplier + mem_multiplier) / 2
+        
+        monthly_cost = base_hourly * 720 * usage_factor
+        storage_cost = 1.00
+        total_monthly = monthly_cost + storage_cost
+        
+        provider_names = {"gcp": "GCP", "aws": "AWS", "azure": "Azure"}
+        provider_display = provider_names.get(provider, "")
+        machine_display = machine_type.replace('-', ' ').replace('_', ' ').title()
+        
+        if provider_display:
+            return f"\${total_monthly:.2f}/month ({provider_display} {machine_display})"
+        else:
+            return f"\${total_monthly:.2f}/month (est.)"
+    except:
+        return "Based on usage"
+
+# Get current metrics
+cpu_usage = os.popen("top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}'").read().strip() or "0"
+mem_percent = os.popen("free | awk '/Mem:/ {printf(\"%.0f\"), $3/$2 * 100.0}'").read().strip() or "0"
+disk_percent = os.popen("df / | tail -1 | awk '{print $5}'").read().strip() or "0%"
+uptime = os.popen("uptime -p").read().strip() or "up 0 minutes"
+hostname = os.popen("hostname").read().strip() or "unknown"
+
+# Load quotes
+quotes = []
+try:
+    with open("/var/www/devsecops-sandbox/data/quotes.json") as f:
+        quotes = json.load(f)
+except:
+    quotes = [{"text": "Welcome to DevSecOps!", "author": "System"}]
+
+# Build data
+data = {
+    "summaryCards": [
+        {"label": "CPU", "value": f"{cpu_usage}%", "status": status(cpu_usage)},
+        {"label": "Memory", "value": f"{mem_percent}%", "status": status(mem_percent)},
+        {"label": "Disk", "value": disk_percent, "status": status(disk_percent.replace('%', ''))},
+        {"label": "Cost", "value": get_cost_estimate(), "status": "info"}
+    ],
+    "vmInformation": [
+        {"label": "Hostname", "value": hostname},
+        {"label": "Instance ID", "value": os.environ.get('INSTANCE_ID', 'unknown')},
+        {"label": "Zone", "value": os.environ.get('ZONE', 'unknown')},
+        {"label": "Machine Type", "value": os.environ.get('MACHINE_TYPE', 'unknown')},
+        {"label": "OS", "value": os.environ.get('OS_NAME', 'Debian 12')},
+        {"label": "Project ID", "value": os.environ.get('PROJECT_ID', 'unknown')}
+    ],
+    "services": [
+        {"label": "Nginx", "value": os.environ.get('NGINX_STATUS', 'Running'), "status": "healthy"},
+        {"label": "Python", "value": os.environ.get('PYTHON_STATUS', 'Installed'), "status": "healthy"},
+        {"label": "Metadata Service", "value": os.environ.get('METADATA_STATUS', 'Reachable'), "status": "healthy"},
+        {"label": "HTTP Service", "value": os.environ.get('HTTP_STATUS', 'Serving'), "status": "healthy"},
+        {"label": "Startup Script", "value": os.environ.get('STARTUP_STATUS', 'Completed'), "status": "healthy"},
+        {"label": "GitHub Quotes Sync", "value": os.environ.get('GITHUB_QUOTES_SYNC', 'Successful'), "status": "healthy"},
+        {"label": "Bootstrap Packages", "value": "nginx, python3, curl, jq, git", "status": "healthy"}
+    ],
+    "security": [
+        {"label": "Host Firewall", "value": os.environ.get('FIREWALL_STATUS', 'Not installed'), "status": "info"},
+        {"label": "SSH", "value": get_ssh_status(), "status": "healthy"},
+        {"label": "Updates", "value": get_update_status(), "status": "info"},
+        {"label": "Internal IP", "value": os.environ.get('INTERNAL_IP', 'unknown'), "status": "info"},
+        {"label": "Public IP", "value": os.environ.get('PUBLIC_IP', 'unknown'), "status": "info"},
+        {"label": "Estimated Cost (Usage)", "value": get_cost_estimate(), "status": "info"}
+    ],
+    "meta": {
+        "appName": "DevSecOps",
+        "tagline": "Real-time infrastructure monitoring",
+        "uptime": uptime
+    },
+    "quote": random.choice(quotes),
+    "logs": [
+        {"time": datetime.now().strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": f"Dashboard updated - CPU: {cpu_usage}%, Memory: {mem_percent}%"},
+        {"time": (datetime.now() - timedelta(minutes=5)).strftime("%H:%M:%S"), "level": "info", "scope": "metrics", "message": "Metrics refreshed"}
+    ],
+    "resourceTable": [
+        {"name": "nginx", "type": "service", "scope": "system", "status": "Running"},
+        {"name": "python3", "type": "runtime", "scope": "system", "status": "Installed"},
+        {"name": "nodejs", "type": "runtime", "scope": "system", "status": "Installed"}
+    ],
+    "systemLoad": get_load_average()
+}
+
+with open("/var/www/devsecops-sandbox/data/dashboard-data.json", "w") as f:
+    json.dump(data, f, indent=2)
+
+print(f"Dashboard data refreshed - CPU: {cpu_usage}%, Memory: {mem_percent}%")
+EOF
+
+# Make it executable
+chmod +x /opt/refresh-dashboard-data.py
+
+# Set up cron job to refresh every 5 minutes
+REFRESH_CRON_CMD="*/5 * * * * /usr/bin/python3 /opt/refresh-dashboard-data.py >> /var/log/dashboard-refresh.log 2>&1"
+(crontab -l 2>/dev/null | grep -v 'refresh-dashboard-data'; echo "$REFRESH_CRON_CMD") | crontab -
+
+log "Dashboard refresh cron job configured (every 5 minutes)"
 
 # -------------------------------
 # Ensure index.html exists (safety)
