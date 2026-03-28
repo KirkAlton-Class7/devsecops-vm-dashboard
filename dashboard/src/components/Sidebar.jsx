@@ -73,10 +73,10 @@ export default function Sidebar({ dashboardUser = "Kirk Alton", dashboardName = 
                 >
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-r from-cyan-500/20 to-purple-600/20 rounded-full blur-2xl"></div>
                   <div className="relative">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                    <p className="text-base font-semibold uppercase tracking-[0.2em] bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                       {dashboardUser}
                     </p>
-                    <h1 className="mt-2 text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+                    <h1 className="mt-1 text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
                       {dashboardName}
                     </h1>
                   </div>
