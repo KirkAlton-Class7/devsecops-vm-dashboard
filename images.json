@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "filename": "chiang_mai_mountain_sunrise.jpeg",
+    "filename": "chiang_mai_mountain_sunrise.webp",
     "title": "Chiang Mai Mountain Sunrise",
     "location": "Chiang Mai, Thailand",
     "photographer": null,
@@ -9,7 +9,7 @@
   },
   {
     "id": 2,
-    "filename": "chiang_mai_temple_sunset.jpg",
+    "filename": "chiang_mai_temple_sunset.webp",
     "title": "Chiang Mai Temple Sunset",
     "location": "Chiang Mai, Thailand",
     "photographer": null,
@@ -17,7 +17,7 @@
   },
   {
     "id": 3,
-    "filename": "chiang_mai_misty_valley.jpeg",
+    "filename": "chiang_mai_misty_valley.webp",
     "title": "Misty Valley",
     "location": "Chiang Mai, Thailand",
     "photographer": null,
@@ -25,7 +25,7 @@
   },
   {
     "id": 4,
-    "filename": "madagascar_baobab_trees.jpeg",
+    "filename": "madagascar_baobab_trees.webp",
     "title": "Baobab Trees",
     "location": "Madagascar",
     "photographer": null,
@@ -33,7 +33,7 @@
   },
   {
     "id": 5,
-    "filename": "madagascar_lemur_forest.jpeg",
+    "filename": "madagascar_lemur_forest.webp",
     "title": "Lemur in the Forest",
     "location": "Madagascar",
     "photographer": null,
@@ -41,7 +41,7 @@
   },
   {
     "id": 6,
-    "filename": "madagascar_chameleon_macro.jpeg",
+    "filename": "madagascar_chameleon_macro.webp",
     "title": "Chameleon Close-up",
     "location": "Madagascar",
     "photographer": null,
@@ -49,7 +49,7 @@
   },
   {
     "id": 7,
-    "filename": "madagascar_waterfall_canyon.jpeg",
+    "filename": "madagascar_waterfall_canyon.webp",
     "title": "Waterfall Canyon",
     "location": "Madagascar",
     "photographer": null,
@@ -57,7 +57,7 @@
   },
   {
     "id": 8,
-    "filename": "madagascar_zebra_grasslands.jpeg",
+    "filename": "madagascar_zebra_grasslands.webp",
     "title": "Zebra in the Grasslands",
     "location": "Madagascar",
     "photographer": null,
@@ -65,7 +65,7 @@
   },
   {
     "id": 9,
-    "filename": "madagascar_tropical_beach.jpeg",
+    "filename": "madagascar_tropical_beach.webp",
     "title": "Tropical Beach",
     "location": "Madagascar",
     "photographer": null,
@@ -73,7 +73,7 @@
   },
   {
     "id": 10,
-    "filename": "madagascar_highlands_sunset.jpeg",
+    "filename": "madagascar_highlands_sunset.webp",
     "title": "Highlands Sunset",
     "location": "Madagascar",
     "photographer": null,
@@ -81,7 +81,7 @@
   },
   {
     "id": 11,
-    "filename": "madagascar_rainforest_canopy.jpg",
+    "filename": "madagascar_rainforest_canopy.webp",
     "title": "Rainforest Canopy",
     "location": "Madagascar",
     "photographer": null,
@@ -89,7 +89,7 @@
   },
   {
     "id": 12,
-    "filename": "madagascar_baobab_avenue.jpeg",
+    "filename": "madagascar_baobab_avenue.webp",
     "title": "Avenue of the Baobabs",
     "location": "Madagascar",
     "photographer": null,
@@ -97,7 +97,7 @@
   },
   {
     "id": 13,
-    "filename": "madagascar_jungle_stream.jpeg",
+    "filename": "madagascar_jungle_stream.webp",
     "title": "Jungle Stream",
     "location": "Madagascar",
     "photographer": null,
@@ -105,7 +105,7 @@
   },
   {
     "id": 14,
-    "filename": "madagascar_lagoon_aerial.jpeg",
+    "filename": "madagascar_lagoon_aerial.webp",
     "title": "Lagoon Aerial View",
     "location": "Madagascar",
     "photographer": null,
@@ -113,7 +113,7 @@
   },
   {
     "id": 15,
-    "filename": "madagascar_forest_waterfall.jpeg",
+    "filename": "madagascar_forest_waterfall.webp",
     "title": "Forest Waterfall",
     "location": "Madagascar",
     "photographer": null,
