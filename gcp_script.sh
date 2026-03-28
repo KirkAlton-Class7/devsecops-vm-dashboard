@@ -560,64 +560,45 @@ def get_cost_estimate():
         return f"Based on {machine_type} usage"
 
 # -------------------------------
-# Load Quotes - WITH GITHUB FALLBACK
+# Load Quotes - DIRECT FROM GITHUB
 # -------------------------------
 
 import urllib.request
 import json
 
 quotes = []
-github_url = "${GITHUB_QUOTES_URL}"
+github_url = "https://raw.githubusercontent.com/KirkAlton-Class7/cloud-quotes/main/quotes.json"
 
-# First try to load existing file
+print("Fetching quotes directly from GitHub...")
+
 try:
-    with open("${DATA_DIR}/quotes.json", "r") as f:
-        quotes = json.load(f)
-    print(f"Loaded {len(quotes)} quotes from file")
-except:
-    quotes = []
-
-# Check if we have valid quotes (not fallback)
-has_valid_quotes = False
-if quotes and len(quotes) > 0:
-    # Check if first quote is NOT Nietzsche (fallback)
-    first_text = quotes[0].get("text", "")
-    if "Nietzsche" not in first_text and "He who has a why" not in first_text:
-        has_valid_quotes = True
-        print("✅ Valid quotes already present")
-    else:
-        print("Fallback quotes detected, fetching from GitHub...")
-
-# If no valid quotes, fetch from GitHub
-if not has_valid_quotes:
+    # Fetch directly from GitHub
+    with urllib.request.urlopen(github_url, timeout=10) as response:
+        quotes = json.loads(response.read().decode())
+        print(f"Successfully fetched {len(quotes)} quotes from GitHub")
+        
+        # Save to file for cache
+        with open("${DATA_DIR}/quotes.json", "w") as f:
+            json.dump(quotes, f, indent=2)
+        with open("${DATA_DIR}/quotes_local.json", "w") as f:
+            json.dump(quotes, f, indent=2)
+            
+except Exception as e:
+    print(f"Failed to fetch from GitHub: {e}")
+    
+    # Fallback to local file if available
     try:
-        print(f"Fetching quotes from {github_url}...")
-        with urllib.request.urlopen(github_url, timeout=10) as response:
-            github_quotes = json.loads(response.read().decode())
-            if github_quotes and len(github_quotes) > 0:
-                quotes = github_quotes
-                # Save to file for next time
-                with open("${DATA_DIR}/quotes.json", "w") as f:
-                    json.dump(quotes, f, indent=2)
-                with open("${DATA_DIR}/quotes_local.json", "w") as f:
-                    json.dump(quotes, f, indent=2)
-                print(f"Fetched {len(quotes)} quotes from GitHub")
-            else:
-                raise Exception("Empty response")
-    except Exception as e:
-        print(f"Failed to fetch from GitHub: {e}")
-        # Use fallback as last resort
-        if not quotes:
-            quotes = [{"text": "Welcome to DevSecOps!", "author": "System"}]
-            print("Using fallback quote")
+        with open("${DATA_DIR}/quotes.json", "r") as f:
+            quotes = json.load(f)
+        print(f"Loaded {len(quotes)} quotes from local cache")
+    except:
+        # Ultimate fallback
+        quotes = [{"text": "Welcome to DevSecOps!", "author": "System"}]
+        print("Using emergency fallback quote")
 
-# Final check
+# Show first quote
 if quotes and len(quotes) > 0:
-    print(f"Final quote count: {len(quotes)}")
     print(f"First quote: {quotes[0].get('text', '')[:60]}...")
-else:
-    quotes = [{"text": "Welcome to DevSecOps!", "author": "System"}]
-    print("Using emergency fallback")
 
 quote = random.choice(quotes)
 
