@@ -132,15 +132,7 @@ export default function QuoteCard({ quote: initialQuote }) {
                 {currentQuote.source && (
                   <p className="text-xs text-slate-500 mt-1">from {currentQuote.source}</p>
                 )}
-                {currentQuote.tags && currentQuote.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {currentQuote.tags.slice(0, 2).map(tag => (
-                      <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                {/* Tags section removed */}
               </div>
               
               <div className="flex gap-2">
