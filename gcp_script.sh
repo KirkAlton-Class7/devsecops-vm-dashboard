@@ -84,6 +84,8 @@ log "  Dashboard Name: ${DASHBOARD_NAME}"
 
 md() {
   curl -fsS -H "Metadata-Flavor: Google" \
+  --connect-timeout 2 \
+  --max-time 3 \
   "http://metadata.google.internal/computeMetadata/v1/$1" 2>/dev/null || echo "unknown"
 }
 
@@ -284,7 +286,7 @@ INSTANCE_ID="$(md instance/id || echo "unknown")"
 ZONE="$(safe_basename "$(md instance/zone)" || echo "unknown")"
 MACHINE_TYPE="$(safe_basename "$(md instance/machine-type)" || echo "unknown")"
 PROJECT_ID="$(md project/project-id || echo "unknown")"
-INTERNAL_IP="$(md instance/network-interfaces/0/ip || hostname -I | awk '{print $1}')"
+INTERNAL_IP="$(md instance/network-interfaces/0/ip || hostname -I | awk '{print $1}' 2>/dev/null || echo "unknown")"
 
 PUBLIC_IP=$(md instance/network-interfaces/0/access-configs/0/external-ip 2>/dev/null)
 if [ -z "$PUBLIC_IP" ] || [ "$PUBLIC_IP" = "unknown" ]; then
