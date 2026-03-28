@@ -232,9 +232,8 @@ UPTIME="$(uptime -p || echo "unknown")"
 # -------------------------------
 # System metrics (REAL)
 # -------------------------------
-cpu_usage = os.popen("top -bn1 | grep 'Cpu(s)' | awk '{print $2}'").read().strip() or "0"
 
-CPU_USAGE="$(top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}' 2>/dev/null || echo "0")"
+CPU_USAGE="$(top -bn1 | grep 'Cpu(s)' | awk '{print $2}' 2>/dev/null || echo "0")"
 MEM_PERCENT="$(free | awk '/Mem:/ {printf("%.0f"), $3/$2 * 100.0}' 2>/dev/null || echo "0")"
 DISK_PERCENT="$(df / | tail -1 | awk '{print $5}' 2>/dev/null || echo "0%")"
 
@@ -270,7 +269,6 @@ export HOSTNAME_VM INSTANCE_ID ZONE MACHINE_TYPE OS_NAME PROJECT_ID INTERNAL_IP 
 export NGINX_STATUS PYTHON_STATUS STARTUP_STATUS METADATA_STATUS HTTP_STATUS GITHUB_QUOTES_SYNC
 export FIREWALL_STATUS SSH_STATUS UPDATE_STATUS UPTIME BOOTSTRAP_PACKAGES_JSON
 export CPU_USAGE MEM_PERCENT DISK_PERCENT RX_BYTES TX_BYTES
-
 
 # -------------------------------
 # Force GitHub Quotes (Always get latest)
@@ -321,7 +319,7 @@ if [ -f "${ACTIVE_QUOTES}" ] && grep -q "Nietzsche" "${ACTIVE_QUOTES}"; then
     if [ $? -eq 0 ] && python3 -c "import json; json.load(open('${ACTIVE_QUOTES}.tmp'))" 2>/dev/null; then
         mv "${ACTIVE_QUOTES}.tmp" "${ACTIVE_QUOTES}"
         cp "${ACTIVE_QUOTES}" "${LOCAL_QUOTES}"
-        log "✅ Second attempt successful!"
+        log "Second attempt successful!"
     fi
 fi
 
@@ -365,7 +363,7 @@ cp -r "$REPO_DIR/dashboard/dist/"* ${APP_DIR}/
 log "Final quotes verification before generating dashboard data"
 if [ -f "${ACTIVE_QUOTES}" ]; then
     if grep -q "Nietzsche" "${ACTIVE_QUOTES}"; then
-        log "RITICAL: Fallback quotes still present! Aborting Python script to prevent fallback."
+        log "CRITICAL: Fallback quotes still present! Aborting Python script to prevent fallback."
         exit 1
     else
         QUOTE_COUNT=$(python3 -c "import json; print(len(json.load(open('${ACTIVE_QUOTES}'))))" 2>/dev/null)
@@ -593,7 +591,7 @@ data = {
         {"label": "Zone", "value": os.environ.get('ZONE', 'unknown')},
         {"label": "Machine Type", "value": os.environ.get('MACHINE_TYPE', 'unknown')},
         {"label": "OS", "value": os.environ.get('OS_NAME', 'unknown')},
-        {"label": "Project ID", "value": os.environ.get('PROJECT_ID', 'unknown')}
+        {"label": "Project ID", "value": os.environ.get('PROJECT_ID', 'unknown')},
         {"label": "Estimated Cost (Usage)", "value": get_cost_estimate(), "status": "info"}
     ],
     "services": [
@@ -610,7 +608,7 @@ data = {
         {"label": "SSH", "value": get_ssh_status(), "status": "healthy"},
         {"label": "Updates", "value": get_update_status(), "status": "info"},
         {"label": "Internal IP", "value": os.environ.get('INTERNAL_IP', 'unknown'), "status": "info"},
-        {"label": "Public IP", "value": os.environ.get('PUBLIC_IP', 'unknown'), "status": "info"},
+        {"label": "Public IP", "value": os.environ.get('PUBLIC_IP', 'unknown'), "status": "info"}
     ],
     "meta": {
         "appName": "DevSecOps",
@@ -633,9 +631,9 @@ with open("${DATA_DIR}/dashboard-data.json", "w") as f:
 print("Dashboard data generated successfully")
 PYTHON_SCRIPT
 
-# -----------------------------------
+# -------------------------------
 # Cron Job to Refresh Dashboard Data
-# -----------------------------------
+# -------------------------------
 
 log "Setting up cron job to refresh dashboard data"
 
@@ -753,15 +751,6 @@ with open("/var/www/devsecops-sandbox/data/dashboard-data.json", "w") as f:
 
 print(f"Dashboard data refreshed - CPU: {cpu_usage}%, Memory: {mem_percent}%, Disk: {disk_percent}")
 EOF
-
-# Make it executable
-chmod +x /opt/refresh-dashboard-data.py
-
-# Set up cron job to refresh every 5 minutes
-REFRESH_CRON_CMD="*/5 * * * * /usr/bin/python3 /opt/refresh-dashboard-data.py >> /var/log/dashboard-refresh.log 2>&1"
-(crontab -l 2>/dev/null | grep -v 'refresh-dashboard-data'; echo "$REFRESH_CRON_CMD") | crontab -
-
-log "Dashboard refresh cron job configured (every 5 minutes)"
 
 # Make it executable
 chmod +x /opt/refresh-dashboard-data.py
