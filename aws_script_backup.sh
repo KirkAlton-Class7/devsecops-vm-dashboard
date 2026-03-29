@@ -55,9 +55,8 @@ export DASHBOARD_NAME
 # Logging & Debugging
 # -------------------------------
 exec > /var/log/startup-script.log 2>&1
-set -Euo pipefail
 set -x
-
+set -uo pipefail
 
 log() { echo "[${APP_NAME}] $1"; }
 
