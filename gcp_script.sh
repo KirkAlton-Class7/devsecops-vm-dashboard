@@ -144,7 +144,7 @@ chmod -R 755 "${APP_DIR}"
 # Clone Repository
 # -------------------------------
 log "Cloning dashboard repo from ${REPO_URL}"
-REPO_DIR="/opt/cloud-quotes"
+REPO_DIR="/opt/vm-dashboard"
 
 if [ ! -d "$REPO_DIR" ]; then
   retry git clone "$REPO_URL" "$REPO_DIR"
@@ -719,7 +719,7 @@ log "Setting up auto-deploy"
 
 DEPLOY_CMD="*/15 * * * * bash -c '
 LOCK_FILE=/tmp/dashboard.lock
-REPO_DIR=/opt/cloud-quotes
+REPO_DIR=/opt/vm-dashboard
 APP_DIR=/var/www/devsecops-sandbox
 TMP_DIR=/tmp/dashboard-build
 
