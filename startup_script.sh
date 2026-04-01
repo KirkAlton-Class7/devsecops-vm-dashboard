@@ -2,7 +2,7 @@
 # run-bootstrap.sh - Wrapper to pull and run the bootstrap script
 
 REPO_URL="https://github.com/KirkAlton-Class7/devsecops-vm-dashboard.git"
-WORK_DIR="/opt/bootstrap"
+WORK_DIR="/opt/vm-dashboard"
 
 # Clone or update the repo containing gcp_script.sh
 if [ ! -d "$WORK_DIR" ]; then
