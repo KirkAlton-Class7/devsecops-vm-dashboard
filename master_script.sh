@@ -218,46 +218,6 @@ cat > "${LOCAL_QUOTES}" <<'EOF'
 ]
 EOF
 
-# # -------------------------------
-# # Fetch GitHub Quotes
-# # -------------------------------
-# # Downloads quotes.json from GitHub, validates JSON, and falls back to local cache if needed
-
-# log "Fetching GitHub quotes"
-# GITHUB_QUOTES_SYNC="Failed"
-
-# if retry curl -fsSL "${GITHUB_QUOTES_URL}" -o "${ACTIVE_QUOTES}.tmp"; then
-#   if python3 -c "import json; json.load(open('${ACTIVE_QUOTES}.tmp'))" 2>/dev/null; then
-#     mv "${ACTIVE_QUOTES}.tmp" "${ACTIVE_QUOTES}"
-#     cp "${ACTIVE_QUOTES}" "${LOCAL_QUOTES}"
-#     GITHUB_QUOTES_SYNC="Successful"
-#     log "GitHub quotes fetched successfully"
-#   else
-#     log "Invalid JSON, using fallback"
-#     cp "${LOCAL_QUOTES}" "${ACTIVE_QUOTES}"
-#   fi
-# else
-#   log "Failed to fetch, using fallback"
-#   cp "${LOCAL_QUOTES}" "${ACTIVE_QUOTES}"
-# fi
-# log "Fetching GitHub quotes"
-# GITHUB_QUOTES_SYNC="Failed"
-
-# if retry curl -fsSL "${GITHUB_QUOTES_URL}" -o "${ACTIVE_QUOTES}.tmp"; then
-#   if python3 -c "import json; json.load(open('${ACTIVE_QUOTES}.tmp'))" 2>/dev/null; then
-#     mv "${ACTIVE_QUOTES}.tmp" "${ACTIVE_QUOTES}"
-#     cp "${ACTIVE_QUOTES}" "${LOCAL_QUOTES}"
-#     GITHUB_QUOTES_SYNC="Successful"
-#     log "GitHub quotes fetched successfully"
-#   else
-#     log "Invalid JSON, using fallback"
-#     cp "${LOCAL_QUOTES}" "${ACTIVE_QUOTES}"
-#   fi
-# else
-#   log "Failed to fetch, using fallback"
-#   cp "${LOCAL_QUOTES}" "${ACTIVE_QUOTES}"
-# fi
-
 # -------------------------------
 # Cron Job to Refresh Quotes
 # -------------------------------
@@ -460,46 +420,6 @@ log "Build successful"
 log "Deploying dashboard"
 rm -rf ${APP_DIR}/*
 cp -r "$REPO_DIR/dashboard/dist/"* ${APP_DIR}/
-
-# # -------------------------------
-# # Force GitHub Quotes Before Python
-# # -------------------------------
-
-# log "Force fetching GitHub quotes before generating dashboard data"
-
-# # Force download from GitHub - always get latest
-# retry curl -fsSL "${GITHUB_QUOTES_URL}" -o "${ACTIVE_QUOTES}.tmp"
-
-# if [ $? -eq 0 ] && [ -s "${ACTIVE_QUOTES}.tmp" ]; then
-#     # Validate JSON
-#     if python3 -c "import json; json.load(open('${ACTIVE_QUOTES}.tmp'))" 2>/dev/null; then
-#         mv "${ACTIVE_QUOTES}.tmp" "${ACTIVE_QUOTES}"
-#         cp "${ACTIVE_QUOTES}" "${LOCAL_QUOTES}"
-#         log "GitHub quotes loaded successfully"
-        
-#         # Show first quote for verification
-#         FIRST_QUOTE=$(python3 -c "import json; print(json.load(open('${ACTIVE_QUOTES}'))[0]['text'][:60])" 2>/dev/null || echo "Unknown")
-#         log "First quote: ${FIRST_QUOTE}..."
-#     else
-#         log "Invalid JSON from GitHub, keeping existing quotes"
-#         rm -f "${ACTIVE_QUOTES}.tmp"
-#     fi
-# else
-#     log "Failed to fetch GitHub quotes, using existing file if available"
-# fi
-
-# # Show final quote count
-# if [ -f "${ACTIVE_QUOTES}" ]; then
-#     QUOTE_COUNT=$(python3 -c "import json; print(len(json.load(open('${ACTIVE_QUOTES}'))))" 2>/dev/null || echo "0")
-#     log "Final quotes file has ${QUOTE_COUNT} quotes"
-    
-#     # Verify it's NOT fallback
-#     if grep -q "Nietzsche" "${ACTIVE_QUOTES}"; then
-#         log "WARNING: Fallback quotes detected! GitHub fetch may have failed."
-#     else
-#         log "Verified: GitHub quotes are ready"
-#     fi
-# fi
 
 # --------------------
 # Fetch GitHub Quotes
