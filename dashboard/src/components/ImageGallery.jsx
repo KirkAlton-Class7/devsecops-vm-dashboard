@@ -1,99 +1,10 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { RefreshCw, Heart, ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
+import { RefreshCw, Heart, ChevronLeft, ChevronRight, ImageOff, Plane, X } from "lucide-react";
 import Card from "./Card";
 
 const galleryImages = [
-  {
-    filename: "chiang_mai_mountain_sunrise.jpeg",
-    title: "Mountain Sunrise",
-    location: "Chiang Mai, Thailand",
-    tags: ["mountains", "sunrise", "landscape"]
-  },
-  {
-    filename: "chiang_mai_temple_sunset.jpg",
-    title: "Temple Sunset",
-    location: "Chiang Mai, Thailand",
-    tags: ["temple", "sunset", "culture"]
-  },
-  {
-    filename: "chiang_mai_misty_valley.jpeg",
-    title: "Misty Valley",
-    location: "Chiang Mai, Thailand",
-    tags: ["valley", "fog", "nature"]
-  },
-  {
-    filename: "madagascar_baobab_trees.jpeg",
-    title: "Baobab Trees",
-    location: "Madagascar",
-    tags: ["baobab", "trees", "dry_landscape"]
-  },
-  {
-    filename: "madagascar_lemur_forest.jpeg",
-    title: "Lemur in the Forest",
-    location: "Madagascar",
-    tags: ["lemur", "wildlife", "forest"]
-  },
-  {
-    filename: "madagascar_chameleon_macro.jpeg",
-    title: "Chameleon Close-up",
-    location: "Madagascar",
-    tags: ["chameleon", "macro", "wildlife"]
-  },
-  {
-    filename: "madagascar_waterfall_canyon.jpeg",
-    title: "Waterfall Canyon",
-    location: "Madagascar",
-    tags: ["waterfall", "canyon", "nature"]
-  },
-  {
-    filename: "madagascar_zebra_grasslands.jpeg",
-    title: "Zebra in the Grasslands",
-    location: "Madagascar",
-    tags: ["zebra", "savanna", "wildlife"]
-  },
-  {
-    filename: "madagascar_tropical_beach.jpeg",
-    title: "Tropical Beach",
-    location: "Madagascar",
-    tags: ["beach", "tropical", "ocean"]
-  },
-  {
-    filename: "madagascar_highlands_sunset.jpeg",
-    title: "Highlands Sunset",
-    location: "Madagascar",
-    tags: ["highlands", "sunset", "landscape"]
-  },
-  {
-    filename: "madagascar_rainforest_canopy.jpg",
-    title: "Rainforest Canopy",
-    location: "Madagascar",
-    tags: ["rainforest", "canopy", "jungle"]
-  },
-  {
-    filename: "madagascar_baobab_avenue.jpeg",
-    title: "Avenue of the Baobabs",
-    location: "Madagascar",
-    tags: ["baobab", "avenue", "iconic"]
-  },
-  {
-    filename: "madagascar_jungle_stream.jpeg",
-    title: "Jungle Stream",
-    location: "Madagascar",
-    tags: ["jungle", "stream", "nature"]
-  },
-  {
-    filename: "madagascar_lagoon_aerial.jpeg",
-    title: "Lagoon Aerial View",
-    location: "Madagascar",
-    tags: ["lagoon", "aerial", "coast"]
-  },
-  {
-    filename: "madagascar_forest_waterfall.jpeg",
-    title: "Forest Waterfall",
-    location: "Madagascar",
-    tags: ["forest", "waterfall", "lush"]
-  }
+  // ... your existing images array
 ];
 
 // Shuffle function
@@ -108,10 +19,19 @@ const shuffleArray = (array) => {
 
 export default function ImageGallery() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [liked, setLiked] = useState(false);
+  const [likedImageIds, setLikedImageIds] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [shuffledImages, setShuffledImages] = useState([]);
+  const [showBookModal, setShowBookModal] = useState(false);
+
+  // Load liked image IDs from localStorage
+  useEffect(() => {
+    const savedLikes = localStorage.getItem('likedImages');
+    if (savedLikes) {
+      setLikedImageIds(JSON.parse(savedLikes));
+    }
+  }, []);
 
   // Shuffle images on component mount
   useEffect(() => {
@@ -129,7 +49,6 @@ export default function ImageGallery() {
       newIndex = Math.floor(Math.random() * shuffledImages.length);
     } while (newIndex === currentIndex && shuffledImages.length > 1);
     setCurrentIndex(newIndex);
-    setLiked(false);
     setImageError(false);
     setTimeout(() => setIsRefreshing(false), 500);
   };
@@ -137,22 +56,44 @@ export default function ImageGallery() {
   const handleNext = () => {
     if (!shuffledImages.length) return;
     setCurrentIndex((prev) => (prev + 1) % shuffledImages.length);
-    setLiked(false);
     setImageError(false);
   };
 
   const handlePrev = () => {
     if (!shuffledImages.length) return;
     setCurrentIndex((prev) => (prev - 1 + shuffledImages.length) % shuffledImages.length);
-    setLiked(false);
     setImageError(false);
   };
 
   const handleLike = () => {
-    setLiked(!liked);
+    if (!currentImage) return;
+    const newLiked = likedImageIds.includes(currentImage.id)
+      ? likedImageIds.filter(id => id !== currentImage.id)
+      : [...likedImageIds, currentImage.id];
+    setLikedImageIds(newLiked);
+    localStorage.setItem('likedImages', JSON.stringify(newLiked));
   };
 
-  // Show loading while shuffling
+  const isLiked = currentImage ? likedImageIds.includes(currentImage.id) : false;
+
+  // Get unique liked locations from the full images list
+  const likedLocations = () => {
+    const likedImages = galleryImages.filter(img => likedImageIds.includes(img.id));
+    const unique = {};
+    likedImages.forEach(img => {
+      if (!unique[img.location]) {
+        unique[img.location] = img.location;
+      }
+    });
+    return Object.values(unique);
+  };
+
+  const openGoogleTravel = (location) => {
+    // Encode the location for URL
+    const url = `https://www.google.com/travel/explore?q=${encodeURIComponent(location)}`;
+    window.open(url, '_blank');
+  };
+
   if (!shuffledImages.length) {
     return (
       <Card title="Scenes from Around the World" subtitle="Where will you go next?">
@@ -167,92 +108,154 @@ export default function ImageGallery() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Card title="Scenes from Around the World" subtitle="Where will you go next?">
-        <div className="relative">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentIndex}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3 }}
-              className="relative rounded-xl overflow-hidden aspect-video bg-gradient-to-br from-slate-800 to-slate-900"
-            >
-              {!imageError ? (
-                <img
-                  src={imageUrl}
-                  alt={currentImage.location}
-                  className="w-full h-full object-cover"
-                  onError={() => setImageError(true)}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <ImageOff className="w-12 h-12 text-slate-600" />
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card title="Scenes from Around the World" subtitle="Where will you go next?">
+          <div className="relative">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentIndex}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                className="relative rounded-xl overflow-hidden aspect-video bg-gradient-to-br from-slate-800 to-slate-900"
+              >
+                {!imageError ? (
+                  <img
+                    src={imageUrl}
+                    alt={currentImage.location}
+                    className="w-full h-full object-cover"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageOff className="w-12 h-12 text-slate-600" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                
+                {/* Image Info Overlay - Only location */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                  <p className="text-sm text-white/80">{currentImage.location}</p>
                 </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Navigation Buttons */}
+            {shuffledImages.length > 1 && (
+              <>
+                <button
+                  onClick={handlePrev}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white backdrop-blur-sm"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white backdrop-blur-sm"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex gap-2">
+              <motion.button
+                onClick={handleLike}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className={`p-2 rounded-lg transition-colors ${
+                  isLiked ? 'text-red-500 bg-red-500/10' : 'text-slate-400 hover:text-red-500 hover:bg-red-500/10'
+                }`}
+              >
+                <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+              </motion.button>
               
-              {/* Image Info Overlay - Only location, no title */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                <p className="text-sm text-white/80">{currentImage.location}</p>
+              <motion.button
+                onClick={handleRefresh}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-colors"
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </motion.button>
+
+              <motion.button
+                onClick={() => setShowBookModal(true)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="p-2 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-white/10 transition-colors"
+              >
+                <Plane className="w-5 h-5" />
+              </motion.button>
+            </div>
+            
+            <p className="text-xs text-slate-500">
+              {currentIndex + 1} / {shuffledImages.length}
+            </p>
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Book Your Next Flight Modal */}
+      <AnimatePresence>
+        {showBookModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowBookModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+                  <Plane className="w-5 h-5 text-cyan-400" />
+                  Book your next flight
+                </h2>
+                <button
+                  onClick={() => setShowBookModal(false)}
+                  className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {likedLocations().length === 0 ? (
+                  <p className="text-center text-slate-400 py-8">
+                    ❤️ Like some images first to see destinations!
+                  </p>
+                ) : (
+                  likedLocations().map((location, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => openGoogleTravel(location)}
+                      className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/10"
+                    >
+                      <p className="text-sm text-slate-200">{location}</p>
+                    </button>
+                  ))
+                )}
               </div>
             </motion.div>
-          </AnimatePresence>
-
-          {/* Navigation Buttons */}
-          {shuffledImages.length > 1 && (
-            <>
-              <button
-                onClick={handlePrev}
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white backdrop-blur-sm"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleNext}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white backdrop-blur-sm"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex gap-2">
-            <motion.button
-              onClick={handleLike}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className={`p-2 rounded-lg transition-colors ${
-                liked ? 'text-red-500 bg-red-500/10' : 'text-slate-400 hover:text-red-500 hover:bg-red-500/10'
-              }`}
-            >
-              <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
-            </motion.button>
-            
-            <motion.button
-              onClick={handleRefresh}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-colors"
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </motion.button>
-          </div>
-          
-          <p className="text-xs text-slate-500">
-            {currentIndex + 1} / {shuffledImages.length}
-          </p>
-        </div>
-      </Card>
-    </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

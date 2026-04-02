@@ -12,6 +12,7 @@ import NetworkCard from "./components/NetworkCard";
 import LocationCard from "./components/LocationCard";
 import SystemResourcesCard from "./components/SystemResourcesCard";
 import LoadTrendChart from "./components/LoadTrendChart";
+import NetworkParticles from "./components/NetworkParticles";
 import { mockDashboard, mockQuotes } from "./data/mockDashboard";
 
 function getRandomQuote(quotes) {
@@ -147,33 +148,19 @@ export default function App() {
             <LoadTrendChart />
           </motion.section>
 
-          {/* Quote & Gallery */}
+          {/* Quote & Gallery - Side by side */}
           <motion.section 
-            className="grid grid-cols-1 gap-6 lg:grid-cols-3"
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
             variants={itemVariants}
           >
-            <motion.div 
-              className="lg:col-span-2"
-              whileHover={{ scale: 1.01 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              {/* This space is intentionally left for future expansion */}
-              <div className="h-full" />
-            </motion.div>
+            {/* Left column: Quote Card + Network Particles */}
             <div className="space-y-6">
-              <motion.div
-                whileHover={{ y: -5 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <QuoteCard quote={featuredQuote} />
-              </motion.div>
-              <motion.div
-                whileHover={{ y: -3 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ImageGallery />
-              </motion.div>
+              <QuoteCard quote={featuredQuote} />
+              <NetworkParticles />
             </div>
+
+            {/* Right column: Image Gallery */}
+            <ImageGallery />
           </motion.section>
 
           {/* Identity, Network, Location - Consolidated Cards */}
