@@ -1520,29 +1520,3 @@ chmod +x /opt/dashboard-deploy.sh
 
 log "Auto-deploy cron job configured (every 15 minutes)"
 log "Dashboard available at http://${PUBLIC_IP}"
-
-# Overview
-# Trends
-# ???
-# VM Information
-# System Resources
-# Services
-# Logs
-
-# Peru
-# Colombia
-# Brazil
-# Argentina
-# Madagascar
-# Finland
-# Germany
-# Poland
-# Czech Republic
-# Thailand
-# Vietnam
-# Malaysia
-# Indonesia
-# Philippines
-# Japan
-
-#airscape/cityscape, rural, country
