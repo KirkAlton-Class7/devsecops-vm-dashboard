@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { RefreshCw, Heart, ChevronLeft, ChevronRight, ImageOff, Plane, X } from "lucide-react";
+import { RefreshCw, Heart, ChevronLeft, ChevronRight, ImageOff, Plane, X, Home } from "lucide-react";
 import Card from "./Card";
 
 const shuffleArray = (array) => {
@@ -86,11 +86,6 @@ export default function ImageGallery() {
   const isLiked = currentImage ? likedImageIds.includes(currentImage.id) : false;
 
   const likedLocations = () => {
-    // Use the full images list (not shuffled) to get locations of liked images
-    // We need the original images array – we can fetch it again or store it separately.
-    // For simplicity, we'll use shuffledImages, but note that it's shuffled.
-    // A better approach is to store the original images array in a separate state.
-    // Since we don't have the original here, we'll assume shuffledImages contains all images.
     const likedImages = shuffledImages.filter(img => likedImageIds.includes(img.id));
     const unique = {};
     likedImages.forEach(img => {
@@ -103,6 +98,20 @@ export default function ImageGallery() {
 
   const openGoogleTravel = (location) => {
     const url = `https://www.google.com/travel/explore?q=${encodeURIComponent(location)}`;
+    window.open(url, '_blank');
+  };
+
+  const getCountryFromLocation = (location) => {
+    if (!location) return "";
+    const parts = location.split(',').map(p => p.trim());
+    return parts.length > 1 ? parts[parts.length - 1] : parts[0];
+  };
+
+  const handleLivingSearch = () => {
+    if (!currentImage) return;
+    const country = getCountryFromLocation(currentImage.location);
+    const query = `What is it really like to live in ${country}`;
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
     window.open(url, '_blank');
   };
 
@@ -169,7 +178,6 @@ export default function ImageGallery() {
                   </p>
                 </div>
 
-
               </motion.div>
             </AnimatePresence>
 
@@ -221,6 +229,15 @@ export default function ImageGallery() {
                 className="p-2 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-white/10 transition-colors"
               >
                 <Plane className="w-5 h-5" />
+              </motion.button>
+
+              <motion.button
+                onClick={handleLivingSearch}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="p-2 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-white/10 transition-colors"
+              >
+                <Home className="w-5 h-5" />
               </motion.button>
             </div>
             
