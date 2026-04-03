@@ -21,7 +21,6 @@ export default function ImageGallery() {
   const [showBookModal, setShowBookModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Load liked image IDs from localStorage
   useEffect(() => {
     const savedLikes = localStorage.getItem('likedImages');
     if (savedLikes) {
@@ -29,7 +28,6 @@ export default function ImageGallery() {
     }
   }, []);
 
-  // Fetch images.json from the backend
   useEffect(() => {
     fetch('/data/images.json')
       .then(response => {
@@ -158,7 +156,7 @@ export default function ImageGallery() {
                 {!imageError ? (
                   <img
                     src={imageUrl}
-                    alt={currentImage.title}  // <-- FIXED: use title, not location
+                    alt={currentImage.title}
                     className="w-full h-full object-cover"
                     onError={() => setImageError(true)}
                   />
@@ -167,16 +165,13 @@ export default function ImageGallery() {
                     <ImageOff className="w-12 h-12 text-slate-600" />
                   </div>
                 )}
-                
+
+                {/* Image overlay – only title remains, location moved to button bar */}
                 <div className="absolute bottom-0 left-0 right-0 p-4 text-white flex justify-between items-center gap-2 flex-wrap">
                   <p className="text-sm font-medium text-white/90 truncate">
                     {currentImage.title || currentImage.location}
                   </p>
-                  <p className="text-xs text-white/70 truncate">
-                    {currentImage.location}
-                  </p>
                 </div>
-
               </motion.div>
             </AnimatePresence>
 
@@ -198,6 +193,7 @@ export default function ImageGallery() {
             )}
           </div>
 
+          {/* Button bar with centered location */}
           <div className="flex items-center justify-between mt-4">
             <div className="flex gap-2">
               <motion.button
@@ -210,7 +206,7 @@ export default function ImageGallery() {
               >
                 <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
               </motion.button>
-              
+
               <motion.button
                 onClick={handleRefresh}
                 whileHover={{ scale: 1.1 }}
@@ -239,7 +235,14 @@ export default function ImageGallery() {
                 <Home className="w-5 h-5" />
               </motion.button>
             </div>
-            
+
+            {/* Centered location – updates with each image */}
+            <div className="flex-1 text-center">
+              <p className="text-sm font-medium text-slate-300 truncate px-2">
+                {currentImage?.location || ""}
+              </p>
+            </div>
+
             <p className="text-xs text-slate-500">
               {currentIndex + 1} / {shuffledImages.length}
             </p>

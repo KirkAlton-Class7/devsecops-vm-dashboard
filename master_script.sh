@@ -261,26 +261,47 @@ log "Pricing cache cron job configured (monthly)"
 # ---------------------------------------
 # Generate Photo Gallery Images (from repo images)
 # ---------------------------------------
-# This now dynamically generates images.json from the actual image files
 
 log "Setting up photo gallery"
 
 # Create images directory
 mkdir -p "${DATA_DIR}/images"
 
-# Copy images from repo root/images to data directory (force overwrite)
+# Copy images from repo root/images to data directory
 if [ -d "$REPO_DIR/images" ]; then
-    cp -rf "$REPO_DIR/images/"* "${DATA_DIR}/images/" 2>/dev/null && log "Images copied successfully" || log "No images found in repo/images"
+    cp -rf "$REPO_DIR/images/"* "${DATA_DIR}/images/"
+    if [ $? -eq 0 ]; then
+        log "Images copied successfully"
+    else
+        log "ERROR: Failed to copy images from $REPO_DIR/images"
+    fi
 else
-    log "Images directory not found in repo"
+    log "WARNING: Images directory not found in repo"
 fi
 
-# Export for Python
-export DATA_DIR
+# Copy images.json from repo (contains accurate location data)
+if [ -f "$REPO_DIR/images.json" ]; then
+    cp -f "$REPO_DIR/images.json" "${DATA_DIR}/images.json"
+    if [ $? -eq 0 ]; then
+        log "images.json copied from repo"
+    else
+        log "ERROR: Failed to copy images.json"
+    fi
+else
+    log "WARNING: images.json not found in repo root"
+fi
 
-# Generate images.json dynamically from the actual files in DATA_DIR/images
+# Set proper permissions
+chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}/images" 2>/dev/null || true
+chmod -R 755 "${DATA_DIR}/images" 2>/dev/null || true
+
+#-----------------------
+# Generate images.json
+#-----------------------
+# Created dynamically from files in DATA_DIR/images
+
 python3 << 'PYTHON_SCRIPT'
-import json, os
+import json, os, re
 
 data_dir = os.environ.get('DATA_DIR', '/var/www/vm-dashboard/data')
 img_dir = os.path.join(data_dir, 'images')
@@ -291,48 +312,60 @@ if not os.path.isdir(img_dir):
 images = []
 extensions = ('.jpg', '.jpeg', '.png', '.webp', '.avif')
 for idx, fname in enumerate(sorted(os.listdir(img_dir)), start=1):
-    if fname.lower().endswith(extensions):
-        # Generate title from filename (remove extension, replace underscores/spaces)
-        title = fname.rsplit('.', 1)[0].replace('_', ' ').title()
-        # Simple location extraction: use the whole title as location
-        location = title
-        images.append({
-            "id": idx,
-            "filename": fname,
-            "title": title,
-            "location": location,
-            "photographer": "VM Gallery",
-            "tags": ["travel", "nature"]
-        })
+    if not fname.lower().endswith(extensions):
+        continue
 
-# Overwrite any existing images.json
+    # Remove leading number and dash (e.g., "1-argentina-buenos-aires-cityscape.webp")
+    base = fname.rsplit('.', 1)[0]
+    if re.match(r'^\d+-', base):
+        base = re.sub(r'^\d+-', '', base)
+
+    # Build title: replace underscores with spaces, capitalize words
+    title = base.replace('_', ' ').title()
+
+    # Extract location: "argentina-buenos-aires" -> "Buenos Aires, Argentina"
+    parts = base.split('-')
+    if len(parts) >= 2:
+        country = parts[0].replace('_', ' ').title()
+        # City might be multiple parts (e.g., "buenos-aires")
+        city = ' '.join(parts[1:]).replace('_', ' ').title()
+        location = f"{city}, {country}"
+    else:
+        location = title
+
+    images.append({
+        "id": idx,
+        "filename": fname,
+        "title": title,
+        "location": location,
+        "photographer": "VM Gallery",
+        "tags": ["travel", "nature"]
+    })
+
 output_file = os.path.join(data_dir, 'images.json')
 with open(output_file, 'w') as f:
     json.dump(images, f, indent=2)
 
-print(f"Generated images.json with {len(images)} images from {img_dir}")
+print(f"Generated images.json with {len(images)} images")
 PYTHON_SCRIPT
 
 # Set proper permissions
 chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}/images" 2>/dev/null || true
 chmod -R 755 "${DATA_DIR}/images" 2>/dev/null || true
 
-# Also ensure images are in the deployed dashboard directory (optional)
-if [ -d "$REPO_DIR/images" ]; then
-    mkdir -p "${APP_DIR}/data/images"
-    cp -rf "$REPO_DIR/images/"* "${APP_DIR}/data/images/" 2>/dev/null || true
-fi
 
 # -------------------------------
 # Metadata
 # -------------------------------
 # Collects VM information from GCP metadata service with fallbacks to system commands
 
+sleep 3
+
 log "Collecting metadata"
 HOSTNAME_VM="$(md instance/hostname || hostname)"
-INSTANCE_ID="$(md instance/id || echo "unknown")"
-ZONE="$(safe_basename "$(md instance/zone)" || echo "unknown")"
-MACHINE_TYPE="$(safe_basename "$(md instance/machine-type)" || echo "unknown")"
+INSTANCE_ID="$(md instance/id || curl -s http://metadata.google.internal/computeMetadata/v1/instance/id -H 'Metadata-Flavor: Google' 2>/dev/null || echo "unknown")"
+ZONE="$(md instance/zone | awk -F/ '{print $NF}' || echo "unknown")"
+MACHINE_TYPE="$(md instance/machine-type | awk -F/ '{print $NF}' || echo "unknown")"
 PROJECT_ID="$(md project/project-id || echo "unknown")"
 INTERNAL_IP="$(md instance/network-interfaces/0/ip || hostname -I | awk '{print $1}' 2>/dev/null || echo "unknown")"
 
@@ -346,6 +379,10 @@ fi
 
 OS_NAME="$(. /etc/os-release && echo "$PRETTY_NAME")"
 UPTIME="$(uptime -p || echo "unknown")"
+
+# Debug
+log "Metadata: HOSTNAME=$HOSTNAME_VM, INSTANCE_ID=$INSTANCE_ID, ZONE=$ZONE, MACHINE_TYPE=$MACHINE_TYPE, PROJECT=$PROJECT_ID, INTERNAL_IP=$INTERNAL_IP, PUBLIC_IP=$PUBLIC_IP"
+
 
 # -------------------------------
 # System metrics
@@ -828,8 +865,12 @@ except Exception as e:
 # Collect System Metadata
 # -------------------------------
 # Region from zone (strip last character)
+
 zone = os.environ.get('ZONE', 'unknown')
-region = zone[:-2] if len(zone) > 2 else 'unknown'
+if zone == 'unknown' or len(zone) < 3:
+    region = 'unknown'
+else:
+    region = zone[:-2]  # e.g., 'us-central1-a' -> 'us-central1'
 
 # Collect detailed resources
 memory_details = get_memory_details()
@@ -925,7 +966,7 @@ data = {
     },
     "network": {
         "vpc": "default",
-        "subnet": f"{region}-subnet",
+        "subnet": f"{region}-subnet" if region != 'unknown' else "unknown-subnet",
         "internalIp": internal_ip,
         "externalIp": public_ip
     },
@@ -951,7 +992,8 @@ data = {
 # -------------------------------
 # Saves the final JSON to the data directory for nginx to serve
 
-with open("${DATA_DIR}/dashboard-data.json", "w") as f:
+output_file = os.path.join(data_dir, 'dashboard-data.json')
+with open(output_file, 'w') as f:
     json.dump(data, f, indent=2)
 
 print("Dashboard data generated successfully")
@@ -1168,7 +1210,7 @@ summaryCards = [
     {"label": "CPU", "value": f"{cpu_usage}%", "status": status(cpu_usage)},
     {"label": "Memory", "value": f"{mem_percent}%", "status": status(mem_percent)},
     {"label": "Disk", "value": disk_percent, "status": status(disk_percent.replace('%', ''))},
-    {"label": "Cost", "value": get_cumulutive_cost(cpu_usage, mem_percent), "status": "info"}
+    {"label": "Cost", "value": get_cumulative_cost(), "status": "info"}
 ]
 
 services = [
@@ -1217,16 +1259,22 @@ identity = existing.get('identity', {
     "machineType": os.environ.get('MACHINE_TYPE', 'unknown')
 })
 
+zone_env = os.environ.get('ZONE', 'unknown')
+if zone_env == 'unknown' or len(zone_env) < 3:
+    region_val = 'unknown'
+else:
+    region_val = zone_env[:-2]
+
 network = existing.get('network', {
     "vpc": "default",
-    "subnet": f"{os.environ.get('ZONE', 'unknown')[:-2]}-subnet",
+    "subnet": f"{region_val}-subnet" if region_val != 'unknown' else "unknown-subnet",
     "internalIp": internal_ip,
     "externalIp": public_ip
 })
 
 location = existing.get('location', {
-    "region": os.environ.get('ZONE', 'unknown')[:-2] if len(os.environ.get('ZONE', 'unknown')) > 2 else 'unknown',
-    "zone": os.environ.get('ZONE', 'unknown'),
+    "region": region_val,
+    "zone": zone_env,
     "uptime": uptime,
     "loadAvg": f"{systemLoad:.2f}"
 })
@@ -1435,38 +1483,25 @@ if [ "$LOCAL" != "$REMOTE" ]; then
     /opt/scripts/fetch_pricing.py
   fi
 
-  # Copy latest images and regenerate metadata (force overwrite)
-  if [ -d "$REPO_DIR/images" ]; then
-    cp -rf "$REPO_DIR/images/"* "$DATA_DIR/images/" 2>/dev/null
-  fi
+  # Copy latest images (force overwrite)
+    if [ -d "$REPO_DIR/images" ]; then
+        cp -rf "$REPO_DIR/images/"* "$DATA_DIR/images/"
+        if [ $? -eq 0 ]; then
+            echo "[DEPLOY] Images copied successfully" >> /var/log/dashboard-deploy.log
+        else
+            echo "[DEPLOY] ERROR: Failed to copy images" >> /var/log/dashboard-deploy.log
+        fi
+    fi
 
-  # Regenerate images.json dynamically
-  python3 << 'INNER_PY'
-import json, os
-data_dir = os.environ.get('DATA_DIR', '/var/www/vm-dashboard/data')
-img_dir = os.path.join(data_dir, 'images')
-if not os.path.isdir(img_dir):
-    print("ERROR: images directory missing in auto-deploy")
-    exit(1)
-images = []
-extensions = ('.jpg', '.jpeg', '.png', '.webp', '.avif')
-for idx, fname in enumerate(sorted(os.listdir(img_dir)), start=1):
-    if fname.lower().endswith(extensions):
-        title = fname.rsplit('.', 1)[0].replace('_', ' ').title()
-        location = title
-        images.append({
-            "id": idx,
-            "filename": fname,
-            "title": title,
-            "location": location,
-            "photographer": "VM Gallery",
-            "tags": ["travel", "nature"]
-        })
-output_file = os.path.join(data_dir, 'images.json')
-with open(output_file, 'w') as f:
-    json.dump(images, f, indent=2)
-print(f"Auto-deploy: generated images.json with {len(images)} images")
-INNER_PY
+    #FIXME
+    if [ -d "$REPO_DIR/images" ]; then
+        cp -rf "$REPO_DIR/images/"* "$DATA_DIR/images/"
+        if [ $? -eq 0 ]; then
+            echo "[DEPLOY] Images copied successfully" >> /var/log/dashboard-deploy.log
+        else
+            echo "[DEPLOY] ERROR: Failed to copy images" >> /var/log/dashboard-deploy.log
+        fi
+    fi
 
   chown -R appuser:appuser "$DATA_DIR/images" 2>/dev/null || true
   chmod -R 755 "$DATA_DIR/images" 2>/dev/null || true

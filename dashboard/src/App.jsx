@@ -115,7 +115,7 @@ export default function App() {
           initial="hidden"
           animate="visible"
         >
-          {/* Stats Cards - Live Current Values */}
+          {/* Stats Cards - Overview */}
           <motion.section 
             id="overview" 
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full"
@@ -140,31 +140,31 @@ export default function App() {
             ))}
           </motion.section>
 
-          {/* Load Trend Chart - Historical Load Average */}
+          {/* Load Trend Chart */}
           <motion.section 
+            id="load"
             className="grid grid-cols-1 gap-6"
             variants={itemVariants}
           >
             <LoadTrendChart />
           </motion.section>
 
-          {/* Quote & Gallery - Side by side */}
+          {/* Ambience – Quote & Gallery side by side */}
           <motion.section 
+            id="ambience"
             className="grid grid-cols-1 md:grid-cols-2 gap-6"
             variants={itemVariants}
           >
-            {/* Left column: Quote Card + Network Particles */}
             <div className="space-y-6">
               <QuoteCard quote={featuredQuote} />
               <NetworkParticles />
             </div>
-
-            {/* Right column: Image Gallery */}
             <ImageGallery />
           </motion.section>
 
-          {/* Identity, Network, Location - Consolidated Cards */}
+          {/* VM Information – Identity, Network, Location */}
           <motion.section 
+            id="vm-information"
             className="grid grid-cols-1 gap-6 lg:grid-cols-3"
             variants={itemVariants}
           >
@@ -173,16 +173,18 @@ export default function App() {
             <LocationCard location={dashboard.location || {}} />
           </motion.section>
 
-          {/* System Resources - Enhanced Resource View */}
+          {/* System Resources */}
           <motion.section 
+            id="system-resources"
             className="grid grid-cols-1 gap-6"
             variants={itemVariants}
           >
             <SystemResourcesCard resources={dashboard.systemResources || {}} />
           </motion.section>
 
-          {/* Services Status */}
+          {/* Services */}
           <motion.section 
+            id="services"
             className="grid grid-cols-1 gap-6"
             variants={itemVariants}
           >
