@@ -758,6 +758,8 @@ PYTHON_SCRIPT
 log "Setting up cron job to refresh dashboard data"
 
 cat > /opt/refresh-dashboard-data.py << 'EOF'
+#!/usr/bin/env bash
+
 import json, os, random, subprocess, re
 from datetime import datetime, timedelta
 
@@ -777,6 +779,55 @@ if os.path.exists(DASHBOARD_JSON):
             existing = json.load(f)
     except:
         pass
+
+# ------------------------------------------------------------
+# Fresh metadata collection (from instance metadata service)
+# ------------------------------------------------------------
+def md(path):
+    try:
+        import subprocess
+        result = subprocess.run(
+            ['curl', '-fsS', '-H', 'Metadata-Flavor: Google', '--connect-timeout', '2', '--max-time', '3',
+             f'http://metadata.google.internal/computeMetadata/v1/{path}'],
+            capture_output=True, text=True, timeout=3
+        )
+        if result.returncode == 0 and result.stdout:
+            return result.stdout.strip()
+    except:
+        pass
+    return 'unknown'
+
+hostname_vm = md('instance/hostname') or subprocess.getoutput('hostname')
+instance_id = md('instance/id') or 'unknown'
+zone_full = md('instance/zone')
+zone = zone_full.split('/')[-1] if '/' in zone_full else zone_full
+machine_type_full = md('instance/machine-type')
+machine_type = machine_type_full.split('/')[-1] if '/' in machine_type_full else machine_type_full
+project_id = md('project/project-id') or 'unknown'
+internal_ip = md('instance/network-interfaces/0/ip') or subprocess.getoutput("hostname -I | awk '{print $1}'") or 'unknown'
+public_ip = md('instance/network-interfaces/0/access-configs/0/external-ip') or subprocess.getoutput('curl -s ifconfig.me') or 'unknown'
+os_name = subprocess.getoutput('. /etc/os-release && echo "$PRETTY_NAME"')
+uptime_str = subprocess.getoutput('uptime -p') or 'unknown'
+
+# Region from zone
+region = zone[:-2] if zone != 'unknown' and len(zone) > 2 else 'unknown'
+
+# ------------------------------------------------------------
+# FALLBACK: preserve existing metadata if fetch returns "unknown"
+# ------------------------------------------------------------
+if project_id == "unknown" and "identity" in existing:
+    project_id = existing["identity"].get("project", "unknown")
+if instance_id == "unknown" and "identity" in existing:
+    instance_id = existing["identity"].get("instanceId", "unknown")
+if zone == "unknown" and "location" in existing:
+    zone = existing["location"].get("zone", "unknown")
+    region = zone[:-2] if zone != "unknown" and len(zone) > 2 else "unknown"
+if machine_type == "unknown" and "identity" in existing:
+    machine_type = existing["identity"].get("machineType", "unknown")
+if internal_ip == "unknown" and "network" in existing:
+    internal_ip = existing["network"].get("internalIp", "unknown")
+if public_ip == "unknown" and "network" in existing:
+    public_ip = existing["network"].get("externalIp", "unknown")
 
 # ------------------------------------------------------------
 # Helper functions (same as main script)
@@ -981,28 +1032,32 @@ except:
 cpu_info = {"cores": 1, "frequency": None, "usage": float(cpu_usage)}
 
 # ------------------------------------------------------------
-# Merge with existing static data
+# Merge with existing static data (using fetched metadata)
 # ------------------------------------------------------------
-identity = existing.get('identity', {
-    "project": os.environ.get('PROJECT_ID', 'unknown'),
-    "instanceId": os.environ.get('INSTANCE_ID', 'unknown'),
-    "hostname": hostname,
-    "machineType": os.environ.get('MACHINE_TYPE', 'unknown')
-})
+# Note: project_id, instance_id, zone, machine_type, internal_ip,
+# public_ip, region, hostname_vm, uptime_str are already set
+# with fallback to existing values when fetch returned "unknown".
 
-network = existing.get('network', {
+identity = {
+    "project": project_id,
+    "instanceId": instance_id,
+    "hostname": hostname_vm,
+    "machineType": machine_type
+}
+
+network = {
     "vpc": "default",
-    "subnet": f"{os.environ.get('ZONE', 'unknown')[:-2]}-subnet",
+    "subnet": f"{region}-subnet" if region != "unknown" else "unknown-subnet",
     "internalIp": internal_ip,
     "externalIp": public_ip
-})
+}
 
-location = existing.get('location', {
-    "region": os.environ.get('ZONE', 'unknown')[:-2] if len(os.environ.get('ZONE', 'unknown')) > 2 else 'unknown',
-    "zone": os.environ.get('ZONE', 'unknown'),
-    "uptime": uptime,
+location = {
+    "region": region,
+    "zone": zone,
+    "uptime": uptime_str,
     "loadAvg": f"{systemLoad:.2f}"
-})
+}
 
 systemResources = existing.get('systemResources', {
     "memory": memory_details,
@@ -1026,7 +1081,7 @@ data = {
         "tagline": os.environ.get('DASHBOARD_TAGLINE', 'Real-time infrastructure monitoring'),
         "dashboardUser": os.environ.get('DASHBOARD_USER', 'Kirk Alton'),
         "dashboardName": os.environ.get('DASHBOARD_NAME', 'DevSecOps Dashboard'),
-        "uptime": uptime
+        "uptime": uptime_str
     }),
     "quote": random.choice(quotes),
     "logs": logs,
@@ -1042,7 +1097,6 @@ with open(DASHBOARD_JSON, "w") as f:
     json.dump(data, f, indent=2)
 
 print(f"Dashboard data refreshed - CPU: {cpu_usage}%, Memory: {mem_percent}%, Disk: {disk_percent}")
-EOF
 
 chmod +x /opt/refresh-dashboard-data.py
 
