@@ -295,65 +295,6 @@ fi
 chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}/images" 2>/dev/null || true
 chmod -R 755 "${DATA_DIR}/images" 2>/dev/null || true
 
-#-----------------------
-# Generate images.json
-#-----------------------
-# Created dynamically from files in DATA_DIR/images
-
-python3 << 'PYTHON_SCRIPT'
-import json, os, re
-
-data_dir = os.environ.get('DATA_DIR', '/var/www/vm-dashboard/data')
-img_dir = os.path.join(data_dir, 'images')
-if not os.path.isdir(img_dir):
-    print("ERROR: images directory missing, cannot generate images.json")
-    exit(1)
-
-images = []
-extensions = ('.jpg', '.jpeg', '.png', '.webp', '.avif')
-for idx, fname in enumerate(sorted(os.listdir(img_dir)), start=1):
-    if not fname.lower().endswith(extensions):
-        continue
-
-    # Remove leading number and dash (e.g., "1-argentina-buenos-aires-cityscape.webp")
-    base = fname.rsplit('.', 1)[0]
-    if re.match(r'^\d+-', base):
-        base = re.sub(r'^\d+-', '', base)
-
-    # Build title: replace underscores with spaces, capitalize words
-    title = base.replace('_', ' ').title()
-
-    # Extract location: "argentina-buenos-aires" -> "Buenos Aires, Argentina"
-    parts = base.split('-')
-    if len(parts) >= 2:
-        country = parts[0].replace('_', ' ').title()
-        # City might be multiple parts (e.g., "buenos-aires")
-        city = ' '.join(parts[1:]).replace('_', ' ').title()
-        location = f"{city}, {country}"
-    else:
-        location = title
-
-    images.append({
-        "id": idx,
-        "filename": fname,
-        "title": title,
-        "location": location,
-        "photographer": "VM Gallery",
-        "tags": ["travel", "nature"]
-    })
-
-output_file = os.path.join(data_dir, 'images.json')
-with open(output_file, 'w') as f:
-    json.dump(images, f, indent=2)
-
-print(f"Generated images.json with {len(images)} images")
-PYTHON_SCRIPT
-
-# Set proper permissions
-chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}/images" 2>/dev/null || true
-chmod -R 755 "${DATA_DIR}/images" 2>/dev/null || true
-
-
 # -------------------------------
 # Metadata
 # -------------------------------
