@@ -1249,6 +1249,16 @@ if [ ! -f "${APP_DIR}/index.html" ]; then
   echo "<h1>Dashboard initializing...</h1>" > "${APP_DIR}/index.html"
 fi
 
+
+# -------------------------------
+# Copy images.json from repo root to data directory #FIXME
+if [ -f "$REPO_DIR/images.json" ]; then
+    cp -f "$REPO_DIR/images.json" "${DATA_DIR}/images.json"
+    log "images.json copied"
+else
+    log "ERROR: images.json not found in repo root"
+fi
+
 # -------------------------------
 # Nginx Configuration
 # -------------------------------
@@ -1385,28 +1395,41 @@ if [ "$LOCAL" != "$REMOTE" ]; then
   fi
 
   # =============================================
-  # Reliable image sync (same as main script)
+  # Reliable image sync (fixed permissions + checks)
   # =============================================
-  # Create target directory and clear old images
+  # Ensure DATA_DIR exists and is writable by appuser
+  mkdir -p "$DATA_DIR"
+  chown appuser:appuser "$DATA_DIR" 2>/dev/null || true
+
+  # Create target images directory and clear old images
   mkdir -p "$DATA_DIR/images"
   rm -rf "$DATA_DIR/images"/* 2>/dev/null || true
 
-  # Copy images.json
+  # Copy images.json with explicit success check
   if [ -f "$REPO_DIR/images.json" ]; then
-      cp -f "$REPO_DIR/images.json" "$DATA_DIR/images.json"
-      if jq empty "$DATA_DIR/images.json" 2>/dev/null; then
-          echo "[DEPLOY] images.json copied and valid" >> /var/log/dashboard-deploy.log
+      if cp -f "$REPO_DIR/images.json" "$DATA_DIR/images.json"; then
+          if jq empty "$DATA_DIR/images.json" 2>/dev/null; then
+              echo "[DEPLOY] images.json copied and valid" >> /var/log/dashboard-deploy.log
+          else
+              echo "[DEPLOY] ERROR: images.json is invalid JSON" >> /var/log/dashboard-deploy.log
+              rm -f "$DATA_DIR/images.json"
+          fi
       else
-          echo "[DEPLOY] ERROR: images.json is invalid JSON" >> /var/log/dashboard-deploy.log
+          echo "[DEPLOY] ERROR: Failed to copy images.json (permission or disk issue)" >> /var/log/dashboard-deploy.log
       fi
   else
-      echo "[DEPLOY] WARNING: images.json not found in repo root" >> /var/log/dashboard-deploy.log
+      echo "[DEPLOY] WARNING: images.json not found in repo root – keeping existing if any" >> /var/log/dashboard-deploy.log
   fi
 
-  # Copy all images (using cp -rf with /. ensures all files are copied)
+  # Copy all images
   if [ -d "$REPO_DIR/images" ]; then
-      cp -rf "$REPO_DIR/images/." "$DATA_DIR/images/"
-      echo "[DEPLOY] Images copied from $REPO_DIR/images" >> /var/log/dashboard-deploy.log
+      # Ensure destination is writable
+      chown -R appuser:appuser "$DATA_DIR/images" 2>/dev/null || true
+      if cp -rf "$REPO_DIR/images/." "$DATA_DIR/images/"; then
+          echo "[DEPLOY] Images copied from $REPO_DIR/images" >> /var/log/dashboard-deploy.log
+      else
+          echo "[DEPLOY] ERROR: Failed to copy images" >> /var/log/dashboard-deploy.log
+      fi
   else
       echo "[DEPLOY] WARNING: No images directory in repo" >> /var/log/dashboard-deploy.log
       # Create a placeholder to avoid 404s
@@ -1418,7 +1441,7 @@ if [ "$LOCAL" != "$REMOTE" ]; then
 SVG
   fi
 
-  # Set ownership and permissions
+  # Final ownership and permissions
   chown -R appuser:appuser "$DATA_DIR/images" 2>/dev/null || true
   chmod -R 755 "$DATA_DIR/images" 2>/dev/null || true
   chown appuser:appuser "$DATA_DIR/images.json" 2>/dev/null || true
