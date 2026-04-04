@@ -1335,7 +1335,7 @@ log "Startup complete"
 log "Setting up dashboard auto-deploy"
 
 # Create the deployment script
-cat > /opt/dashboard-deploy.sh << 'DEPLOY_SCRIPT'
+sudo tee /opt/dashboard-deploy.sh > /dev/null << 'DEPLOY_SCRIPT'
 #!/bin/bash
 LOCK_FILE=/tmp/dashboard.lock
 REPO_DIR=/opt/vm-dashboard
@@ -1343,7 +1343,6 @@ APP_DIR=/var/www/vm-dashboard
 DATA_DIR=/var/www/vm-dashboard/data
 TMP_DIR=/tmp/dashboard-build
 
-# Prevent concurrent runs
 if [ -f "$LOCK_FILE" ]; then
   exit 0
 fi
@@ -1352,24 +1351,21 @@ trap "rm -f \"$LOCK_FILE\"" EXIT
 
 echo "[DEPLOY] Checking for updates..." >> /var/log/dashboard-deploy.log
 
-# Navigate to repo and ensure ownership
 cd "$REPO_DIR" || exit 0
 chown -R appuser:appuser "$REPO_DIR"
+git config --global --add safe.directory "$REPO_DIR"
 
 cd dashboard || exit 0
 
-# Compare local HEAD with remote main
 LOCAL=$(git rev-parse HEAD)
 REMOTE=$(git rev-parse origin/main 2>/dev/null || echo "$LOCAL")
 
 if [ "$LOCAL" != "$REMOTE" ]; then
   echo "[DEPLOY] Changes detected, deploying..." >> /var/log/dashboard-deploy.log
 
-  # Pull latest code
   git pull || exit 1
   cd "$REPO_DIR/dashboard" || exit 1
 
-  # Update pricing script (copy from repo if changed, then run)
   if [ -f "$REPO_DIR/scripts/fetch_pricing.py" ]; then
     cp -f "$REPO_DIR/scripts/fetch_pricing.py" /opt/scripts/fetch_pricing.py
     chmod +x /opt/scripts/fetch_pricing.py
@@ -1377,36 +1373,26 @@ if [ "$LOCAL" != "$REMOTE" ]; then
     /opt/scripts/fetch_pricing.py
   fi
 
-  # Copy latest images (force overwrite)
-    if [ -d "$REPO_DIR/images" ]; then
-        cp -rf "$REPO_DIR/images/"* "$DATA_DIR/images/"
-        if [ $? -eq 0 ]; then
-            echo "[DEPLOY] Images copied successfully" >> /var/log/dashboard-deploy.log
-        else
-            echo "[DEPLOY] ERROR: Failed to copy images" >> /var/log/dashboard-deploy.log
-        fi
-    fi
+  # Copy images
+  if [ -d "$REPO_DIR/images" ]; then
+    cp -rf "$REPO_DIR/images/"* "$DATA_DIR/images/"
+    echo "[DEPLOY] Images copied" >> /var/log/dashboard-deploy.log
+  fi
 
-    #FIXME
-    if [ -d "$REPO_DIR/images" ]; then
-        cp -rf "$REPO_DIR/images/"* "$DATA_DIR/images/"
-        if [ $? -eq 0 ]; then
-            echo "[DEPLOY] Images copied successfully" >> /var/log/dashboard-deploy.log
-        else
-            echo "[DEPLOY] ERROR: Failed to copy images" >> /var/log/dashboard-deploy.log
-        fi
-    fi
+  # Copy images.json
+  if [ -f "$REPO_DIR/images.json" ]; then
+    cp -f "$REPO_DIR/images.json" "$DATA_DIR/images.json"
+    echo "[DEPLOY] images.json copied" >> /var/log/dashboard-deploy.log
+  fi
 
   chown -R appuser:appuser "$DATA_DIR/images" 2>/dev/null || true
   chmod -R 755 "$DATA_DIR/images" 2>/dev/null || true
 
-  # Install dependencies and build
   if ! npm ci 2>/dev/null; then
     npm install || exit 1
   fi
   npm run build || exit 1
 
-  # Atomic deploy: copy to temp, then replace live directory
   if [ -d "dist" ]; then
     rm -rf "$TMP_DIR"
     cp -r dist "$TMP_DIR"
@@ -1420,7 +1406,7 @@ fi
 DEPLOY_SCRIPT
 
 # Make the script executable
-chmod +x /opt/dashboard-deploy.sh
+sudo chmod +x /opt/dashboard-deploy.sh
 
 # Set up cron job to run every 15 minutes
 (crontab -u ${APP_USER} -l 2>/dev/null | grep -v 'dashboard-deploy.sh'; echo "*/15 * * * * /opt/dashboard-deploy.sh >> /var/log/dashboard-deploy.log 2>&1") | crontab -u ${APP_USER} -
