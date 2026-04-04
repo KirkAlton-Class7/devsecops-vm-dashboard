@@ -1014,165 +1014,101 @@ log "Setting up cron job to refresh dashboard data"
 # Uses same robust functions as main script to ensure consistency
 
 cat > /opt/refresh-dashboard-data.py << 'EOF'
-import json, os, random
+import json, os, random, subprocess, re
 from datetime import datetime, timedelta
 
 # ------------------------------------------------------------
-# Paths
+# Helper functions (same as main script)
 # ------------------------------------------------------------
-DATA_DIR = os.environ.get('DATA_DIR', '/var/www/vm-dashboard/data')
-DASHBOARD_JSON = f"{DATA_DIR}/dashboard-data.json"
-
-# ------------------------------------------------------------
-# Load existing dashboard data (to preserve static fields)
-# ------------------------------------------------------------
-existing = {}
-if os.path.exists(DASHBOARD_JSON):
+def md(path):
     try:
-        with open(DASHBOARD_JSON, 'r') as f:
-            existing = json.load(f)
-    except:
-        pass
-
-# ------------------------------------------------------------
-# Helper functions (status, network, IP, load, SSH, updates, cost)
-# ------------------------------------------------------------
-def status(val, warn=70):
-    try:
-        return "warning" if float(val) > warn else "healthy"
-    except:
-        return "healthy"
-
-def get_network_info():
-    try:
-        rx_bytes = int(os.environ.get('RX_BYTES', '0'))
-        tx_bytes = int(os.environ.get('TX_BYTES', '0'))
-        rx_mb = rx_bytes / (1024 * 1024)
-        tx_mb = tx_bytes / (1024 * 1024)
-        return f"{rx_mb:.1f} MB ↓ / {tx_mb:.1f} MB ↑"
-    except:
-        return os.environ.get('RX_BYTES', '0') + " / " + os.environ.get('TX_BYTES', '0')
-
-def get_internal_ip():
-    try:
-        import subprocess
         result = subprocess.run(
-            ['curl', '-s', '--max-time', '2', '-H', 'Metadata-Flavor: Google',
-             'http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip'],
-            capture_output=True, text=True, timeout=2
+            ['curl', '-fsS', '-H', 'Metadata-Flavor: Google', '--connect-timeout', '2', '--max-time', '3',
+             f'http://metadata.google.internal/computeMetadata/v1/{path}'],
+            capture_output=True, text=True, timeout=3
         )
         if result.returncode == 0 and result.stdout:
             return result.stdout.strip()
     except:
         pass
-    try:
-        result = subprocess.run(['hostname', '-I'], capture_output=True, text=True, timeout=2)
-        if result.returncode == 0 and result.stdout:
-            return result.stdout.split()[0]
-    except:
-        pass
-    return "unknown"
+    return 'unknown'
 
-def get_public_ip():
+def get_memory_details():
     try:
-        import subprocess
-        result = subprocess.run(
-            ['curl', '-s', '--max-time', '2', '-H', 'Metadata-Flavor: Google',
-             'http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip'],
-            capture_output=True, text=True, timeout=2
-        )
-        if result.returncode == 0 and result.stdout:
-            return result.stdout.strip()
+        out = subprocess.check_output(['free', '-m'], text=True)
+        for line in out.split('\n'):
+            if 'Mem:' in line:
+                parts = line.split()
+                return {'total': int(parts[1]), 'used': int(parts[2]), 'free': int(parts[3])}
     except:
         pass
+    return {'total': 0, 'used': 0, 'free': 0}
+
+def get_disk_details():
     try:
-        import urllib.request
-        with urllib.request.urlopen('http://ifconfig.me', timeout=5) as response:
-            return response.read().decode().strip()
+        out = subprocess.check_output(['df', '-BM', '/'], text=True)
+        lines = out.strip().split('\n')
+        if len(lines) >= 2:
+            parts = lines[1].split()
+            return {'total': int(parts[1].rstrip('M')), 'used': int(parts[2].rstrip('M')), 'available': int(parts[3].rstrip('M'))}
     except:
         pass
-    return "unknown"
+    return {'total': 0, 'used': 0, 'available': 0}
+
+def get_cpu_info():
+    cores = 1
+    freq = None
+    try:
+        with open('/proc/cpuinfo', 'r') as f:
+            cores = f.read().count('processor')
+        with open('/proc/cpuinfo', 'r') as f:
+            for line in f:
+                if 'cpu MHz' in line:
+                    freq = float(line.split(':')[1].strip())
+                    break
+    except:
+        pass
+    usage = float(os.popen("grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {printf \"%.0f\", usage}'").read().strip() or "0")
+    return {'cores': cores, 'frequency': f"{freq:.0f} MHz" if freq else None, 'usage': usage}
 
 def get_load_average():
     try:
         with open('/proc/loadavg', 'r') as f:
-            load = f.read().split()
-            return float(load[0])
+            return float(f.read().split()[0])
     except:
         return 0.0
 
-def get_ssh_status():
-    ssh_active = os.environ.get('SSH_STATUS', 'active')
-    if ssh_active.lower() == 'active':
-        return "Enabled (22/tcp)"
-    return "Disabled"
-
-def get_update_status():
-    updates = os.environ.get('UPDATES', '0')
-    if updates == "Current" or updates == "0":
-        return "Up to date"
-    try:
-        update_count = int(updates)
-        if update_count < 5:
-            return f"{update_count} security updates"
-        else:
-            return f"{update_count} updates available"
-    except:
-        return "Current"
-
-# ----------------
-# Get Hourly Rate
-# ----------------
 def get_hourly_rate():
     machine_type = os.environ.get('MACHINE_TYPE', 'e2-micro').lower()
     machine_short = machine_type.split('/')[-1]
-    rates = {
-        'e2-micro': 0.0076, 'e2-small': 0.0150, 'e2-medium': 0.0301,
-        'n1-standard-1': 0.0475, 'n2-standard-2': 0.0972,
-    }
+    rates = {'e2-micro': 0.0076, 'e2-small': 0.0150, 'e2-medium': 0.0301, 'n1-standard-1': 0.0475, 'n2-standard-2': 0.0972}
     return rates.get(machine_short, 0.01)
 
-# -----------------------
-# Cost Estimation Helper
-# -----------------------
 def get_cumulative_cost():
-    """Return cumulative cost across reboots using persistent storage."""
     cost_file = '/var/tmp/vm-cost.json'
     hourly_rate = get_hourly_rate()
-    
-    # Get current uptime
     try:
         with open('/proc/uptime', 'r') as f:
             current_uptime = float(f.read().split()[0])
     except:
         current_uptime = 0
-    
-    # Load or initialize persistent data
     try:
         with open(cost_file, 'r') as f:
             data = json.load(f)
         total_cost = data.get('total_cost', 0.0)
         last_uptime = data.get('last_uptime_sec', current_uptime)
-    except (FileNotFoundError, json.JSONDecodeError):
+    except:
         total_cost = 0.0
         last_uptime = current_uptime
-    
-    # Handle reboot (uptime decreased)
     if current_uptime < last_uptime:
-        # Reboot – keep total, reset last_uptime to avoid negative delta
         last_uptime = current_uptime
     else:
         delta_hours = (current_uptime - last_uptime) / 3600.0
         if delta_hours > 0:
-            incremental = hourly_rate * delta_hours
-            total_cost += incremental
+            total_cost += hourly_rate * delta_hours
             last_uptime = current_uptime
-    
-    # Write back updated state
     with open(cost_file, 'w') as f:
         json.dump({'total_cost': total_cost, 'last_uptime_sec': last_uptime}, f)
-    
-    # Format output
     if total_cost < 0.01:
         return f"${total_cost:.4f} total"
     elif total_cost < 1:
@@ -1180,145 +1116,162 @@ def get_cumulative_cost():
     else:
         return f"${total_cost:.2f} total"
 
-# ------------------------------------------------------------
-# Collect fresh dynamic metrics
-# ------------------------------------------------------------
-cpu_usage = os.popen("grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {printf \"%.0f\", usage}'").read().strip() or "0"
-mem_percent = os.popen("free | awk '/Mem:/ {printf(\"%.0f\"), $3/$2 * 100.0}'").read().strip() or "0"
-disk_percent = os.popen("df / | tail -1 | awk '{print $5}'").read().strip() or "0%"
-uptime = os.popen("uptime -p").read().strip() or "up 0 minutes"
-hostname = os.popen("hostname").read().strip() or "unknown"
+def status(val, warn=70):
+    try:
+        return "warning" if float(val) > warn else "healthy"
+    except:
+        return "healthy"
 
-internal_ip = get_internal_ip()
-public_ip = get_public_ip()
-network_info = get_network_info()
+def get_ssh_status():
+    ssh_active = os.environ.get('SSH_STATUS', 'active')
+    return "Enabled (22/tcp)" if ssh_active.lower() == 'active' else "Disabled"
+
+def get_update_status():
+    updates = os.environ.get('UPDATES', '0')
+    if updates == "Current" or updates == "0":
+        return "Up to date"
+    try:
+        update_count = int(updates)
+        return f"{update_count} security updates" if update_count < 5 else f"{update_count} updates available"
+    except:
+        return "Current"
+
+# ------------------------------------------------------------
+# Fresh metadata collection
+# ------------------------------------------------------------
+hostname_vm = md('instance/hostname') or subprocess.getoutput('hostname')
+instance_id = md('instance/id') or 'unknown'
+zone_full = md('instance/zone')
+zone = zone_full.split('/')[-1] if '/' in zone_full else zone_full
+machine_type_full = md('instance/machine-type')
+machine_type = machine_type_full.split('/')[-1] if '/' in machine_type_full else machine_type_full
+project_id = md('project/project-id') or 'unknown'
+internal_ip = md('instance/network-interfaces/0/ip') or subprocess.getoutput("hostname -I | awk '{print $1}'") or 'unknown'
+public_ip = md('instance/network-interfaces/0/access-configs/0/external-ip') or subprocess.getoutput('curl -s ifconfig.me') or 'unknown'
+os_name = subprocess.getoutput('. /etc/os-release && echo "$PRETTY_NAME"')
+uptime_str = subprocess.getoutput('uptime -p') or 'unknown'
+
+# Region from zone
+region = zone[:-2] if zone != 'unknown' and len(zone) > 2 else 'unknown'
+
+# System metrics
+cpu_usage = subprocess.getoutput("grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {printf \"%.0f\", usage}'") or "0"
+mem_percent = subprocess.getoutput("free | awk '/Mem:/ {printf(\"%.0f\"), $3/$2 * 100.0}'") or "0"
+disk_percent = subprocess.getoutput("df / | tail -1 | awk '{print $5}'") or "0%"
 
 # Load quotes
 quotes = []
 try:
-    with open(f"{DATA_DIR}/quotes.json") as f:
+    with open('/var/www/vm-dashboard/data/quotes.json', 'r') as f:
         quotes = json.load(f)
-    print(f"Loaded {len(quotes)} quotes")
 except:
-    quotes = [{"text": "Welcome to DevSecOps!", "author": "System"}]
-    print("Using fallback quotes")
+    quotes = [{'text': 'Welcome to DevSecOps!', 'author': 'System'}]
 
 # ------------------------------------------------------------
 # Build dynamic parts
 # ------------------------------------------------------------
 summaryCards = [
-    {"label": "CPU", "value": f"{cpu_usage}%", "status": status(cpu_usage)},
-    {"label": "Memory", "value": f"{mem_percent}%", "status": status(mem_percent)},
-    {"label": "Disk", "value": disk_percent, "status": status(disk_percent.replace('%', ''))},
-    {"label": "Cost", "value": get_cumulative_cost(), "status": "info"}
+    {'label': 'CPU', 'value': f"{cpu_usage}%", 'status': status(cpu_usage)},
+    {'label': 'Memory', 'value': f"{mem_percent}%", 'status': status(mem_percent)},
+    {'label': 'Disk', 'value': disk_percent, 'status': status(disk_percent.replace('%', ''))},
+    {'label': 'Cost', 'value': get_cumulative_cost(), 'status': 'info'}
 ]
 
 services = [
-    {"label": "Nginx", "value": os.environ.get('NGINX_STATUS', 'Running'), "status": "healthy"},
-    {"label": "Python", "value": os.environ.get('PYTHON_STATUS', 'Installed'), "status": "healthy"},
-    {"label": "Metadata Service", "value": os.environ.get('METADATA_STATUS', 'Reachable'), "status": "healthy"},
-    {"label": "HTTP Service", "value": os.environ.get('HTTP_STATUS', 'Serving'), "status": "healthy"},
-    {"label": "Startup Script", "value": os.environ.get('STARTUP_STATUS', 'Completed'), "status": "healthy"},
-    {"label": "GitHub Quotes Sync", "value": os.environ.get('GITHUB_QUOTES_SYNC', 'Successful'), "status": "healthy"},
-    {"label": "Bootstrap Packages", "value": "nginx, python3, curl, jq, git", "status": "healthy"}
+    {'label': 'Nginx', 'value': os.environ.get('NGINX_STATUS', 'Running'), 'status': 'healthy'},
+    {'label': 'Python', 'value': os.environ.get('PYTHON_STATUS', 'Installed'), 'status': 'healthy'},
+    {'label': 'Metadata Service', 'value': 'Reachable', 'status': 'healthy'},
+    {'label': 'HTTP Service', 'value': 'Serving', 'status': 'healthy'},
+    {'label': 'Startup Script', 'value': 'Completed', 'status': 'healthy'},
+    {'label': 'GitHub Quotes Sync', 'value': os.environ.get('GITHUB_QUOTES_SYNC', 'Successful'), 'status': 'healthy'},
+    {'label': 'Bootstrap Packages', 'value': 'nginx, python3, curl, jq, git', 'status': 'healthy'}
 ]
 
 security = [
-    {"label": "Host Firewall", "value": os.environ.get('FIREWALL_STATUS', 'Not installed'), "status": "info"},
-    {"label": "SSH", "value": get_ssh_status(), "status": "healthy"},
-    {"label": "Updates", "value": get_update_status(), "status": "info"},
-    {"label": "Internal IP", "value": internal_ip, "status": "info"},
-    {"label": "Public IP", "value": public_ip, "status": "info"}
+    {'label': 'Host Firewall', 'value': os.environ.get('FIREWALL_STATUS', 'Not installed'), 'status': 'info'},
+    {'label': 'SSH', 'value': get_ssh_status(), 'status': 'healthy'},
+    {'label': 'Updates', 'value': get_update_status(), 'status': 'info'},
+    {'label': 'Internal IP', 'value': internal_ip, 'status': 'info'},
+    {'label': 'Public IP', 'value': public_ip, 'status': 'info'}
 ]
 
 logs = [
-    {"time": datetime.now().strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": f"Dashboard updated - CPU: {cpu_usage}%, Memory: {mem_percent}%"},
-    {"time": (datetime.now() - timedelta(minutes=5)).strftime("%H:%M:%S"), "level": "info", "scope": "metrics", "message": f"Network: {network_info}"},
-    {"time": (datetime.now() - timedelta(minutes=10)).strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "System health check passed"},
-    {"time": (datetime.now() - timedelta(minutes=15)).strftime("%H:%M:%S"), "level": "info", "scope": "quotes", "message": f"Quotes loaded: {len(quotes)} available"},
-    {"time": (datetime.now() - timedelta(minutes=30)).strftime("%H:%M:%S"), "level": "info", "scope": "nginx", "message": "Nginx serving dashboard"}
+    {'time': datetime.now().strftime('%H:%M:%S'), 'level': 'info', 'scope': 'system', 'message': f'Dashboard updated - CPU: {cpu_usage}%, Memory: {mem_percent}%'},
+    {'time': (datetime.now() - timedelta(minutes=5)).strftime('%H:%M:%S'), 'level': 'info', 'scope': 'metrics', 'message': 'Metrics collection active'},
+    {'time': (datetime.now() - timedelta(minutes=10)).strftime('%H:%M:%S'), 'level': 'info', 'scope': 'system', 'message': 'System health check passed'},
+    {'time': (datetime.now() - timedelta(minutes=15)).strftime('%H:%M:%S'), 'level': 'info', 'scope': 'quotes', 'message': f'Quotes loaded: {len(quotes)}'},
+    {'time': (datetime.now() - timedelta(minutes=30)).strftime('%H:%M:%S'), 'level': 'info', 'scope': 'nginx', 'message': 'Nginx serving dashboard'}
 ]
 
 resourceTable = [
-    {"name": "nginx", "type": "service", "scope": "system", "status": os.environ.get('NGINX_STATUS', 'Running')},
-    {"name": "python3", "type": "runtime", "scope": "system", "status": "Installed"},
-    {"name": "nodejs", "type": "runtime", "scope": "system", "status": "Installed"},
-    {"name": "quotes.json", "type": "data", "scope": "application", "status": "Active"},
-    {"name": "dashboard-data.json", "type": "data", "scope": "application", "status": "Active"}
+    {'name': 'nginx', 'type': 'service', 'scope': 'system', 'status': os.environ.get('NGINX_STATUS', 'Running')},
+    {'name': 'python3', 'type': 'runtime', 'scope': 'system', 'status': 'Installed'},
+    {'name': 'nodejs', 'type': 'runtime', 'scope': 'system', 'status': 'Installed'},
+    {'name': 'quotes.json', 'type': 'data', 'scope': 'application', 'status': 'Active'},
+    {'name': 'dashboard-data.json', 'type': 'data', 'scope': 'application', 'status': 'Active'}
 ]
 
 systemLoad = get_load_average()
+memory_details = get_memory_details()
+disk_details = get_disk_details()
+cpu_info = get_cpu_info()
 
 # ------------------------------------------------------------
-# Merge with existing static data (preserve identity, network, location, systemResources)
-# ------------------------------------------------------------
-identity = existing.get('identity', {
-    "project": os.environ.get('PROJECT_ID', 'unknown'),
-    "instanceId": os.environ.get('INSTANCE_ID', 'unknown'),
-    "hostname": hostname,
-    "machineType": os.environ.get('MACHINE_TYPE', 'unknown')
-})
-
-zone_env = os.environ.get('ZONE', 'unknown')
-if zone_env == 'unknown' or len(zone_env) < 3:
-    region_val = 'unknown'
-else:
-    region_val = zone_env[:-2]
-
-network = existing.get('network', {
-    "vpc": "default",
-    "subnet": f"{region_val}-subnet" if region_val != 'unknown' else "unknown-subnet",
-    "internalIp": internal_ip,
-    "externalIp": public_ip
-})
-
-location = existing.get('location', {
-    "region": region_val,
-    "zone": zone_env,
-    "uptime": uptime,
-    "loadAvg": f"{systemLoad:.2f}"
-})
-
-systemResources = existing.get('systemResources', {
-    "memory": {"total": 0, "used": 0, "free": 0},
-    "disk": {"total": 0, "used": 0, "available": 0},
-    "cpu": {"cores": 1, "frequency": None, "usage": float(cpu_usage)},
-    "endpoints": {"healthz": "/healthz", "metadata": "/metadata"}
-})
-
-# Update the dynamic fields inside systemResources (e.g., cpu usage)
-if "cpu" in systemResources:
-    systemResources["cpu"]["usage"] = float(cpu_usage)
-
-# ------------------------------------------------------------
-# Build final data
+# Build final data (fresh for everything except vmInformation)
 # ------------------------------------------------------------
 data = {
-    "summaryCards": summaryCards,
-    "vmInformation": existing.get('vmInformation', []),  # keep as is, it's static
-    "services": services,
-    "security": security,
-    "meta": existing.get('meta', {
-        "appName": os.environ.get('DASHBOARD_APP_NAME', 'DevSecOps'),
-        "tagline": os.environ.get('DASHBOARD_TAGLINE', 'Real-time infrastructure monitoring'),
-        "dashboardUser": os.environ.get('DASHBOARD_USER', 'Kirk Alton'),
-        "dashboardName": os.environ.get('DASHBOARD_NAME', 'DevSecOps Dashboard'),
-        "uptime": uptime
-    }),
-    "quote": random.choice(quotes),
-    "logs": logs,
-    "resourceTable": resourceTable,
-    "systemLoad": systemLoad,
-    "identity": identity,
-    "network": network,
-    "location": location,
-    "systemResources": systemResources
+    'summaryCards': summaryCards,
+    'vmInformation': [  # static, but we keep it from existing if needed; otherwise generate fresh
+        {'label': 'Hostname', 'value': hostname_vm},
+        {'label': 'Instance ID', 'value': instance_id},
+        {'label': 'Zone', 'value': zone},
+        {'label': 'Machine Type', 'value': machine_type},
+        {'label': 'OS', 'value': os_name},
+        {'label': 'Project ID', 'value': project_id},
+        {'label': 'Estimated Cost (Usage)', 'value': get_cumulative_cost(), 'status': 'info'}
+    ],
+    'services': services,
+    'security': security,
+    'meta': {
+        'appName': os.environ.get('DASHBOARD_APP_NAME', 'DevSecOps'),
+        'tagline': os.environ.get('DASHBOARD_TAGLINE', 'Real-time infrastructure monitoring'),
+        'dashboardUser': os.environ.get('DASHBOARD_USER', 'Kirk Alton'),
+        'dashboardName': os.environ.get('DASHBOARD_NAME', 'DevSecOps Dashboard'),
+        'uptime': uptime_str
+    },
+    'quote': random.choice(quotes),
+    'logs': logs,
+    'resourceTable': resourceTable,
+    'systemLoad': systemLoad,
+    'identity': {
+        'project': project_id,
+        'instanceId': instance_id,
+        'hostname': hostname_vm,
+        'machineType': machine_type
+    },
+    'network': {
+        'vpc': 'default',
+        'subnet': f"{region}-subnet" if region != 'unknown' else 'unknown-subnet',
+        'internalIp': internal_ip,
+        'externalIp': public_ip
+    },
+    'location': {
+        'region': region,
+        'zone': zone,
+        'uptime': uptime_str,
+        'loadAvg': f"{systemLoad:.2f}"
+    },
+    'systemResources': {
+        'memory': memory_details,
+        'disk': disk_details,
+        'cpu': cpu_info,
+        'endpoints': {'healthz': '/healthz', 'metadata': '/metadata'}
+    }
 }
 
-# ------------------------------------------------------------
 # Write to file
-# ------------------------------------------------------------
-with open(DASHBOARD_JSON, "w") as f:
+dashboard_json = '/var/www/vm-dashboard/data/dashboard-data.json'
+with open(dashboard_json, 'w') as f:
     json.dump(data, f, indent=2)
 
 print(f"Dashboard data refreshed - CPU: {cpu_usage}%, Memory: {mem_percent}%, Disk: {disk_percent}")

@@ -96,7 +96,7 @@ const DriftParticles = () => {
   }, []);
 
   return (
-    <div className="relative w-full h-64 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900/30 to-slate-950/30 backdrop-blur-sm border border-white/10">
+    <div className="relative w-full h-48 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900/30 to-slate-950/30 backdrop-blur-sm border border-white/10">
       <canvas ref={canvasRef} className="w-full h-full" />
     </div>
   );
@@ -224,7 +224,7 @@ const HazeParticles = () => {
   }, []);
 
   return (
-    <div className="relative w-full h-64 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900/40 to-slate-950/40 backdrop-blur-sm border border-white/10">
+    <div className="relative w-full h-48 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900/40 to-slate-950/40 backdrop-blur-sm border border-white/10">
       <canvas ref={canvasRef} className="w-full h-full" />
     </div>
   );
