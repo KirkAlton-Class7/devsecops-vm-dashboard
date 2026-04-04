@@ -1385,36 +1385,32 @@ if [ "$LOCAL" != "$REMOTE" ]; then
   fi
 
   # =============================================
-  # Robust image sync (same logic as main script)
+  # Reliable image sync (same as main script)
   # =============================================
+  # Create target directory and clear old images
   mkdir -p "$DATA_DIR/images"
-  
-  if [ -d "$REPO_DIR/images" ]; then
-    # Count images before copy
-    IMG_COUNT=$(find "$REPO_DIR/images" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif" \) | wc -l)
-    echo "[DEPLOY] Found ${IMG_COUNT} images in repo" >> /var/log/dashboard-deploy.log
-    
-    if [ ${IMG_COUNT} -gt 0 ]; then
-      # Use rsync for efficient sync (preserves metadata, only new/changed)
-      if command -v rsync >/dev/null 2>&1; then
-        rsync -av --delete "$REPO_DIR/images/" "$DATA_DIR/images/" >> /var/log/image-sync.log 2>&1
-        if [ $? -eq 0 ]; then
-          echo "[DEPLOY] Successfully synced ${IMG_COUNT} images" >> /var/log/dashboard-deploy.log
-        else
-          echo "[DEPLOY] ERROR: rsync failed, falling back to cp" >> /var/log/dashboard-deploy.log
-          cp -rf "$REPO_DIR/images/"* "$DATA_DIR/images/"
-        fi
+  rm -rf "$DATA_DIR/images"/* 2>/dev/null || true
+
+  # Copy images.json
+  if [ -f "$REPO_DIR/images.json" ]; then
+      cp -f "$REPO_DIR/images.json" "$DATA_DIR/images.json"
+      if jq empty "$DATA_DIR/images.json" 2>/dev/null; then
+          echo "[DEPLOY] images.json copied and valid" >> /var/log/dashboard-deploy.log
       else
-        cp -rf "$REPO_DIR/images/"* "$DATA_DIR/images/"
-        echo "[DEPLOY] Used cp (rsync not installed)" >> /var/log/dashboard-deploy.log
+          echo "[DEPLOY] ERROR: images.json is invalid JSON" >> /var/log/dashboard-deploy.log
       fi
-    else
-      echo "[DEPLOY] WARNING: images directory exists but contains no image files" >> /var/log/dashboard-deploy.log
-    fi
   else
-    echo "[DEPLOY] WARNING: No images directory in repo" >> /var/log/dashboard-deploy.log
-    # Create a placeholder to avoid 404s
-    cat > "$DATA_DIR/images/placeholder.svg" << 'SVG'
+      echo "[DEPLOY] WARNING: images.json not found in repo root" >> /var/log/dashboard-deploy.log
+  fi
+
+  # Copy all images (using cp -rf with /. ensures all files are copied)
+  if [ -d "$REPO_DIR/images" ]; then
+      cp -rf "$REPO_DIR/images/." "$DATA_DIR/images/"
+      echo "[DEPLOY] Images copied from $REPO_DIR/images" >> /var/log/dashboard-deploy.log
+  else
+      echo "[DEPLOY] WARNING: No images directory in repo" >> /var/log/dashboard-deploy.log
+      # Create a placeholder to avoid 404s
+      cat > "$DATA_DIR/images/placeholder.svg" << 'SVG'
 <svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'>
   <rect width='200' height='200' fill='#ccc'/>
   <text x='50%' y='50%' text-anchor='middle' dy='.3em' fill='#333'>No images</text>
@@ -1422,29 +1418,18 @@ if [ "$LOCAL" != "$REMOTE" ]; then
 SVG
   fi
 
-  # Copy images.json
-  if [ -f "$REPO_DIR/images.json" ]; then
-    cp -f "$REPO_DIR/images.json" "$DATA_DIR/images.json"
-    # Validate JSON
-    if jq empty "$DATA_DIR/images.json" 2>/dev/null; then
-      echo "[DEPLOY] images.json copied and valid" >> /var/log/dashboard-deploy.log
-    else
-      echo "[DEPLOY] ERROR: images.json is invalid JSON" >> /var/log/dashboard-deploy.log
-    fi
-  else
-    echo "[DEPLOY] WARNING: images.json not found in repo root" >> /var/log/dashboard-deploy.log
-  fi
-
-  # Set permissions
+  # Set ownership and permissions
   chown -R appuser:appuser "$DATA_DIR/images" 2>/dev/null || true
   chmod -R 755 "$DATA_DIR/images" 2>/dev/null || true
+  chown appuser:appuser "$DATA_DIR/images.json" 2>/dev/null || true
+  chmod 644 "$DATA_DIR/images.json" 2>/dev/null || true
 
   # Final verification
-  if [ -d "$DATA_DIR/images" ] && [ "$(ls -A $DATA_DIR/images 2>/dev/null)" ]; then
-    FINAL_COUNT=$(find "$DATA_DIR/images" -type f | wc -l)
-    echo "[DEPLOY] VERIFICATION: ${FINAL_COUNT} image files available" >> /var/log/dashboard-deploy.log
+  if [ -d "$DATA_DIR/images" ] && [ "$(ls -A "$DATA_DIR/images" 2>/dev/null)" ]; then
+      FINAL_COUNT=$(find "$DATA_DIR/images" -type f | wc -l)
+      echo "[DEPLOY] VERIFICATION: ${FINAL_COUNT} image files available" >> /var/log/dashboard-deploy.log
   else
-    echo "[DEPLOY] ERROR: No images found after copy attempt" >> /var/log/dashboard-deploy.log
+      echo "[DEPLOY] ERROR: No images found after copy attempt" >> /var/log/dashboard-deploy.log
   fi
 
   # Build dashboard
