@@ -29,7 +29,8 @@ export default function ImageGallery() {
   }, []);
 
   useEffect(() => {
-    fetch('/data/images.json')
+    fetch('/data/images.json?t=' + Date.now())
+
       .then(response => {
         if (!response.ok) throw new Error('Failed to load images.json');
         return response.json();
