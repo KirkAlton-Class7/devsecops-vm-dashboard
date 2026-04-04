@@ -273,53 +273,33 @@ git reset --hard origin/main
 # Create images directory
 mkdir -p "${DATA_DIR}/images"
 
-# Copy images from repo root/images to data directory
+# Copy images from repo (using cp for simplicity and reliability)
 if [ -d "$REPO_DIR/images" ]; then
     IMG_COUNT=$(find "$REPO_DIR/images" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif" \) | wc -l)
     log "Found ${IMG_COUNT} images in repo"
     
     if [ ${IMG_COUNT} -gt 0 ]; then
-        rsync -av --delete "${REPO_DIR}/images/" "${DATA_DIR}/images/" >> /var/log/image-sync.log 2>&1
+        cp -rf "$REPO_DIR/images/"* "${DATA_DIR}/images/"
         if [ $? -eq 0 ]; then
             log "Successfully copied ${IMG_COUNT} images"
         else
-            log "ERROR: rsync failed, falling back to cp"
-            cp -rf "$REPO_DIR/images/"* "${DATA_DIR}/images/"
+            log "ERROR: Failed to copy images"
         fi
     else
         log "WARNING: images directory exists but contains no image files"
     fi
 else
     log "ERROR: images directory not found in repo"
-    # Create placeholder
-    cat > "${DATA_DIR}/images/placeholder.svg" << 'SVG'
-<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'>
-  <rect width='200' height='200' fill='#ccc'/>
-  <text x='50%' y='50%' text-anchor='middle' dy='.3em' fill='#333'>No images</text>
-</svg>
-SVG
 fi
 
-# Copy images.json from repo (with validation)
+# Copy images.json from repo (force overwrite)
 if [ -f "$REPO_DIR/images.json" ]; then
     cp -f "$REPO_DIR/images.json" "${DATA_DIR}/images.json"
     if [ $? -eq 0 ]; then
         log "images.json copied from repo"
         # Validate JSON
         if jq empty "${DATA_DIR}/images.json" 2>/dev/null; then
-            # Verify it contains the expected first image filename
-            FIRST_FILENAME=$(jq -r '.[0].filename' "${DATA_DIR}/images.json" 2>/dev/null)
-            if [[ "$FIRST_FILENAME" =~ ^[0-9]+-.*\.(jpg|jpeg|png|webp|avif)$ ]]; then
-                log "images.json is valid and contains expected filename: $FIRST_FILENAME"
-            else
-                log "ERROR: images.json does not contain expected numbered filename (got '$FIRST_FILENAME')"
-                # Retry once: fetch again and copy
-                cd "$REPO_DIR"
-                git fetch origin main
-                git reset --hard origin/main
-                cp -f "$REPO_DIR/images.json" "${DATA_DIR}/images.json"
-                log "Retried copy of images.json"
-            fi
+            log "images.json is valid JSON"
         else
             log "ERROR: images.json is invalid JSON"
         fi
@@ -333,6 +313,8 @@ fi
 # Set proper permissions
 chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}/images" 2>/dev/null || true
 chmod -R 755 "${DATA_DIR}/images" 2>/dev/null || true
+chown ${APP_USER}:${APP_USER} "${DATA_DIR}/images.json" 2>/dev/null || true
+chmod 644 "${DATA_DIR}/images.json" 2>/dev/null || true
 
 # Final verification
 if [ -d "${DATA_DIR}/images" ] && [ "$(ls -A ${DATA_DIR}/images 2>/dev/null)" ]; then
