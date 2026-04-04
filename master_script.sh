@@ -152,7 +152,8 @@ retry apt-get install -y \
   jq \
   ca-certificates \
   git \
-  build-essential
+  build-essential \
+  rsync
 
 # -------------------------------
 # Install Node.js

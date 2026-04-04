@@ -72,21 +72,3 @@ node_modules/
 dist/
 .env
 *.log
-
-
-
-
-
-
-
-
-
-retry apt-get install -y \
-  nginx \
-  python3 \
-  curl \
-  jq \
-  ca-certificates \
-  git \
-  build-essential \
-  rsync
