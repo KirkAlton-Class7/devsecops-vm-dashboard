@@ -311,7 +311,7 @@ log "Setting up photo gallery"
 
 cd "$REPO_DIR" || { log "ERROR: $REPO_DIR not found"; exit 1; }
 git fetch origin main
-git reset --hard origin/main
+git reset --hard origin/main || { log "ERROR: git reset failed"; exit 1; }
 
 mkdir -p "${DATA_DIR}/images"
 rm -rf "${DATA_DIR}/images"/* 2>/dev/null || true
