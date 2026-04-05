@@ -1115,6 +1115,7 @@ with open(DASHBOARD_JSON, "w") as f:
 print(f"Dashboard data refreshed - CPU: {cpu_usage}%, Memory: {mem_percent}%, Disk: {disk_percent}")
 EOF
 
+
 # -------------------------------
 # Set Permissions
 # -------------------------------
@@ -1132,16 +1133,6 @@ REFRESH_CRON_CMD="*/5 * * * * /usr/bin/python3 /opt/refresh-dashboard-data.py >>
 
 log "Dashboard refresh cron job configured (every 5 minutes)"
 
-
-# -------------------------------
-# Ensure index.html Exists
-# -------------------------------
-# Creates a fallback page if the built dashboard is missing
-
-if [ ! -f "${APP_DIR}/index.html" ]; then
-  log "Creating fallback index.html"
-  echo "<h1>Dashboard initializing...</h1>" > "${APP_DIR}/index.html"
-fi
 
 # -------------------------------
 # Nginx Configuration
@@ -1192,6 +1183,17 @@ ln -sf "${NGINX_SITE}" /etc/nginx/sites-enabled/${APP_NAME}
 nginx -t || { log "ERROR: nginx config invalid"; exit 1; }
 systemctl start nginx
 systemctl enable nginx
+
+
+# -------------------------------
+# Ensure index.html Exists
+# -------------------------------
+# Creates a fallback page if the built dashboard is missing
+
+if [ ! -f "${APP_DIR}/index.html" ]; then
+  log "Creating fallback index.html"
+  echo "<h1>Dashboard initializing...</h1>" > "${APP_DIR}/index.html"
+fi
 
 
 # -------------------------------
