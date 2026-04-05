@@ -457,6 +457,67 @@ if [ ! -f "${APP_DIR}/index.html" ]; then
 fi
 
 # -------------------------------
+# Ensure index.html Exists
+# -------------------------------
+# Creates a fallback page if the built dashboard is missing
+
+if [ ! -f "${APP_DIR}/index.html" ]; then
+  log "Creating fallback index.html"
+  echo "<h1>Dashboard initializing...</h1>" > "${APP_DIR}/index.html"
+fi
+
+# -------------------------------
+# Nginx Configuration
+# -------------------------------
+log "Configuring nginx"
+systemctl stop nginx || true
+
+# Remove ALL existing site configs (sites-enabled and conf.d)
+rm -f /etc/nginx/sites-enabled/*
+rm -f /etc/nginx/sites-available/default
+rm -f /etc/nginx/conf.d/default.conf
+
+# Create your site config
+cat > "${NGINX_SITE}" <<EOF
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    
+    root ${APP_DIR};
+    index index.html;
+    
+    location /data/ {
+        alias ${DATA_DIR}/;
+        add_header Access-Control-Allow-Origin *;
+        add_header Cache-Control "no-store";
+        types {
+            image/webp webp;
+            image/jpeg jpg jpeg;
+            image/png png;
+            image/gif gif;
+            image/svg+xml svg;
+            application/json json;
+        }
+        default_type application/octet-stream;
+    }
+    
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+}
+EOF
+
+# Enable your site
+ln -sf "${NGINX_SITE}" /etc/nginx/sites-enabled/${APP_NAME}
+
+# Test and start nginx
+nginx -t || { log "ERROR: nginx config invalid"; exit 1; }
+systemctl start nginx
+systemctl enable nginx
+
+
+# -------------------------------
 # Force fetch GitHub quotes before generating data
 # -------------------------------
 log "Force fetching GitHub quotes before generating dashboard data"
@@ -1134,66 +1195,55 @@ REFRESH_CRON_CMD="*/5 * * * * /usr/bin/python3 /opt/refresh-dashboard-data.py >>
 log "Dashboard refresh cron job configured (every 5 minutes)"
 
 
-# -------------------------------
-# Nginx Configuration
-# -------------------------------
-log "Configuring nginx"
-systemctl stop nginx || true
+# # -------------------------------
+# # Nginx Configuration #FIXME
+# # -------------------------------
+# log "Configuring nginx"
+# systemctl stop nginx || true
 
-# Remove ALL existing site configs (sites-enabled and conf.d)
-rm -f /etc/nginx/sites-enabled/*
-rm -f /etc/nginx/sites-available/default
-rm -f /etc/nginx/conf.d/default.conf
+# # Remove ALL existing site configs (sites-enabled and conf.d)
+# rm -f /etc/nginx/sites-enabled/*
+# rm -f /etc/nginx/sites-available/default
+# rm -f /etc/nginx/conf.d/default.conf
 
-# Create your site config
-cat > "${NGINX_SITE}" <<EOF
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    server_name _;
+# # Create your site config
+# cat > "${NGINX_SITE}" <<EOF
+# server {
+#     listen 80 default_server;
+#     listen [::]:80 default_server;
+#     server_name _;
     
-    root ${APP_DIR};
-    index index.html;
+#     root ${APP_DIR};
+#     index index.html;
     
-    location /data/ {
-        alias ${DATA_DIR}/;
-        add_header Access-Control-Allow-Origin *;
-        add_header Cache-Control "no-store";
-        types {
-            image/webp webp;
-            image/jpeg jpg jpeg;
-            image/png png;
-            image/gif gif;
-            image/svg+xml svg;
-            application/json json;
-        }
-        default_type application/octet-stream;
-    }
+#     location /data/ {
+#         alias ${DATA_DIR}/;
+#         add_header Access-Control-Allow-Origin *;
+#         add_header Cache-Control "no-store";
+#         types {
+#             image/webp webp;
+#             image/jpeg jpg jpeg;
+#             image/png png;
+#             image/gif gif;
+#             image/svg+xml svg;
+#             application/json json;
+#         }
+#         default_type application/octet-stream;
+#     }
     
-    location / {
-        try_files \$uri \$uri/ /index.html;
-    }
-}
-EOF
+#     location / {
+#         try_files \$uri \$uri/ /index.html;
+#     }
+# }
+# EOF
 
-# Enable your site
-ln -sf "${NGINX_SITE}" /etc/nginx/sites-enabled/${APP_NAME}
+# # Enable your site
+# ln -sf "${NGINX_SITE}" /etc/nginx/sites-enabled/${APP_NAME}
 
-# Test and start nginx
-nginx -t || { log "ERROR: nginx config invalid"; exit 1; }
-systemctl start nginx
-systemctl enable nginx
-
-
-# -------------------------------
-# Ensure index.html Exists
-# -------------------------------
-# Creates a fallback page if the built dashboard is missing
-
-if [ ! -f "${APP_DIR}/index.html" ]; then
-  log "Creating fallback index.html"
-  echo "<h1>Dashboard initializing...</h1>" > "${APP_DIR}/index.html"
-fi
+# # Test and start nginx
+# nginx -t || { log "ERROR: nginx config invalid"; exit 1; }
+# systemctl start nginx
+# systemctl enable nginx
 
 
 # -------------------------------
