@@ -751,6 +751,41 @@ print("Dashboard data generated successfully")
 PYTHON_SCRIPT
 
 # -------------------------------
+# NGINX Configuration
+# -------------------------------
+
+# Write nginx site configuration
+cat > "${NGINX_SITE}" <<EOF
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    
+    root ${APP_DIR};
+    index index.html;
+    
+    location /data/ {
+        alias ${DATA_DIR}/;
+        add_header Access-Control-Allow-Origin *;
+        add_header Cache-Control "no-store";
+        types {
+            image/webp webp;
+            image/jpeg jpg jpeg;
+            image/png png;
+            image/gif gif;
+            image/svg+xml svg;
+            application/json json;
+        }
+        default_type application/octet-stream;
+    }
+    
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+}
+EOF
+
+# -------------------------------
 # Dashboard Refresh Cron Job
 # -------------------------------
 log "Setting up cron job to refresh dashboard data"
