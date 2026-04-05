@@ -753,13 +753,16 @@ print("Dashboard data generated successfully")
 PYTHON_SCRIPT
 
 # -------------------------------
-# NGINX Configuration
+# Nginx Configuration
 # -------------------------------
+log "Configuring nginx"
+systemctl stop nginx || true
 
-# Remove the default server block from nginx.conf (if present)
-sudo sed -i '/listen 80 default_server/d; /listen \[::\]:80 default_server/d' /etc/nginx/nginx.conf
+# Remove ALL existing configs
+rm -f /etc/nginx/sites-enabled/*
+rm -f /etc/nginx/sites-available/default
 
-# Write nginx site configuration
+# Create our site config
 cat > "${NGINX_SITE}" <<EOF
 server {
     listen 80 default_server;
@@ -789,6 +792,14 @@ server {
     }
 }
 EOF
+
+# Activate the site
+ln -sf "${NGINX_SITE}" /etc/nginx/sites-enabled/${APP_NAME}
+
+# Test and start nginx
+nginx -t || { log "ERROR: nginx config invalid"; exit 1; }
+systemctl start nginx
+systemctl enable nginx
 
 # -------------------------------
 # Dashboard Refresh Cron Job
