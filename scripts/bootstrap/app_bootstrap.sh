@@ -758,7 +758,7 @@ PYTHON_SCRIPT
 log "Setting up cron job to refresh dashboard data"
 
 cat > /opt/refresh-dashboard-data.py << 'EOF'
-#!/usr/bin/env bash
+#!/usr/bin/env python3
 
 import json, os, random, subprocess, re
 from datetime import datetime, timedelta
@@ -1069,6 +1069,17 @@ if "cpu" in systemResources:
     systemResources["cpu"]["usage"] = float(cpu_usage)
 
 # ------------------------------------------------------------
+# Build meta (force uptime update, preserve other fields)
+# ------------------------------------------------------------
+meta = existing.get('meta', {})
+meta["uptime"] = uptime_str
+# Ensure other fields have defaults if missing
+meta.setdefault("appName", os.environ.get('DASHBOARD_APP_NAME', 'DevSecOps'))
+meta.setdefault("tagline", os.environ.get('DASHBOARD_TAGLINE', 'Real-time infrastructure monitoring'))
+meta.setdefault("dashboardUser", os.environ.get('DASHBOARD_USER', 'Kirk Alton'))
+meta.setdefault("dashboardName", os.environ.get('DASHBOARD_NAME', 'DevSecOps Dashboard'))
+
+# ------------------------------------------------------------
 # Build final data
 # ------------------------------------------------------------
 data = {
@@ -1076,7 +1087,17 @@ data = {
     "vmInformation": existing.get('vmInformation', []),
     "services": services,
     "security": security,
-    "meta": existing.get('meta', {
+    "meta": meta,
+    "quote": random.choice(quotes),
+    "logs": logs,
+    "resourceTable": resourceTable,
+    "systemLoad": systemLoad,
+    "identity": identity,
+    "network": network,
+    "location": location,
+    "systemResources": systemResources
+}
+
         "appName": os.environ.get('DASHBOARD_APP_NAME', 'DevSecOps'),
         "tagline": os.environ.get('DASHBOARD_TAGLINE', 'Real-time infrastructure monitoring'),
         "dashboardUser": os.environ.get('DASHBOARD_USER', 'Kirk Alton'),
