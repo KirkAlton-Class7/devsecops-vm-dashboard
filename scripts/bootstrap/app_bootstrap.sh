@@ -245,6 +245,10 @@ REPO_DIR="/opt/${APP_NAME}"
 if [ ! -d "$REPO_DIR" ]; then
     retry git clone "$REPO_URL" "$REPO_DIR"
 fi
+
+# Allow git operations as root on this repo (fixes "dubious ownership")
+git config --global --add safe.directory "$REPO_DIR"
+
 cd "$REPO_DIR" && git pull
 chown -R ${APP_USER}:${APP_USER} "$REPO_DIR"
 
