@@ -495,6 +495,7 @@ fi
 # -------------------------------
 log "Generating dashboard data"
 
+# Be sure to prevent variable expansion in this heredoc
 sudo -u ${APP_USER} python3 <<'PYTHON_SCRIPT'
 import json, os, random
 from datetime import datetime, timedelta
