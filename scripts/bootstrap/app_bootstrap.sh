@@ -55,6 +55,7 @@ export DASHBOARD_NAME
 exec > /var/log/startup-script.log 2>&1
 set -x
 set -uo pipefail
+set -e
 
 log() { echo "[${APP_NAME}] $1"; }
 
@@ -490,10 +491,11 @@ log "Generating dashboard data"
 
 # Ensure data directory exists and is writable by appuser
 mkdir -p "${DATA_DIR}"
-chown ${APP_USER}:${APP_USER} "${DATA_DIR}"
+chown ${APP_USER}:${APP_USER} "${DATA_DIR}" || { log "ERROR: Failed to chown ${DATA_DIR}"; exit 1; }
 
 # Be sure to prevent variable expansion in this heredoc
-sudo -u ${APP_USER} python3 <<'PYTHON_SCRIPT'
+sudo -u ${APP_USER} python3 <<'PYTHON_SCRIPT' || { log "ERROR: Python script failed"; exit 1; }
+
 import json, os, random
 from datetime import datetime, timedelta
 
@@ -753,6 +755,9 @@ PYTHON_SCRIPT
 # -------------------------------
 # NGINX Configuration
 # -------------------------------
+
+# Remove the default server block from nginx.conf (if present)
+sudo sed -i '/listen 80 default_server/d; /listen \[::\]:80 default_server/d' /etc/nginx/nginx.conf
 
 # Write nginx site configuration
 cat > "${NGINX_SITE}" <<EOF
