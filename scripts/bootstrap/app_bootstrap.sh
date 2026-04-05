@@ -1140,16 +1140,15 @@ fi
 # -------------------------------
 # Nginx Configuration
 # -------------------------------
-# Sets up nginx to serve the dashboard and data endpoints
-# Removes any existing configurations to prevent conflicts
-
 log "Configuring nginx"
 systemctl stop nginx || true
 
-# Remove the default site (if present)
-rm -f /etc/nginx/sites-enabled/default
+# Remove ALL existing site configs (sites-enabled and conf.d)
+rm -f /etc/nginx/sites-enabled/*
+rm -f /etc/nginx/sites-available/default
+rm -f /etc/nginx/conf.d/default.conf
 
-# Create our site config
+# Create your site config
 cat > "${NGINX_SITE}" <<EOF
 server {
     listen 80 default_server;
@@ -1167,7 +1166,11 @@ server {
             image/webp webp;
             image/jpeg jpg jpeg;
             image/png png;
+            image/gif gif;
+            image/svg+xml svg;
+            application/json json;
         }
+        default_type application/octet-stream;
     }
     
     location / {
@@ -1176,21 +1179,11 @@ server {
 }
 EOF
 
-# -------------------------------
-# Activate Site
-# -------------------------------
-# Enables the new configuration and tests it
-
+# Enable your site
 ln -sf "${NGINX_SITE}" /etc/nginx/sites-enabled/${APP_NAME}
 
-# Test nginx configuration
+# Test and start nginx
 nginx -t || { log "ERROR: nginx config invalid"; exit 1; }
-
-# -------------------------------
-# Start Nginx
-# -------------------------------
-# Enables nginx to start on boot and starts the service
-
 systemctl start nginx
 systemctl enable nginx
 
