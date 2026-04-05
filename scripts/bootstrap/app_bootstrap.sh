@@ -49,6 +49,9 @@ export DASHBOARD_TAGLINE
 export DASHBOARD_USER
 export DASHBOARD_NAME
 
+# git requires HOME for config when run as root
+export HOME=/root
+
 # -------------------------------
 # Logging & Debugging
 # -------------------------------
