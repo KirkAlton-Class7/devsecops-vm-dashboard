@@ -538,34 +538,25 @@ fi
 # -------------------------------
 # Generate Dashboard Data JSON
 # -------------------------------
-# Creates dashboard-data.json from VM metrics, quotes, and configuration
-# This file is the single source of truth for the React frontend
-
 log "Generating dashboard data"
 
-sudo -u ${APP_USER} python3 <<PYTHON_SCRIPT
+# Ensure data directory exists and is writable by appuser
+mkdir -p "${DATA_DIR}"
+chown ${APP_USER}:${APP_USER} "${DATA_DIR}" || { log "ERROR: Failed to chown ${DATA_DIR}"; exit 1; }
+
+# Be sure to prevent variable expansion in this heredoc
+sudo -u ${APP_USER} python3 <<'PYTHON_SCRIPT' || { log "ERROR: Python script failed"; exit 1; }
+
 import json, os, random
 from datetime import datetime, timedelta
 
-# -------------------------------
-# Status Helper
-# -------------------------------
-# Determines if a metric value is "healthy" or "warning" based on threshold
-
 def status(val, warn=70):
-    """Determine status based on value threshold"""
     try:
         return "warning" if float(val) > warn else "healthy"
     except:
         return "healthy"
 
-# -------------------------------
-# Network Info Helper
-# -------------------------------
-# Converts raw byte counts to human-readable MB format
-
 def get_network_info():
-    """Get detailed network information in human readable format"""
     try:
         rx_bytes = int(os.environ.get('RX_BYTES', '0'))
         tx_bytes = int(os.environ.get('TX_BYTES', '0'))
@@ -575,68 +566,37 @@ def get_network_info():
     except:
         return os.environ.get('RX_BYTES', '0') + " / " + os.environ.get('TX_BYTES', '0')
 
-# -------------------------------
-# Load Average Helper
-# -------------------------------
-# Reads 1-minute load average from /proc/loadavg
-
 def get_load_average():
-    """Get 1-minute load average"""
     try:
         with open('/proc/loadavg', 'r') as f:
-            load = f.read().split()
-            return float(load[0])
+            return float(f.read().split()[0])
     except:
         return 0.0
 
-# -------------------------------
-# SSH Status Helper
-# -------------------------------
-# Returns formatted SSH status (e.g., "Enabled (22/tcp)")
-
 def get_ssh_status():
-    """Get SSH status with more detail"""
     ssh_active = os.environ.get('SSH_STATUS', 'active')
-    if ssh_active.lower() == 'active':
-        return "Enabled (22/tcp)"
-    return "Disabled"
-
-# -------------------------------
-# Update Status Helper
-# -------------------------------
-# Returns number of pending security updates
+    return "Enabled (22/tcp)" if ssh_active.lower() == 'active' else "Disabled"
 
 def get_update_status():
-    """Get detailed update status"""
     updates = os.environ.get('UPDATES', '0')
     if updates == "Current" or updates == "0":
         return "Up to date"
     try:
         update_count = int(updates)
-        if update_count < 5:
-            return f"{update_count} security updates"
-        else:
-            return f"{update_count} updates available"
+        return f"{update_count} security updates" if update_count < 5 else f"{update_count} updates available"
     except:
-        return os.environ.get('UPDATE_STATUS', 'Current')
+        return "Current"
 
-# -------------------------------
-# Memory Details (in MB)
-# -------------------------------
 def get_memory_details():
-    """Return memory details in MB using multiple fallback methods"""
     try:
         with open('/proc/meminfo', 'r') as f:
             meminfo = {}
             for line in f:
-                parts = line.split(':')
-                if len(parts) == 2:
-                    key = parts[0].strip()
-                    val = parts[1].strip().split()[0]
-                    meminfo[key] = int(val) / 1024  # KB -> MB
-        
+                if ':' not in line:
+                    continue
+                key, val = line.split(':', 1)
+                meminfo[key.strip()] = int(val.strip().split()[0]) / 1024
         total = meminfo.get('MemTotal', 0)
-        # Prefer MemAvailable, else compute from MemFree + Buffers + Cached
         available = meminfo.get('MemAvailable', 0)
         if available == 0:
             free = meminfo.get('MemFree', 0)
@@ -644,61 +604,35 @@ def get_memory_details():
             cached = meminfo.get('Cached', 0)
             available = free + buffers + cached
         used = total - available
-        return {
-            'total': round(total),
-            'used': round(used),
-            'free': round(available)
-        }
+        return {'total': round(total), 'used': round(used), 'free': round(available)}
     except Exception as e:
         print(f"Memory error: {e}")
         return {'total': 0, 'used': 0, 'free': 0}
 
-# -------------------------------
-# Disk Details (in MB)
-# -------------------------------
 def get_disk_details():
-    """Return disk details in MB for root partition with fallback"""
     try:
         import os
         stat = os.statvfs('/')
-        # Use f_frsize if non-zero, otherwise f_bsize
         block_size = stat.f_frsize if stat.f_frsize else stat.f_bsize
         total = (stat.f_blocks * block_size) / (1024 * 1024)
         free = (stat.f_bfree * block_size) / (1024 * 1024)
         used = total - free
-        return {
-            'total': round(total),
-            'used': round(used),
-            'available': round(free)
-        }
-    except Exception as e:
-        print(f"Disk error: {e}")
-        # Fallback to df command
+        return {'total': round(total), 'used': round(used), 'available': round(free)}
+    except:
         try:
             import subprocess
-            output = subprocess.check_output(['df', '-BM', '/'], text=True)
-            lines = output.strip().split('\n')
-            if len(lines) >= 2:
-                parts = lines[1].split()
-                total_mb = int(parts[1].rstrip('M'))
-                used_mb = int(parts[2].rstrip('M'))
-                free_mb = int(parts[3].rstrip('M'))
-                return {'total': total_mb, 'used': used_mb, 'available': free_mb}
+            out = subprocess.check_output(['df', '-BM', '/'], text=True)
+            parts = out.split('\n')[1].split()
+            return {'total': int(parts[1].rstrip('M')), 'used': int(parts[2].rstrip('M')), 'available': int(parts[3].rstrip('M'))}
         except:
-            pass
-        return {'total': 0, 'used': 0, 'available': 0}
+            return {'total': 0, 'used': 0, 'available': 0}
 
-# -------------------------------
-# CPU Info (cores, frequency, usage)
-# -------------------------------
 def get_cpu_info():
-    """Return CPU cores, frequency (if available), and usage percentage"""
     cores = 1
     freq = None
     try:
         with open('/proc/cpuinfo', 'r') as f:
             cores = f.read().count('processor')
-        # Get frequency from first core (cpu MHz)
         with open('/proc/cpuinfo', 'r') as f:
             for line in f:
                 if 'cpu MHz' in line:
@@ -706,187 +640,75 @@ def get_cpu_info():
                     break
     except:
         pass
-    # Usage already in CPU_USAGE env var (as integer)
     usage = float(os.environ.get('CPU_USAGE', '0'))
-    return {
-        'cores': cores,
-        'frequency': f"{freq:.0f} MHz" if freq else None,
-        'usage': usage
-    }
+    return {'cores': cores, 'frequency': f"{freq:.0f} MHz" if freq else None, 'usage': usage}
 
-# -------------------------------
-# Cost Estimation Helper
-# -------------------------------
-# Detects cloud provider, looks up hourly rate, adjusts for usage, adds storage
+def get_hourly_rate():
+    machine_type = os.environ.get('MACHINE_TYPE', 'e2-micro').lower()
+    machine_short = machine_type.split('/')[-1]
+    rates = {'e2-micro': 0.0076, 'e2-small': 0.0150, 'e2-medium': 0.0301,
+             'n1-standard-1': 0.0475, 'n2-standard-2': 0.0972, 't3.micro': 0.0104, 't3.small': 0.0208}
+    return rates.get(machine_short, 0.01)
 
-def get_cost_estimate():
-    """Estimate cost based on machine type, provider, and actual usage"""
+def get_cumulative_cost():
+    cost_file = '/var/tmp/vm-cost.json'
+    hourly_rate = get_hourly_rate()
     try:
-        machine_type = os.environ.get('MACHINE_TYPE', 'e2-micro').lower()
-        
-        try:
-            cpu = float(os.environ.get('CPU_USAGE', '0'))
-            mem = float(os.environ.get('MEM_PERCENT', '0'))
-        except (ValueError, TypeError):
-            cpu = 0
-            mem = 0
-        
-        # Detect cloud provider (GCP, AWS, or Azure)
-        provider = "unknown"
-        try:
-            import subprocess
-            
-            # GCP detection
-            gcp_check = subprocess.run(
-                ['curl', '-s', '--max-time', '2', '-H', 'Metadata-Flavor: Google', 
-                 'http://metadata.google.internal/computeMetadata/v1/instance/zone'],
-                capture_output=True, text=True, timeout=2
-            )
-            if gcp_check.returncode == 0 and gcp_check.stdout:
-                provider = "gcp"
-        except:
-            pass
-        
-        # AWS detection
-        if provider == "unknown":
-            try:
-                aws_check = subprocess.run(
-                    ['curl', '-s', '--max-time', '2', 'http://169.254.169.254/latest/meta-data/instance-id'],
-                    capture_output=True, text=True, timeout=2
-                )
-                if aws_check.returncode == 0 and aws_check.stdout:
-                    provider = "aws"
-            except:
-                pass
-        
-        # Azure detection
-        if provider == "unknown":
-            try:
-                azure_check = subprocess.run(
-                    ['curl', '-s', '--max-time', '2', '-H', 'Metadata:true', 
-                     'http://169.254.169.254/metadata/instance?api-version=2017-08-01'],
-                    capture_output=True, text=True, timeout=2
-                )
-                if azure_check.returncode == 0 and azure_check.stdout:
-                    provider = "azure"
-            except:
-                pass
-        
-        # Parse machine size (micro, small, medium, large)
-        machine_size = "micro"
-        if "micro" in machine_type:
-            machine_size = "micro"
-        elif "small" in machine_type:
-            machine_size = "small"
-        elif "medium" in machine_type:
-            machine_size = "medium"
-        elif "large" in machine_type:
-            machine_size = "large"
-        
-        # Hourly rates by provider and size (in USD)
-        pricing = {
-            "gcp": {"micro": 0.012, "small": 0.025, "medium": 0.050, "large": 0.100},
-            "aws": {"micro": 0.0116, "small": 0.023, "medium": 0.046, "large": 0.092},
-            "azure": {"micro": 0.012, "small": 0.024, "medium": 0.048, "large": 0.096}
-        }
-        
-        # Get base hourly rate
-        if provider in pricing and machine_size in pricing[provider]:
-            base_hourly = pricing[provider][machine_size]
-        elif provider in pricing:
-            base_hourly = pricing[provider]["micro"]
-        else:
-            base_hourly = 0.015
-        
-        # Usage factor (0.1 to 1.0, based on CPU and memory)
-        cpu_multiplier = min(max(cpu / 100, 0.1), 1.0)
-        mem_multiplier = min(max(mem / 100, 0.1), 1.0)
-        usage_factor = (cpu_multiplier + mem_multiplier) / 2
-        
-        # Calculate monthly cost (720 hours/month) + $1 storage
-        monthly_cost = base_hourly * 720 * usage_factor
-        storage_cost = 1.00
-        total_monthly = monthly_cost + storage_cost
-        
-        # Format output with provider and machine type
-        provider_names = {"gcp": "GCP", "aws": "AWS", "azure": "Azure"}
-        provider_display = provider_names.get(provider, "")
-        machine_display = machine_type.replace('-', ' ').replace('_', ' ').title()
-        
-        if provider_display:
-            return f"${total_monthly:.2f}/month ({provider_display} {machine_display})"
-        else:
-            return f"${total_monthly:.2f}/month (est.)"
-            
-    except Exception as e:
-        machine_type = os.environ.get('MACHINE_TYPE', 'standard')
-        return f"Based on {machine_type} usage"
+        with open('/proc/uptime', 'r') as f:
+            current_uptime = float(f.read().split()[0])
+    except:
+        current_uptime = 0
+    try:
+        with open(cost_file, 'r') as f:
+            data = json.load(f)
+        total_cost = data.get('total_cost', 0.0)
+        last_uptime = data.get('last_uptime_sec', current_uptime)
+    except:
+        total_cost = 0.0
+        last_uptime = current_uptime
+    if current_uptime < last_uptime:
+        last_uptime = current_uptime
+    else:
+        delta_hours = (current_uptime - last_uptime) / 3600.0
+        if delta_hours > 0:
+            total_cost += hourly_rate * delta_hours
+            last_uptime = current_uptime
+    with open(cost_file, 'w') as f:
+        json.dump({'total_cost': total_cost, 'last_uptime_sec': last_uptime}, f)
+    if total_cost < 0.01:
+        return f"${total_cost:.4f} total"
+    elif total_cost < 1:
+        return f"${total_cost:.3f} total"
+    else:
+        return f"${total_cost:.2f} total"
 
-# -------------------------------
-# Load Quotes from GitHub
-# -------------------------------
-
-import urllib.request
-import json
-import os
-
+# Load quotes
 quotes = []
-github_url = os.environ.get('GITHUB_QUOTES_URL', 'https://raw.githubusercontent.com/KirkAlton-Class7/devsecops-vm-dashboard/main/quotes.json')
-
-print("Fetching quotes directly from GitHub...")
-
-# Get data directory from environment
 data_dir = os.environ.get('DATA_DIR', '/var/www/vm-dashboard/data')
 quotes_path = os.path.join(data_dir, 'quotes.json')
-local_quotes_path = os.path.join(data_dir, 'quotes_local.json')
-
 try:
-    # Fetch directly from GitHub
-    with urllib.request.urlopen(github_url, timeout=10) as response:
-        quotes = json.loads(response.read().decode())
-        print(f"Successfully fetched {len(quotes)} quotes from GitHub")
-        
-        # Save to file for cache
-        with open(quotes_path, "w") as f:
-            json.dump(quotes, f, indent=2)
-        with open(local_quotes_path, "w") as f:
-            json.dump(quotes, f, indent=2)
-            
-except Exception as e:
-    print(f"Failed to fetch from GitHub: {e}")
-    
-    # Fallback to local file if available
-    try:
-        with open(quotes_path, "r") as f:
-            quotes = json.load(f)
-        print(f"Loaded {len(quotes)} quotes from local cache")
-    except:
-        # Ultimate fallback
-        quotes = [{"text": "Welcome to DevSecOps!", "author": "System"}]
-        print("Using emergency fallback quote")
+    with open(quotes_path, 'r') as f:
+        quotes = json.load(f)
+except:
+    quotes = [{"text": "Welcome to DevSecOps!", "author": "System"}]
 
-# -------------------------------
-# Collect System Metadata
-# -------------------------------
-# Region from zone (strip last character)
+quote = random.choice(quotes)
+
+# Collect metadata
 zone = os.environ.get('ZONE', 'unknown')
-region = zone[:-2] if len(zone) > 2 else 'unknown'
+if zone == 'unknown' or len(zone) < 3:
+    region = 'unknown'
+else:
+    region = zone[:-2]
 
-# Collect detailed resources
 memory_details = get_memory_details()
 disk_details = get_disk_details()
 cpu_info = get_cpu_info()
 load_avg = get_load_average()
-
-# IPs (already exported)
 internal_ip = os.environ.get('INTERNAL_IP', 'unknown')
 public_ip = os.environ.get('PUBLIC_IP', 'unknown')
 
-# -------------------------------
-# Generate Sample Logs
-# -------------------------------
-# Creates mock application logs with timestamps and levels
-
+# Logs (sample)
 logs = [
     {"time": datetime.now().strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "Dashboard initialized"},
     {"time": (datetime.now() - timedelta(minutes=5)).strftime("%H:%M:%S"), "level": "info", "scope": "metrics", "message": "Metrics collection started"},
@@ -897,11 +719,6 @@ logs = [
     {"time": (datetime.now() - timedelta(hours=1)).strftime("%H:%M:%S"), "level": "warning", "scope": "security", "message": "12 failed login attempts detected"},
 ]
 
-# -------------------------------
-# Generate Resource Table
-# -------------------------------
-# Lists system resources and their current status
-
 resource_table = [
     {"name": "nginx", "type": "service", "scope": "system", "status": os.environ.get('NGINX_STATUS', 'Running')},
     {"name": "python3", "type": "runtime", "scope": "system", "status": "Installed"},
@@ -910,26 +727,21 @@ resource_table = [
     {"name": "dashboard-data.json", "type": "data", "scope": "application", "status": "Active"},
 ]
 
-# -------------------------------
-# Build Main Data Structure
-# -------------------------------
-# Assembles all collected data into the final JSON payload
-
 data = {
     "summaryCards": [
         {"label": "CPU", "value": f"{os.environ.get('CPU_USAGE', '0')}%", "status": status(os.environ.get('CPU_USAGE', '0'))},
         {"label": "Memory", "value": f"{os.environ.get('MEM_PERCENT', '0')}%", "status": status(os.environ.get('MEM_PERCENT', '0'))},
         {"label": "Disk", "value": os.environ.get('DISK_PERCENT', '0%'), "status": status(os.environ.get('DISK_PERCENT', '0').replace('%', ''))},
-        {"label": "Cost", "value": get_cost_estimate(), "status": "info"}
+        {"label": "Estimated Cost", "value": get_cumulative_cost(), "status": "info"}
     ],
     "vmInformation": [
         {"label": "Hostname", "value": os.environ.get('HOSTNAME_VM', 'unknown')},
         {"label": "Instance ID", "value": os.environ.get('INSTANCE_ID', 'unknown')},
-        {"label": "Zone", "value": os.environ.get('ZONE', 'unknown')},
+        {"label": "Zone", "value": zone},
         {"label": "Machine Type", "value": os.environ.get('MACHINE_TYPE', 'unknown')},
         {"label": "OS", "value": os.environ.get('OS_NAME', 'unknown')},
         {"label": "Project ID", "value": os.environ.get('PROJECT_ID', 'unknown')},
-        {"label": "Estimated Cost (Usage)", "value": get_cost_estimate(), "status": "info"}
+        {"label": "Estimated Cost (Usage)", "value": get_cumulative_cost(), "status": "info"}
     ],
     "services": [
         {"label": "Nginx", "value": os.environ.get('NGINX_STATUS', 'Unknown'), "status": "healthy"},
@@ -944,8 +756,8 @@ data = {
         {"label": "Host Firewall", "value": os.environ.get('FIREWALL_STATUS', 'Not installed'), "status": "info"},
         {"label": "SSH", "value": get_ssh_status(), "status": "healthy"},
         {"label": "Updates", "value": get_update_status(), "status": "info"},
-        {"label": "Internal IP", "value": os.environ.get('INTERNAL_IP', 'unknown'), "status": "info"},
-        {"label": "Public IP", "value": os.environ.get('PUBLIC_IP', 'unknown'), "status": "info"}
+        {"label": "Internal IP", "value": internal_ip, "status": "info"},
+        {"label": "Public IP", "value": public_ip, "status": "info"}
     ],
     "meta": {
         "appName": os.environ.get('DASHBOARD_APP_NAME', 'Custom Application'),
@@ -957,7 +769,7 @@ data = {
     "quote": quote,
     "logs": logs,
     "resourceTable": resource_table,
-    "systemLoad": get_load_average(),
+    "systemLoad": load_avg,
     "identity": {
         "project": os.environ.get('PROJECT_ID', 'unknown'),
         "instanceId": os.environ.get('INSTANCE_ID', 'unknown'),
@@ -966,7 +778,7 @@ data = {
     },
     "network": {
         "vpc": "default",
-        "subnet": f"{region}-subnet",
+        "subnet": f"{region}-subnet" if region != 'unknown' else "unknown-subnet",
         "internalIp": internal_ip,
         "externalIp": public_ip
     },
@@ -980,19 +792,12 @@ data = {
         "memory": memory_details,
         "disk": disk_details,
         "cpu": cpu_info,
-        "endpoints": {
-            "healthz": "/healthz",
-            "metadata": "/metadata"
-        }
+        "endpoints": {"healthz": "/healthz", "metadata": "/metadata"}
     }
 }
 
-# -------------------------------
-# Write to File
-# -------------------------------
-# Saves the final JSON to the data directory for nginx to serve
-
-with open("${DATA_DIR}/dashboard-data.json", "w") as f:
+output_file = os.path.join(data_dir, 'dashboard-data.json')
+with open(output_file, 'w') as f:
     json.dump(data, f, indent=2)
 
 print("Dashboard data generated successfully")
