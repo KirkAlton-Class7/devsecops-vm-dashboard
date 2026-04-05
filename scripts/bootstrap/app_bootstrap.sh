@@ -753,57 +753,10 @@ print("Dashboard data generated successfully")
 PYTHON_SCRIPT
 
 # -------------------------------
-# Nginx Configuration
-# -------------------------------
-log "Configuring nginx"
-systemctl stop nginx || true
-
-# Remove ALL existing configs
-rm -f /etc/nginx/sites-enabled/*
-rm -f /etc/nginx/sites-available/default
-
-# Create our site config
-cat > "${NGINX_SITE}" <<EOF
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    server_name _;
-    
-    root ${APP_DIR};
-    index index.html;
-    
-    location /data/ {
-        alias ${DATA_DIR}/;
-        add_header Access-Control-Allow-Origin *;
-        add_header Cache-Control "no-store";
-        types {
-            image/webp webp;
-            image/jpeg jpg jpeg;
-            image/png png;
-            image/gif gif;
-            image/svg+xml svg;
-            application/json json;
-        }
-        default_type application/octet-stream;
-    }
-    
-    location / {
-        try_files \$uri \$uri/ /index.html;
-    }
-}
-EOF
-
-# Activate the site
-ln -sf "${NGINX_SITE}" /etc/nginx/sites-enabled/${APP_NAME}
-
-# Test and start nginx
-nginx -t || { log "ERROR: nginx config invalid"; exit 1; }
-systemctl start nginx
-systemctl enable nginx
-
-# -------------------------------
 # Dashboard Refresh Cron Job
 # -------------------------------
+# Standalone Python script that collects fresh metrics and updates dashboard-data.json
+
 log "Setting up cron job to refresh dashboard data"
 
 cat > /opt/refresh-dashboard-data.py << 'EOF'
@@ -1147,27 +1100,100 @@ data = {
     "systemResources": systemResources
 }
 
+# ------------------------------------------------------------
+# Write to file
+# ------------------------------------------------------------
 with open(DASHBOARD_JSON, "w") as f:
     json.dump(data, f, indent=2)
 
 print(f"Dashboard data refreshed - CPU: {cpu_usage}%, Memory: {mem_percent}%, Disk: {disk_percent}")
 EOF
 
+# -------------------------------
+# Set Permissions
+# -------------------------------
+# Makes the refresh script executable
 
 chmod +x /opt/refresh-dashboard-data.py
+
+# -------------------------------
+# Register Cron Job
+# -------------------------------
+# Adds a cron entry to run the refresh script every 5 minutes
 
 REFRESH_CRON_CMD="*/5 * * * * /usr/bin/python3 /opt/refresh-dashboard-data.py >> /var/log/dashboard-refresh.log 2>&1"
 (crontab -l 2>/dev/null | grep -v 'refresh-dashboard-data'; echo "$REFRESH_CRON_CMD") | crontab -
 
 log "Dashboard refresh cron job configured (every 5 minutes)"
 
+
+# -------------------------------
+# Ensure index.html Exists
+# -------------------------------
+# Creates a fallback page if the built dashboard is missing
+
+if [ ! -f "${APP_DIR}/index.html" ]; then
+  log "Creating fallback index.html"
+  echo "<h1>Dashboard initializing...</h1>" > "${APP_DIR}/index.html"
+fi
+
+# -------------------------------
+# Nginx Configuration
+# -------------------------------
+# Sets up nginx to serve the dashboard and data endpoints
+# Removes any existing configurations to prevent conflicts
+
+log "Configuring nginx"
+systemctl stop nginx || true
+
 # Remove the default site (if present)
 rm -f /etc/nginx/sites-enabled/default
 
+# Create our site config
+cat > "${NGINX_SITE}" <<EOF
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    
+    root ${APP_DIR};
+    index index.html;
+    
+    location /data/ {
+        alias ${DATA_DIR}/;
+        add_header Access-Control-Allow-Origin *;
+        add_header Cache-Control "no-store";
+        types {
+            image/webp webp;
+            image/jpeg jpg jpeg;
+            image/png png;
+        }
+    }
+    
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+}
+EOF
+
+# -------------------------------
+# Activate Site
+# -------------------------------
+# Enables the new configuration and tests it
+
 ln -sf "${NGINX_SITE}" /etc/nginx/sites-enabled/${APP_NAME}
+
+# Test nginx configuration
 nginx -t || { log "ERROR: nginx config invalid"; exit 1; }
+
+# -------------------------------
+# Start Nginx
+# -------------------------------
+# Enables nginx to start on boot and starts the service
+
 systemctl start nginx
 systemctl enable nginx
+
 
 # -------------------------------
 # Final Deployment Validation
