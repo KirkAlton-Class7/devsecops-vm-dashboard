@@ -488,6 +488,10 @@ fi
 # -------------------------------
 log "Generating dashboard data"
 
+# Ensure data directory exists and is writable by appuser
+mkdir -p "${DATA_DIR}"
+chown ${APP_USER}:${APP_USER} "${DATA_DIR}"
+
 # Be sure to prevent variable expansion in this heredoc
 sudo -u ${APP_USER} python3 <<'PYTHON_SCRIPT'
 import json, os, random
