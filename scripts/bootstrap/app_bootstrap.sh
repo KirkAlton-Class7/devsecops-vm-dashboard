@@ -450,6 +450,12 @@ log "Deploying dashboard"
 rm -rf ${APP_DIR}/*
 cp -r "$REPO_DIR/dashboard/dist/"* ${APP_DIR}/
 
+# Verify deployment succeeded
+if [ ! -f "${APP_DIR}/index.html" ]; then
+    log "ERROR: Dashboard files missing – build failed or deploy failed"
+    exit 1
+fi
+
 # -------------------------------
 # Force fetch GitHub quotes before generating data
 # -------------------------------
