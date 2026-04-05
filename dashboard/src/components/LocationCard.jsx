@@ -7,7 +7,7 @@ export default function LocationCard({ location }) {
     { label: "Region", value: location?.region, icon: MapPin },
     { label: "Zone", value: location?.zone, icon: Navigation },
     { label: "Uptime", value: location?.uptime, icon: Timer },
-    { label: "Load Average", value: location?.loadAvg, icon: Gauge }
+    { label: "5-minute Load Average", value: location?.loadAvg, icon: Gauge }
   ];
 
   return (
