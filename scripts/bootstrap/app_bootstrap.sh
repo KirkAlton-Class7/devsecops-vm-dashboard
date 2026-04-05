@@ -323,13 +323,6 @@ else
     log "ERROR: images directory not found in repo"
 fi
 
-# Set permissions for images directory
-chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}/images" 2>/dev/null || true
-chmod -R 755 "${DATA_DIR}/images" 2>/dev/null || true
-chmod 755 "${DATA_DIR}" 2>/dev/null || true
-
-systemctl reload nginx || true
-
 # ----------------------------------------------------------------------
 # Set permissions (nginx needs +x on directories)
 # ----------------------------------------------------------------------
@@ -1112,6 +1105,9 @@ REFRESH_CRON_CMD="*/5 * * * * /usr/bin/python3 /opt/refresh-dashboard-data.py >>
 (crontab -l 2>/dev/null | grep -v 'refresh-dashboard-data'; echo "$REFRESH_CRON_CMD") | crontab -
 
 log "Dashboard refresh cron job configured (every 5 minutes)"
+
+# Remove the default site (if present)
+rm -f /etc/nginx/sites-enabled/default
 
 ln -sf "${NGINX_SITE}" /etc/nginx/sites-enabled/${APP_NAME}
 nginx -t || { log "ERROR: nginx config invalid"; exit 1; }
