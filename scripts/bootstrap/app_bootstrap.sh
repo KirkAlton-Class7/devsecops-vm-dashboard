@@ -495,7 +495,7 @@ fi
 # -------------------------------
 log "Generating dashboard data"
 
-sudo -u ${APP_USER} python3 <<PYTHON_SCRIPT
+sudo -u ${APP_USER} python3 <<'PYTHON_SCRIPT'
 import json, os, random
 from datetime import datetime, timedelta
 
@@ -750,7 +750,7 @@ with open(output_file, 'w') as f:
     json.dump(data, f, indent=2)
 
 print("Dashboard data generated successfully")
-PYTHON_SCRIPT
+'PYTHON_SCRIPT'
 
 # -------------------------------
 # Dashboard Refresh Cron Job
