@@ -683,7 +683,7 @@ def get_cumulative_cost():
     rates = {"e2-micro": 0.0076, "e2-small": 0.0150, "e2-medium": 0.0301,
              "n1-standard-1": 0.0475, "n2-standard-2": 0.0972}
     if machine_type not in rates:
-        return "N/A for instance type"
+        return "N/A for instance type)"
     hourly_rate = rates[machine_type]
     try:
         with open("/proc/uptime", "r") as f:
