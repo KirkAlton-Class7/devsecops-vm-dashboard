@@ -2,8 +2,66 @@
 
 This is a real-time infrastructure monitoring dashboard that automatically deploys on **GCP, AWS, Azure**, or any Linux VM. It displays system metrics (CPU, memory, disk, network), cost estimation, inspirational quotes, an international photo gallery, and more.
 
-> [!NOTE]
-Numbers shown for cost estimation are merely estimates. This feature is in ongoing development. For the most accurate cost estimation, please use your cloud provider's API.
+---
+
+## Features
+
+- Multi-Cloud Support — Runs on GCP, AWS, Azure, or any Linux VM  
+- Zero External Services — No managed monitoring stack required  
+- Real-Time Metrics — CPU, memory, disk, and network usage  
+- Dynamic Metadata Detection — Pulls instance data from cloud metadata services  
+- Cost Estimation Engine — Lightweight, heuristic-based (development in progress)  
+- Static Asset Delivery — Quotes (GitHub-synced) and photo gallery (Python‑generated metadata) served as static files via NGINX
+
+---
+
+## Cost Estimation Disclaimer
+
+> [!NOTE]  
+> Cost values are approximate and based on static assumptions and runtime heuristics.  
+> Use your cloud provider’s billing APIs or dashboards for accurate data.
+
+---
+
+## Cloud Provider Status
+
+### GCP (Recommended)
+
+- Full feature support  
+- Stable metadata integration  
+- All dashboard fields populate correctly  
+
+---
+
+### Azure
+
+> [!WARNING]  
+> Partial metadata support due to inconsistent metadata responses.
+
+> [!BUG]  
+> - Instance ID unreliable  
+> - Machine type missing or incorrect  
+> - Subnet not consistently resolved  
+> - Region / zone parsing inconsistent  
+> - Uptime calculation may drift  
+
+---
+
+## Future Improvements
+
+- Provider adapters for metadata normalization  
+- Billing API integration (AWS, GCP, Azure)  
+- Persistent storage for historical metrics  
+- Improved AWS compatibility and responsiveness  
+- More accurate uptime and lifecycle tracking  
+
+---
+
+### AWS
+
+> [!WARNING]  
+> Integration unstable and under active development.
+
 
 ---
 
@@ -41,6 +99,7 @@ set -x
 
 echo "Bootstrap started at $(date)"
 
+# Detect package manager and install git if missing
 if command -v apt-get >/dev/null 2>&1; then
     apt-get update -y
     apt-get install -y git
@@ -49,12 +108,26 @@ elif command -v yum >/dev/null 2>&1; then
 elif command -v dnf >/dev/null 2>&1; then
     dnf install -y git
 else
-    echo "ERROR: No known package manager found"
+    echo "ERROR: No known package manager found (apt-get, yum, dnf)"
     exit 1
 fi
 
+# Clone the repository
 git clone https://github.com/KirkAlton-Class7/devsecops-vm-dashboard.git /opt/deploy
-bash /opt/deploy/scripts/bootstrap/app_bootstrap.sh
+
+# Path to the main bootstrap script (inside the repo)
+MAIN_SCRIPT="/opt/deploy/scripts/bootstrap/app_bootstrap.sh"
+
+if [ ! -f "$MAIN_SCRIPT" ]; then
+    echo "ERROR: Main script not found at $MAIN_SCRIPT"
+    exit 1
+fi
+
+# Make it executable
+chmod +x "$MAIN_SCRIPT"
+
+# Execute the main script with verbose tracing
+bash -x "$MAIN_SCRIPT"
 
 echo "Bootstrap finished at $(date)"
 ````
