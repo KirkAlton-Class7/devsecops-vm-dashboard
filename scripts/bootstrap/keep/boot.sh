@@ -682,9 +682,7 @@ def get_cumulative_cost():
     machine_type = get_machine_type()
     rates = {"e2-micro": 0.0076, "e2-small": 0.0150, "e2-medium": 0.0301,
              "n1-standard-1": 0.0475, "n2-standard-2": 0.0972}
-    if machine_type not in rates:
-        return "N/A for instance type)"
-    hourly_rate = rates[machine_type]
+    hourly_rate = rates.get(machine_type, 0.01)
     try:
         with open("/proc/uptime", "r") as f:
             current_uptime = float(f.read().split()[0])
@@ -707,9 +705,7 @@ def get_cumulative_cost():
             last_uptime = current_uptime
     with open(cost_file, "w") as f:
         json.dump({"total_cost": total_cost, "last_uptime_sec": last_uptime}, f)
-    if total_cost <= 0.0:
-        return "N/A"
-    elif total_cost < 0.01:
+    if total_cost < 0.01:
         return f"${total_cost:.4f} total"
     elif total_cost < 1:
         return f"${total_cost:.3f} total"
@@ -936,24 +932,17 @@ def get_hourly_rate():
     return rates.get(machine_type, 0.01)
 
 def get_cumulative_cost():
-    cost_file = "/var/tmp/vm-cost.json"
-    machine_type = get_machine_type()
-    rates = {"e2-micro": 0.0076, "e2-small": 0.0150, "e2-medium": 0.0301,
-             "n1-standard-1": 0.0475, "n2-standard-2": 0.0972}
-    if machine_type not in rates:
-        return "N/A for instance type"
-    hourly_rate = rates[machine_type]
-
+    hourly_rate = get_hourly_rate()
     try:
-        with open("/proc/uptime", "r") as f:
+        with open('/proc/uptime', 'r') as f:
             current_uptime = float(f.read().split()[0])
     except:
         current_uptime = 0
     try:
-        with open(cost_file, "r") as f:
+        with open(COST_FILE, 'r') as f:
             data = json.load(f)
-        total_cost = data.get("total_cost", 0.0)
-        last_uptime = data.get("last_uptime_sec", current_uptime)
+        total_cost = data.get('total_cost', 0.0)
+        last_uptime = data.get('last_uptime_sec', current_uptime)
     except:
         total_cost = 0.0
         last_uptime = current_uptime
@@ -964,11 +953,9 @@ def get_cumulative_cost():
         if delta_hours > 0:
             total_cost += hourly_rate * delta_hours
             last_uptime = current_uptime
-    with open(cost_file, "w") as f:
-        json.dump({"total_cost": total_cost, "last_uptime_sec": last_uptime}, f)
-    if total_cost <= 0.0:
-        return "N/A"
-    elif total_cost < 0.01:
+    with open(COST_FILE, 'w') as f:
+        json.dump({'total_cost': total_cost, 'last_uptime_sec': last_uptime}, f)
+    if total_cost < 0.01:
         return f"${total_cost:.4f} total"
     elif total_cost < 1:
         return f"${total_cost:.3f} total"
@@ -1007,28 +994,7 @@ def get_load_averages():
         return float(parts[0]), float(parts[1])   # (1min, 5min)
 
 def get_uptime():
-    try:
-        # Try with full path first
-        result = subprocess.check_output(['/usr/bin/uptime', '-p'], text=True, stderr=subprocess.DEVNULL)
-        return result.strip()
-    except:
-        try:
-            # Fallback: read from /proc/uptime and format manually
-            with open('/proc/uptime', 'r') as f:
-                seconds = float(f.read().split()[0])
-                minutes = int(seconds // 60)
-                hours = int(minutes // 60)
-                days = int(hours // 24)
-                minutes = minutes % 60
-                hours = hours % 24
-                if days > 0:
-                    return f"up {days} day{'s' if days != 1 else ''}, {hours} hour{'s' if hours != 1 else ''}, {minutes} minute{'s' if minutes != 1 else ''}"
-                elif hours > 0:
-                    return f"up {hours} hour{'s' if hours != 1 else ''}, {minutes} minute{'s' if minutes != 1 else ''}"
-                else:
-                    return f"up {minutes} minute{'s' if minutes != 1 else ''}"
-        except:
-            return "up 0 minutes"
+    return subprocess.check_output(['uptime', '-p'], text=True).strip()
 
 def status(val, warn=70):
     try:
@@ -1109,8 +1075,8 @@ new_log = {
     "message": message
 }
 
-# Keep last 30 entries (one hour of history at 1‑minute cron, or 5 hours at 5‑minute cron)
-data["logs"] = [new_log] + data.get("logs", [])[:29]
+# Keep last 60 entries (one hour of history at 1‑minute cron, or 5 hours at 5‑minute cron)
+data["logs"] = [new_log] + data.get("logs", [])[:39]
 
 
 # Refresh the quote of the day
@@ -1136,23 +1102,10 @@ sudo chmod +x /opt/refresh-dashboard-data.py
 # -------------------------------
 # Register Cron Job
 # -------------------------------
-# Set up cron to run every 5 minutes (as root, with explicit PATH to ensure commands like uptime are found)
-(sudo crontab -l 2>/dev/null; echo "*/5 * * * * PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin /usr/bin/python3 /opt/refresh-dashboard-data.py >> /var/log/dashboard-refresh.log 2>&1") | sudo crontab -
+# Set up cron to run every 5 minutes (as root, no environment variables needed)
+(sudo crontab -l 2>/dev/null; echo "*/5 * * * * /usr/bin/python3 /opt/refresh-dashboard-data.py >> /var/log/dashboard-refresh.log 2>&1") | sudo crontab -
 
 log "Dashboard refresh cron job configured (every 5 minutes)"
-
-# -------------------------------
-# Initialize Cost File with Root Ownership
-# -------------------------------
-# The refresh script runs as root, but the initial dashboard generation
-# (as appuser) may have created /var/tmp/vm-cost.json with wrong permissions.
-# Remove it and run the refresh script once to recreate it properly.
-log "Initializing cost file for root cron"
-
-sudo rm -f /var/tmp/vm-cost.json
-sudo /usr/bin/python3 /opt/refresh-dashboard-data.py
-
-log "Cost file initialized"
 
 # -------------------------------
 # Ensure index.html Exists

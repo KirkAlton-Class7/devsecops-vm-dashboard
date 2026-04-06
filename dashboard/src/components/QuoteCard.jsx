@@ -197,8 +197,9 @@ export default function QuoteCard({ quote: initialQuote }) {
                     className="p-2 rounded-lg hover:bg-white/10 transition-colors"
                     title="View favorites"
                   >
-                    <Heart className="w-4 h-4 text-slate-400 hover:text-red-400" />
+                    <Star className="w-4 h-4 text-slate-400 hover:text-yellow-400" />
                   </motion.button>
+
                 </div>
               </footer>
             </blockquote>
