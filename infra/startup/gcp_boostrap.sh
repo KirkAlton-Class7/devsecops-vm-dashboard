@@ -1,3 +1,6 @@
+# GCP Bootstrap Script
+# TODO: Try to make dynamic/cloud agnostic
+
 #!/bin/bash
 set -e
 exec > /var/log/bootstrap.log 2>&1

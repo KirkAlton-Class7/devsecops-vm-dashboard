@@ -1,3 +1,5 @@
+# Azure Bootstrap Script
+
 #!/bin/bash
 set -e
 exec > /var/log/bootstrap.log 2>&1
