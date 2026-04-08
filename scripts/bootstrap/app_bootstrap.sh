@@ -916,9 +916,9 @@ DASHBOARD_JSON = f"{DATA_DIR}/dashboard-data.json"
 COST_FILE = "/var/tmp/vm-cost.json"
 
 # ------------------------------------------------------------
-# Cost calculation (same as startup script)
+# Helper functions (must be defined before use)
 # ------------------------------------------------------------
-def get_hourly_rate():
+def get_machine_type():
     try:
         req = subprocess.run(
             ['curl', '-s', '-H', 'Metadata-Flavor: Google',
@@ -926,58 +926,11 @@ def get_hourly_rate():
             capture_output=True, text=True, timeout=2
         )
         if req.returncode == 0 and req.stdout:
-            machine_type = req.stdout.strip().split('/')[-1].lower()
-        else:
-            machine_type = 'e2-micro'
+            return req.stdout.strip().split('/')[-1].lower()
     except:
-        machine_type = 'e2-micro'
-    rates = {'e2-micro': 0.0076, 'e2-small': 0.0150, 'e2-medium': 0.0301,
-             'n1-standard-1': 0.0475, 'n2-standard-2': 0.0972, 't3.micro': 0.0104}
-    return rates.get(machine_type, 0.01)
+        pass
+    return 'e2-micro'
 
-def get_cumulative_cost():
-    cost_file = "/var/tmp/vm-cost.json"
-    machine_type = get_machine_type()
-    rates = {"e2-micro": 0.0076, "e2-small": 0.0150, "e2-medium": 0.0301,
-             "n1-standard-1": 0.0475, "n2-standard-2": 0.0972}
-    if machine_type not in rates:
-        return "N/A for instance type"
-    hourly_rate = rates[machine_type]
-
-    try:
-        with open("/proc/uptime", "r") as f:
-            current_uptime = float(f.read().split()[0])
-    except:
-        current_uptime = 0
-    try:
-        with open(cost_file, "r") as f:
-            data = json.load(f)
-        total_cost = data.get("total_cost", 0.0)
-        last_uptime = data.get("last_uptime_sec", current_uptime)
-    except:
-        total_cost = 0.0
-        last_uptime = current_uptime
-    if current_uptime < last_uptime:
-        last_uptime = current_uptime
-    else:
-        delta_hours = (current_uptime - last_uptime) / 3600.0
-        if delta_hours > 0:
-            total_cost += hourly_rate * delta_hours
-            last_uptime = current_uptime
-    with open(cost_file, "w") as f:
-        json.dump({"total_cost": total_cost, "last_uptime_sec": last_uptime}, f)
-    if total_cost <= 0.0:
-        return "N/A"
-    elif total_cost < 0.01:
-        return f"${total_cost:.4f} total"
-    elif total_cost < 1:
-        return f"${total_cost:.3f} total"
-    else:
-        return f"${total_cost:.2f} total"
-
-# ------------------------------------------------------------
-# Metrics – returning both 1‑minute and 5‑minute load averages
-# ------------------------------------------------------------
 def get_cpu_usage():
     with open('/proc/stat', 'r') as f:
         line = f.readline()
@@ -1008,12 +961,10 @@ def get_load_averages():
 
 def get_uptime():
     try:
-        # Try with full path first
         result = subprocess.check_output(['/usr/bin/uptime', '-p'], text=True, stderr=subprocess.DEVNULL)
         return result.strip()
     except:
         try:
-            # Fallback: read from /proc/uptime and format manually
             with open('/proc/uptime', 'r') as f:
                 seconds = float(f.read().split()[0])
                 minutes = int(seconds // 60)
@@ -1029,6 +980,51 @@ def get_uptime():
                     return f"up {minutes} minute{'s' if minutes != 1 else ''}"
         except:
             return "up 0 minutes"
+
+# ------------------------------------------------------------
+# Cost calculation (same as startup script)
+# ------------------------------------------------------------
+def get_cumulative_cost():
+    machine_type = get_machine_type()
+    rates = {"e2-micro": 0.0076, "e2-small": 0.0150, "e2-medium": 0.0301,
+             "n1-standard-1": 0.0475, "n2-standard-2": 0.0972}
+    if machine_type not in rates:
+        return "N/A for instance type"
+    hourly_rate = rates[machine_type]
+
+    try:
+        with open('/proc/uptime', 'r') as f:
+            current_uptime = float(f.read().split()[0])
+    except:
+        current_uptime = 0
+    try:
+        with open(COST_FILE, 'r') as f:
+            data = json.load(f)
+        total_cost = data.get('total_cost', 0.0)
+        last_uptime = data.get('last_uptime_sec', current_uptime)
+    except:
+        total_cost = 0.0
+        last_uptime = current_uptime
+
+    if current_uptime < last_uptime:
+        last_uptime = current_uptime
+    else:
+        delta_hours = (current_uptime - last_uptime) / 3600.0
+        if delta_hours > 0:
+            total_cost += hourly_rate * delta_hours
+            last_uptime = current_uptime
+
+    with open(COST_FILE, 'w') as f:
+        json.dump({'total_cost': total_cost, 'last_uptime_sec': last_uptime}, f)
+
+    if total_cost <= 0.0:
+        return "N/A"
+    elif total_cost < 0.01:
+        return f"${total_cost:.4f} total"
+    elif total_cost < 1:
+        return f"${total_cost:.3f} total"
+    else:
+        return f"${total_cost:.2f} total"
 
 def status(val, warn=70):
     try:
@@ -1049,7 +1045,7 @@ load_1min, load_5min = get_load_averages()
 uptime = get_uptime()
 cost = get_cumulative_cost()
 
-# Update summary cards (including estimated cost)
+# Update summary cards
 data["summaryCards"] = [
     {"label": "CPU", "value": f"{cpu}%", "status": status(cpu)},
     {"label": "Memory", "value": f"{mem}%", "status": status(mem)},
@@ -1109,9 +1105,8 @@ new_log = {
     "message": message
 }
 
-# Keep last 30 entries (one hour of history at 1‑minute cron, or 5 hours at 5‑minute cron)
+# Keep last 30 entries (2.5 hours of history at 5‑minute cron)
 data["logs"] = [new_log] + data.get("logs", [])[:29]
-
 
 # Refresh the quote of the day
 quotes_path = f"{DATA_DIR}/quotes.json"
