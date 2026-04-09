@@ -13,7 +13,6 @@ import LocationCard from "./components/LocationCard";
 import SystemResourcesCard from "./components/SystemResourcesCard";
 import LoadTrendChart from "./components/LoadTrendChart";
 import NetworkParticles from "./components/NetworkParticles";
-import TextDashboard from "./components/TextDashboard";  // ADDED
 import { mockDashboard, mockQuotes } from "./data/mockDashboard";
 
 function getRandomQuote(quotes) {
@@ -26,18 +25,16 @@ export default function App() {
   const [quotes, setQuotes] = useState(mockQuotes);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ADDED: power mode state and toggle
-  const POWER_MODE_KEY = "dashboard-power-mode";
   const [isPowerOffMode, setIsPowerOffMode] = useState(() => {
-    const saved = localStorage.getItem(POWER_MODE_KEY);
-    return saved === "true";
-  });
+  const saved = localStorage.getItem(POWER_MODE_KEY);
+  return saved === "true";
+});
 
-  const togglePowerMode = () => {
-    const newMode = !isPowerOffMode;
-    setIsPowerOffMode(newMode);
-    localStorage.setItem(POWER_MODE_KEY, newMode);
-  };
+const togglePowerMode = () => {
+  const newMode = !isPowerOffMode;
+  setIsPowerOffMode(newMode);
+  localStorage.setItem(POWER_MODE_KEY, newMode);
+};
 
   useEffect(() => {
     async function loadDashboard() {
@@ -101,16 +98,6 @@ export default function App() {
           <div className="relative animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-cyan-400"></div>
         </div>
       </div>
-    );
-  }
-
-  // ADDED: power-off mode render
-  if (isPowerOffMode) {
-    return (
-      <TextDashboard 
-        dashboard={dashboard} 
-        onPowerOn={togglePowerMode}
-      />
     );
   }
 

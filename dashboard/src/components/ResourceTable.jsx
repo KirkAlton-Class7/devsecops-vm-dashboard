@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { ChevronRight, Server, Database, Shield, Code, AlertCircle, Info, AlertTriangle } from "lucide-react";
+import { ChevronRight, Server, Database, Shield, Code, AlertCircle, Info, AlertTriangle, RefreshCw } from "lucide-react";
 import Card from "./Card";
 import StatusDot from "./StatusDot";
+import { useState } from "react";
 
 const getScopeIcon = (scope) => {
   switch(scope?.toLowerCase()) {
@@ -37,6 +38,28 @@ const getStatusDotStatus = (rowStatus) => {
 };
 
 export default function ResourceTable({ rows, title = "Resources", subtitle = "Core services and generated assets", isLogs = false }) {
+  const totalRows = rows.length;
+  
+  const getIncrements = () => isLogs ? [5, 10, 15, 20, 25, 30] : [3, 6, 9, 12, 15, 18, 21, 24, 27, 30];
+  const defaultLimit = isLogs ? 5 : 30;
+  
+  const [limit, setLimit] = useState(defaultLimit);
+  
+  const cycleLimit = () => {
+    const increments = getIncrements();
+    if (limit >= totalRows) {
+      setLimit(increments[0]);
+      return;
+    }
+    const currentIndex = increments.indexOf(limit);
+    const nextIndex = (currentIndex + 1) % increments.length;
+    setLimit(increments[nextIndex]);
+  };
+  
+  const displayedRows = rows.slice(0, limit);
+  const isShowingAll = limit >= totalRows;
+  const displayText = isShowingAll ? `all ${totalRows}` : `${limit} of ${totalRows}`;
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -44,6 +67,20 @@ export default function ResourceTable({ rows, title = "Resources", subtitle = "C
       transition={{ duration: 0.5 }}
     >
       <Card title={title} subtitle={subtitle}>
+        <div className="flex justify-between items-center mb-3 px-1">
+          <div className="text-xs text-slate-500">
+            Showing {displayText} {isLogs ? 'log entries' : 'resources'}
+          </div>
+          <button
+            onClick={cycleLimit}
+            className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
+            title={`Cycle ${isLogs ? 'logs' : 'services'} (${isLogs ? '5‑30 step 5' : '3‑30 step 3'})`}
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span className="hidden sm:inline">Cycle {isLogs ? 'logs' : 'services'}</span>
+          </button>
+        </div>
+        
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead className="text-slate-400">
@@ -64,10 +101,10 @@ export default function ResourceTable({ rows, title = "Resources", subtitle = "C
                     <th className="px-4 py-3 font-medium w-8"></th>
                   </>
                 )}
-                </tr>
+              </tr>
             </thead>
             <tbody>
-              {rows.map((row, idx) => {
+              {displayedRows.map((row, idx) => {
                 if (isLogs) {
                   return (
                     <motion.tr
@@ -158,10 +195,9 @@ export default function ResourceTable({ rows, title = "Resources", subtitle = "C
           </table>
         </div>
         
-        {/* Show row count */}
         <div className="mt-4 pt-3 border-t border-slate-800">
           <p className="text-xs text-slate-500">
-            Showing {rows.length} {isLogs ? 'log entry' : 'resource'}{rows.length !== 1 ? 's' : ''}
+            Showing {displayText} {isLogs ? 'log entry' : 'resource'}{totalRows !== 1 ? 's' : ''}
           </p>
         </div>
       </Card>

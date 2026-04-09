@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
-import { Clock, Activity, Bell, User, ChevronDown, Terminal } from "lucide-react";
+import { Clock, Activity, Bell, User, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 
-export default function Header({ appName, tagline, uptime, isPowerOffMode, onPowerToggle }) {
+export default function Header({ appName, tagline, uptime }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -31,11 +31,17 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
       className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl shadow-lg overflow-x-hidden"
     >
       <div className="relative">
-        {/* Top bar (optional, can keep or remove) */}
         <motion.div 
           className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500"
-          animate={{ x: ['-100%', '100%'] }}
-          transition={{ duration: 3, repeat: Infinity, repeatDelay: 26, ease: "linear" }}
+          animate={{
+            x: ['-100%', '100%'],
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            repeatDelay: 26,
+            ease: "linear"
+          }}
         />
         
         <div className="flex items-center justify-between px-4 py-3 lg:px-6 lg:py-4">
@@ -50,6 +56,7 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
                 {appName}
               </p>
             </div>
+            {/* Tagline */}
             <p className="text-xs text-slate-400 mt-1">{tagline}</p>
           </motion.div>
           
@@ -84,21 +91,6 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
                 {uptime}
               </span>
             </motion.div>
-
-            {/* Power Toggle Button - placed here */}
-            <motion.button
-              onClick={onPowerToggle}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-xs font-mono ${
-                isPowerOffMode
-                  ? 'bg-white/10 border-white/30 text-white'
-                  : 'bg-transparent border-white/20 text-slate-300 hover:border-white/40'
-              }`}
-            >
-              <Terminal className="w-3 h-3" />
-              <span className="hidden sm:inline">{isPowerOffMode ? 'UI MODE' : 'TEXT MODE'}</span>
-            </motion.button>
             
             {/* Notifications */}
             <motion.button

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import Card from "./Card";
 import StatusDot from "./StatusDot";
 
@@ -22,6 +23,27 @@ export default function SectionList({ title, subtitle, items }) {
     return "healthy";
   };
 
+  // --- New: limit cycling logic (3‑30 step 3) ---
+  const totalItems = items.length;
+  const increments = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30];
+  const defaultLimit = 30;
+  const [limit, setLimit] = useState(defaultLimit);
+
+  const cycleLimit = () => {
+    if (limit >= totalItems) {
+      setLimit(increments[0]);
+      return;
+    }
+    const currentIndex = increments.indexOf(limit);
+    const nextIndex = (currentIndex + 1) % increments.length;
+    setLimit(increments[nextIndex]);
+  };
+
+  const displayedItems = items.slice(0, limit);
+  const isShowingAll = limit >= totalItems;
+  const displayText = isShowingAll ? `all ${totalItems}` : `${limit} of ${totalItems}`;
+  // -------------------------------------------------
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -29,8 +51,23 @@ export default function SectionList({ title, subtitle, items }) {
       transition={{ duration: 0.5 }}
     >
       <Card title={title} subtitle={subtitle}>
+        {/* New header with cycle button and showing text */}
+        <div className="flex justify-between items-center mb-3 px-1">
+          <div className="text-xs text-slate-500">
+            Showing {displayText} services
+          </div>
+          <button
+            onClick={cycleLimit}
+            className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
+            title="Cycle services (3‑30 step 3)"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span className="hidden sm:inline">Cycle services</span>
+          </button>
+        </div>
+
         <div className="space-y-3">
-          {items.map((item, idx) => (
+          {displayedItems.map((item, idx) => (
             <motion.div
               key={item.label}
               initial={{ opacity: 0, x: -20 }}
@@ -62,7 +99,6 @@ export default function SectionList({ title, subtitle, items }) {
                   </div>
                   
                   <div className="ml-4 flex items-center gap-3">
-                    {/* Use enhanced StatusDot component */}
                     <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-white/5 backdrop-blur-sm">
                       <StatusDot 
                         status={getStatusDotStatus(item.status)} 
@@ -80,6 +116,13 @@ export default function SectionList({ title, subtitle, items }) {
               </div>
             </motion.div>
           ))}
+        </div>
+
+        {/* New footer showing current count */}
+        <div className="mt-4 pt-3 border-t border-slate-800">
+          <p className="text-xs text-slate-500">
+            Showing {displayText} service{totalItems !== 1 ? 's' : ''}
+          </p>
         </div>
       </Card>
     </motion.div>
