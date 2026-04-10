@@ -259,7 +259,7 @@ OVERVIEW
 CPU: ${dashboard.summaryCards?.find(c => c.label === "CPU")?.value || "N/A"}%
 Memory: ${dashboard.summaryCards?.find(c => c.label === "Memory")?.value || "N/A"}%
 Disk: ${dashboard.summaryCards?.find(c => c.label === "Disk")?.value || "N/A"}%
-Cost: ${dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "$0.00"}
+Cost: ${dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "N/A"}
 
 NETWORK
 VPC: ${dashboard.network?.vpc || "N/A"}
