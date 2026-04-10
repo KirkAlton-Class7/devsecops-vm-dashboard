@@ -26,6 +26,7 @@ function getRandomQuote(quotes) {
 function getRealMonitoringEndpoints() {
   const hostname = window.location.hostname; // e.g., VM's public IP or domain
   const protocol = window.location.protocol; // http: or https:
+  const port = 8080; // match the Python server port
   return [
     {
       name: "Health Check",
