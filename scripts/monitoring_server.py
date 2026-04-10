@@ -49,7 +49,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
         return
 
 if __name__ == '__main__':
-    port = 80  # Use port 80 for simplicity (requires root)
+    port = 8080  # Use port 80 for simplicity (requires root)
     server = HTTPServer(('0.0.0.0', port), MonitoringHandler)
     print(f"Starting monitoring server on port {port}")
     server.serve_forever()

@@ -38,7 +38,7 @@ export const mockDashboard = {
   monitoringEndpoints: [
     { name: "Health Check", url: "https://api.devsecops.com/healthz", status: "up" },
     { name: "Metadata API", url: "https://metadata.google.internal/computeMetadata/v1/", status: "up" },
-    { name: "Metrics Scraper", url: "http://localhost:9090/metrics", status: "up" },
+    { name: "Metrics Scraper", url: "http://localhost:8080/metrics", status: "up" },
     { name: "Log Forwarder", url: "https://logs.googleapis.com/v2/entries", status: "degraded" },
   ],
 
