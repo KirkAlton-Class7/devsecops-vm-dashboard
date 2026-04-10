@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function TextDashboard({ dashboard, onPowerOn }) {
+export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceLimit, onLogLimitChange, onServiceLimitChange, dashboardName = "DevSecOps Dashboard" }) {
   const [copied, setCopied] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [showHelp, setShowHelp] = useState(false);
-  const [logLimit, setLogLimit] = useState(5);
-  const [serviceLimit, setServiceLimit] = useState(30);
 
   // Service stats
   const serviceStats = {
@@ -22,47 +20,52 @@ export default function TextDashboard({ dashboard, onPowerOn }) {
   const cycleLogLimit = () => {
     const totalLogs = dashboard.logs?.length || 0;
     if (logLimit >= totalLogs) {
-      setLogLimit(5);
+      onLogLimitChange(5);
       return;
     }
     const increments = [5, 10, 15, 20, 25, 30];
     const currentIndex = increments.indexOf(logLimit);
     const nextIndex = (currentIndex + 1) % increments.length;
-    setLogLimit(increments[nextIndex]);
+    onLogLimitChange(increments[nextIndex]);
   };
 
   // Services cycle: if already showing all services, reset to 3; else go to next step
   const cycleServiceLimit = () => {
     if (serviceLimit >= serviceStats.total) {
-      setServiceLimit(3);
+      onServiceLimitChange(3);
       return;
     }
     const increments = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30];
     const currentIndex = increments.indexOf(serviceLimit);
     const nextIndex = (currentIndex + 1) % increments.length;
-    setServiceLimit(increments[nextIndex]);
+    onServiceLimitChange(increments[nextIndex]);
   };
 
   const copySnapshot = useCallback(() => {
-    const snapshot = generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit);
+    const snapshot = generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, dashboardName);
     navigator.clipboard.writeText(snapshot);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [dashboard, lastRefresh, logLimit, serviceLimit]);
+  }, [dashboard, lastRefresh, logLimit, serviceLimit, dashboardName]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // For R and H: ignore repeated events (holding key)
+      if ((e.key === "r" || e.key === "R" || e.key === "h" || e.key === "H") && e.repeat) {
+        return;
+      }
+
       if (e.key === "Escape") onPowerOn();
       else if (e.key === "c" || e.key === "C") copySnapshot();
       else if (e.key === "r" || e.key === "R") window.location.reload();
-      else if (e.key === "h" || e.key === "H") setShowHelp(!showHelp);
+      else if (e.key === "h" || e.key === "H") setShowHelp(prev => !prev);
       else if (e.key === "l" || e.key === "L") cycleLogLimit();
       else if (e.key === "s" || e.key === "S") cycleServiceLimit();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [copySnapshot, onPowerOn, showHelp, logLimit, serviceLimit]);
+  }, [copySnapshot, onPowerOn, logLimit, serviceLimit]);
 
   // Auto-refresh every 60s
   useEffect(() => {
@@ -77,9 +80,9 @@ export default function TextDashboard({ dashboard, onPowerOn }) {
         <div className="border-b border-white/20 pb-2 mb-4">
           <div className="flex justify-between items-start flex-wrap gap-2">
             <div>
-              <div className="text-xl font-bold tracking-tight">EC2 DASHBOARD</div>
+              <div className="text-xl font-bold tracking-tight">{dashboardName}</div>
               <div className="text-xs text-white/40 mt-1">
-                {lastRefresh.toLocaleTimeString()} | auto-refresh: 60s
+                {new Date().toLocaleDateString()} | {lastRefresh.toLocaleTimeString()} | auto-refresh: 60s
               </div>
             </div>
             <div className="flex gap-2 text-xs">
@@ -197,7 +200,7 @@ export default function TextDashboard({ dashboard, onPowerOn }) {
           </div>
         </div>
 
-        {/* LOGS CARD - CHANGED: show "(all X)" instead of "(all)" */}
+        {/* LOGS CARD */}
         <div className="p-3 border border-white/10 rounded">
           <div className="flex justify-between items-center mb-2">
             <div className="text-white/40 text-xs uppercase tracking-wide">
@@ -222,15 +225,15 @@ export default function TextDashboard({ dashboard, onPowerOn }) {
 
         {/* Footer */}
         <div className="border-t border-white/10 pt-2 mt-4 text-center text-xs text-white/30">
-          EC2 Dashboard | {new Date().toLocaleDateString()}
+          {dashboardName}
         </div>
       </div>
     </div>
   );
 }
 
-// Helper: generate snapshot for copying
-function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit) {
+// Helper: generate snapshot for copying (updated to include dashboardName)
+function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, dashboardName) {
   const serviceStats = {
     total: dashboard.services?.length || 0,
     healthy: dashboard.services?.filter(s => s.status === "healthy").length || 0,
@@ -241,7 +244,7 @@ function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit) {
   const totalLogs = dashboard.logs?.length || 0;
 
   return `
-EC2 DASHBOARD SNAPSHOT
+${dashboardName.toUpperCase()} SNAPSHOT
 Taken: ${lastRefresh.toLocaleString()}
 
 STATUS: ${hasIssues ? `${serviceStats.critical} critical, ${serviceStats.warning} warning` : "All systems operational"}

@@ -16,7 +16,7 @@ export default function IdentityCard({ identity }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card title="Identity" subtitle="Instance and project details">
+      <Card title="Identity" subtitle="Project and instance details">
         <div className="space-y-3">
           {items.map((item, idx) => (
             <motion.div

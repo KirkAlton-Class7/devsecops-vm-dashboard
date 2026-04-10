@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { ChevronRight, Server, Database, Shield, Code, AlertCircle, Info, AlertTriangle, RefreshCw } from "lucide-react";
 import Card from "./Card";
 import StatusDot from "./StatusDot";
-import { useState } from "react";
 
 const getScopeIcon = (scope) => {
   switch(scope?.toLowerCase()) {
@@ -37,23 +36,20 @@ const getStatusDotStatus = (rowStatus) => {
   return "healthy";
 };
 
-export default function ResourceTable({ rows, title = "Resources", subtitle = "Core services and generated assets", isLogs = false }) {
+export default function ResourceTable({ rows, title = "Resources", subtitle = "Service logs and operational events", isLogs = false, limit, onLimitChange }) {
   const totalRows = rows.length;
   
   const getIncrements = () => isLogs ? [5, 10, 15, 20, 25, 30] : [3, 6, 9, 12, 15, 18, 21, 24, 27, 30];
-  const defaultLimit = isLogs ? 5 : 30;
-  
-  const [limit, setLimit] = useState(defaultLimit);
   
   const cycleLimit = () => {
     const increments = getIncrements();
     if (limit >= totalRows) {
-      setLimit(increments[0]);
+      onLimitChange(increments[0]);
       return;
     }
     const currentIndex = increments.indexOf(limit);
     const nextIndex = (currentIndex + 1) % increments.length;
-    setLimit(increments[nextIndex]);
+    onLimitChange(increments[nextIndex]);
   };
   
   const displayedRows = rows.slice(0, limit);

@@ -11,9 +11,10 @@ import IdentityCard from "./components/IdentityCard";
 import NetworkCard from "./components/NetworkCard";
 import LocationCard from "./components/LocationCard";
 import SystemResourcesCard from "./components/SystemResourcesCard";
+import MonitoringEndpointsCard from "./components/MonitoringEndpointsCard";
 import LoadTrendChart from "./components/LoadTrendChart";
 import NetworkParticles from "./components/NetworkParticles";
-import TextDashboard from "./components/TextDashboard";  // ADDED
+import TextDashboard from "./components/TextDashboard";
 import { mockDashboard, mockQuotes } from "./data/mockDashboard";
 
 function getRandomQuote(quotes) {
@@ -26,7 +27,7 @@ export default function App() {
   const [quotes, setQuotes] = useState(mockQuotes);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ADDED: power mode state and toggle
+  // Power mode state and toggle
   const POWER_MODE_KEY = "dashboard-power-mode";
   const [isPowerOffMode, setIsPowerOffMode] = useState(() => {
     const saved = localStorage.getItem(POWER_MODE_KEY);
@@ -38,6 +39,24 @@ export default function App() {
     setIsPowerOffMode(newMode);
     localStorage.setItem(POWER_MODE_KEY, newMode);
   };
+
+  // Shared limits for logs and services (persisted)
+  const [logLimit, setLogLimit] = useState(() => {
+    const saved = localStorage.getItem("dashboard_log_limit");
+    return saved ? parseInt(saved, 10) : 5;
+  });
+  const [serviceLimit, setServiceLimit] = useState(() => {
+    const saved = localStorage.getItem("dashboard_service_limit");
+    return saved ? parseInt(saved, 10) : 30;
+  });
+
+  // Persist limits when they change
+  useEffect(() => {
+    localStorage.setItem("dashboard_log_limit", logLimit);
+  }, [logLimit]);
+  useEffect(() => {
+    localStorage.setItem("dashboard_service_limit", serviceLimit);
+  }, [serviceLimit]);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -104,12 +123,17 @@ export default function App() {
     );
   }
 
-  // ADDED: power-off mode render
+  // Power-off mode render
   if (isPowerOffMode) {
     return (
       <TextDashboard 
         dashboard={dashboard} 
         onPowerOn={togglePowerMode}
+        logLimit={logLimit}
+        serviceLimit={serviceLimit}
+        onLogLimitChange={setLogLimit}
+        onServiceLimitChange={setServiceLimit}
+        dashboardName={dashboard.meta?.dashboardName || "DevSecOps Dashboard"}
       />
     );
   }
@@ -207,6 +231,16 @@ export default function App() {
           >
             <SystemResourcesCard resources={dashboard.systemResources || {}} />
           </motion.section>
+          
+
+          {/* NEW: Monitoring Endpoints Card */}
+          <motion.section
+            id="monitoring-endpoints"
+            className="grid grid-cols-1 gap-6"
+            variants={itemVariants}
+          >
+            <MonitoringEndpointsCard endpoints={dashboard.monitoringEndpoints || []} />
+          </motion.section>
 
           {/* Services */}
           <motion.section 
@@ -216,8 +250,10 @@ export default function App() {
           >
             <SectionList
               title="Services"
-              subtitle="Application and bootstrap health"
+              subtitle="Service health, status, and performance"
               items={dashboard.services || []}
+              limit={serviceLimit}
+              onLimitChange={setServiceLimit}
             />
           </motion.section>
 
@@ -236,6 +272,8 @@ export default function App() {
               })) || []}
               title="Application Logs"
               isLogs={true}
+              limit={logLimit}
+              onLimitChange={setLogLimit}
             />
           </motion.section>
         </motion.main>

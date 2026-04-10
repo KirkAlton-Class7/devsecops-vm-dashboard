@@ -203,7 +203,7 @@ const togglePowerMode = () => {
           >
             <SectionList
               title="Services"
-              subtitle="Application and bootstrap health"
+              subtitle="Service health, status, and performance”"
               items={dashboard.services || []}
             />
           </motion.section>

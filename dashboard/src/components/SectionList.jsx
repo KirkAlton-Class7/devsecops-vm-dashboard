@@ -1,10 +1,9 @@
 import { motion } from "framer-motion";
 import { ChevronRight, RefreshCw } from "lucide-react";
-import { useState } from "react";
 import Card from "./Card";
 import StatusDot from "./StatusDot";
 
-export default function SectionList({ title, subtitle, items }) {
+export default function SectionList({ title, subtitle, items, limit, onLimitChange }) {
   // Convert item status to StatusDot compatible status
   const getStatusDotStatus = (itemStatus) => {
     const status = itemStatus?.toLowerCase() || "";
@@ -23,26 +22,23 @@ export default function SectionList({ title, subtitle, items }) {
     return "healthy";
   };
 
-  // --- New: limit cycling logic (3‑30 step 3) ---
+  // Limit cycling logic (3‑30 step 3) using props
   const totalItems = items.length;
   const increments = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30];
-  const defaultLimit = 30;
-  const [limit, setLimit] = useState(defaultLimit);
 
   const cycleLimit = () => {
     if (limit >= totalItems) {
-      setLimit(increments[0]);
+      onLimitChange(increments[0]);
       return;
     }
     const currentIndex = increments.indexOf(limit);
     const nextIndex = (currentIndex + 1) % increments.length;
-    setLimit(increments[nextIndex]);
+    onLimitChange(increments[nextIndex]);
   };
 
   const displayedItems = items.slice(0, limit);
   const isShowingAll = limit >= totalItems;
   const displayText = isShowingAll ? `all ${totalItems}` : `${limit} of ${totalItems}`;
-  // -------------------------------------------------
 
   return (
     <motion.div
@@ -51,7 +47,6 @@ export default function SectionList({ title, subtitle, items }) {
       transition={{ duration: 0.5 }}
     >
       <Card title={title} subtitle={subtitle}>
-        {/* New header with cycle button and showing text */}
         <div className="flex justify-between items-center mb-3 px-1">
           <div className="text-xs text-slate-500">
             Showing {displayText} services
@@ -118,7 +113,6 @@ export default function SectionList({ title, subtitle, items }) {
           ))}
         </div>
 
-        {/* New footer showing current count */}
         <div className="mt-4 pt-3 border-t border-slate-800">
           <p className="text-xs text-slate-500">
             Showing {displayText} service{totalItems !== 1 ? 's' : ''}
