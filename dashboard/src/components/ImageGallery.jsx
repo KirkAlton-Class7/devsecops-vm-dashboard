@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
-import { RefreshCw, Heart, ChevronLeft, ChevronRight, ImageOff, Plane, X, Home } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { RefreshCw, Heart, ChevronLeft, ChevronRight, ImageOff, Plane, X, Home, Info } from "lucide-react";
+import { createPortal } from "react-dom";
 import Card from "./Card";
 
 const shuffleArray = (array) => {
@@ -19,33 +20,45 @@ export default function ImageGallery() {
   const [imageError, setImageError] = useState(false);
   const [shuffledImages, setShuffledImages] = useState([]);
   const [showBookModal, setShowBookModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showLocation, setShowLocation] = useState(true);
+  const hideLocationTimeout = useRef(null);
 
-  useEffect(() => {
-    const savedLikes = localStorage.getItem('likedImages');
-    if (savedLikes) {
-      setLikedImageIds(JSON.parse(savedLikes));
+  const clearHideTimeout = () => {
+    if (hideLocationTimeout.current) {
+      clearTimeout(hideLocationTimeout.current);
+      hideLocationTimeout.current = null;
     }
-  }, []);
+  };
+
+  const startHideTimer = () => {
+    clearHideTimeout();
+    hideLocationTimeout.current = setTimeout(() => {
+      setShowLocation(false);
+    }, 3000);
+  };
+
+  const showLocationWithTimer = () => {
+    setShowLocation(true);
+    startHideTimer();
+  };
 
   useEffect(() => {
-    fetch('/data/images.json?t=' + Date.now())
-      .then(response => {
-        if (!response.ok) throw new Error('Failed to load images.json');
-        return response.json();
-      })
-      .then(images => {
-        setShuffledImages(shuffleArray(images));
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Error loading images:', err);
-        setLoading(false);
-      });
-  }, []);
+    showLocationWithTimer();
+  }, [currentIndex]);
 
-  const currentImage = shuffledImages[currentIndex];
-  const imageUrl = currentImage ? `/data/images/${currentImage.filename}` : "";
+  const handleImageLoad = () => {
+    showLocationWithTimer();
+  };
+
+  const handleImageClick = () => {
+    showLocationWithTimer();
+  };
+
+  useEffect(() => {
+    return () => clearHideTimeout();
+  }, []);
 
   const handleRefresh = () => {
     if (!shuffledImages.length) return;
@@ -112,6 +125,9 @@ export default function ImageGallery() {
     window.open(url, '_blank');
   };
 
+  const currentImage = shuffledImages[currentIndex];
+  const imageUrl = currentImage ? `/data/images/${currentImage.filename}` : "";
+
   if (loading) {
     return (
       <Card title="Scenes from Around the World" subtitle="Where will you go next?">
@@ -143,13 +159,6 @@ export default function ImageGallery() {
         transition={{ duration: 0.5 }}
       >
         <Card title="Scenes from Around the World" subtitle="Where will you go next?">
-          {/* Location displayed above the image (plain text, centered) */}
-          <div className="text-center mb-2">
-            <p className="text-sm text-slate-300 font-medium">
-              {currentImage?.location || ""}
-            </p>
-          </div>
-
           <div className="relative">
             <AnimatePresence mode="wait">
               <motion.div
@@ -158,7 +167,8 @@ export default function ImageGallery() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.3 }}
-                className="relative rounded-xl overflow-hidden aspect-video bg-gradient-to-br from-slate-800 to-slate-900"
+                className="relative rounded-xl overflow-hidden aspect-video bg-gradient-to-br from-slate-800 to-slate-900 cursor-pointer"
+                onClick={handleImageClick}
               >
                 {!imageError ? (
                   <img
@@ -166,6 +176,7 @@ export default function ImageGallery() {
                     alt={currentImage.title}
                     className="w-full h-full object-cover"
                     onError={() => setImageError(true)}
+                    onLoad={handleImageLoad}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
@@ -173,11 +184,32 @@ export default function ImageGallery() {
                   </div>
                 )}
 
-                {/* TITLE OVERLAY – centered at bottom with pill background */}
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none">
-                  <div className="inline-block px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-sm font-medium max-w-[90%] truncate pointer-events-auto">
-                    {currentImage?.title || ""}
-                  </div>
+                {/* Location pill – top center (fades in/out) */}
+                <AnimatePresence>
+                  {showLocation && currentImage?.location && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute top-4 left-0 right-0 flex justify-center pointer-events-none"
+                    >
+                      <div className="inline-block px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-sm font-medium max-w-[90%] truncate pointer-events-auto">
+                        {currentImage.location}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Persistent Info Icon – bottom right, always visible */}
+                <div className="absolute bottom-4 right-4 z-10">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowInfoModal(true); }}
+                    className="p-1.5 rounded-full bg-black/60 backdrop-blur-md hover:bg-black/80 transition-colors"
+                    aria-label="Image info"
+                  >
+                    <Info className="w-4 h-4 text-white" />
+                  </button>
                 </div>
               </motion.div>
             </AnimatePresence>
@@ -243,7 +275,6 @@ export default function ImageGallery() {
               </motion.button>
             </div>
 
-            {/* Counter – bottom right */}
             <p className="text-xs text-slate-500">
               {currentIndex + 1} / {shuffledImages.length}
             </p>
@@ -251,6 +282,50 @@ export default function ImageGallery() {
         </Card>
       </motion.div>
 
+      {/* Info Modal (portal) */}
+      {showInfoModal && createPortal(
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowInfoModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl max-w-md w-full overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+                <Info className="w-5 h-5 text-cyan-400" />
+                Image Details
+              </h2>
+              <button
+                onClick={() => setShowInfoModal(false)}
+                className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div>
+                <p className="text-xs text-slate-400 uppercase tracking-wide">Title</p>
+                <p className="text-sm text-slate-200">{currentImage?.title || "Untitled"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 uppercase tracking-wide">Location</p>
+                <p className="text-sm text-slate-200">{currentImage?.location || "Unknown"}</p>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>,
+        document.body
+      )}
+
+      {/* Book Modal (unchanged) */}
       <AnimatePresence>
         {showBookModal && (
           <motion.div

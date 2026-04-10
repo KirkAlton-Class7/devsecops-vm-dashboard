@@ -30,6 +30,7 @@ export default function ImageGallery() {
 
   useEffect(() => {
     fetch('/data/images.json?t=' + Date.now())
+
       .then(response => {
         if (!response.ok) throw new Error('Failed to load images.json');
         return response.json();
@@ -143,13 +144,6 @@ export default function ImageGallery() {
         transition={{ duration: 0.5 }}
       >
         <Card title="Scenes from Around the World" subtitle="Where will you go next?">
-          {/* Location displayed above the image (widget area) */}
-          <div className="text-center mb-2">
-            <p className="text-sm text-slate-300 font-medium">
-              {currentImage?.location || ""}
-            </p>
-          </div>
-
           <div className="relative">
             <AnimatePresence mode="wait">
               <motion.div
@@ -173,10 +167,10 @@ export default function ImageGallery() {
                   </div>
                 )}
 
-                {/* TITLE OVERLAY – bottom left (only title) */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                {/* Image overlay – only title remains, location moved to button bar */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 text-white flex justify-between items-center gap-2 flex-wrap">
                   <p className="text-sm font-medium text-white/90 truncate">
-                    {currentImage?.title || ""}
+                    {currentImage.title || currentImage.location}
                   </p>
                 </div>
               </motion.div>
@@ -200,7 +194,7 @@ export default function ImageGallery() {
             )}
           </div>
 
-          {/* Button bar – left buttons and right counter */}
+          {/* Button bar with centered location */}
           <div className="flex items-center justify-between mt-4">
             <div className="flex gap-2">
               <motion.button
@@ -243,7 +237,13 @@ export default function ImageGallery() {
               </motion.button>
             </div>
 
-            {/* Counter – bottom right */}
+            {/* Centered location – updates with each image */}
+            <div className="flex-1 text-center">
+              <p className="text-sm font-medium text-slate-300 truncate px-2">
+                {currentImage?.location || ""}
+              </p>
+            </div>
+
             <p className="text-xs text-slate-500">
               {currentIndex + 1} / {shuffledImages.length}
             </p>
