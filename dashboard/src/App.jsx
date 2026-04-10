@@ -30,7 +30,7 @@ function getRealMonitoringEndpoints() {
   return [
     {
       name: "Health Check",
-      url: `${protocol}//${hostname}/healthz`,
+      url: `${protocol}//${hostname}:${port}/healthz`,
       status: "up", // We'll assume it's up; the dashboard can later check
     },
     {
