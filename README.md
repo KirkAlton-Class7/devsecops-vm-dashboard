@@ -1,5 +1,7 @@
 # DevSecOps Cloud Dashboard
 
+## Version v.1.1-dev
+
 This is a real-time infrastructure monitoring dashboard that automatically deploys on **GCP, AWS, Azure**, or any Linux VM. It displays system metrics (CPU, memory, disk, network), cost estimation, inspirational quotes, an international photo gallery, and more.
 
 ---
