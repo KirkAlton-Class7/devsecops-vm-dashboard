@@ -1,40 +1,44 @@
 export const mockDashboard = {
   summaryCards: [
-    { label: "CPU", value: "72", status: "warning" },
-    { label: "Memory", value: "68", status: "warning" },
-    { label: "Disk", value: "45", status: "healthy" },
+    { label: "CPU", value: "72%", status: "warning" },
+    { label: "Memory", value: "68%", status: "warning" },
+    { label: "Disk", value: "45%", status: "healthy" },
     { label: "Cost", value: "$12.48", status: "info" },
   ],
 
-  // Identity (matches text dashboard field names)
+  // Identity – matches normal dashboard (machineType, not instanceType)
   identity: {
     project: "devsecops-production",
     instanceId: "i-0a1b2c3d4e5f67890",
     hostname: "prod-worker-03.internal",
-    instanceType: "t3.medium",
+    machineType: "t3.medium",      // changed from instanceType
   },
 
-  // Network
+  // Network – matches normal dashboard (vpc, subnet, internalIp, externalIp)
   network: {
-    vpcId: "vpc-abc123def",
-    subnetId: "subnet-xyz789",
-    privateIp: "10.128.0.5",
-    publicIp: "34.122.10.22",
+    vpc: "vpc-abc123def",          // changed from vpcId
+    subnet: "subnet-xyz789",       // changed from subnetId
+    internalIp: "10.128.0.5",      // changed from privateIp
+    externalIp: "34.122.10.22",    // changed from publicIp
   },
 
-  // Location & load
+  // Location – matches normal dashboard (zone, not availabilityZone)
   location: {
     region: "us-east-1",
-    availabilityZone: "us-east-1a",
+    zone: "us-east-1a",            // changed from availabilityZone
   },
 
   systemResources: {
-    load5: "2.45",
-    cpu: { cores: 2, usage: 72 },
+    // Load average from CPU
+    cpu: {
+      cores: 2,
+      usage: 72,
+      loadAvg: "2.45",             // added (used by text dashboard)
+    },
     memory: { total: 8192, used: 5570 },
   },
 
-  // Monitoring endpoints (new)
+  // Monitoring endpoints (unchanged)
   monitoringEndpoints: [
     { name: "Health Check", url: "https://api.devsecops.com/healthz", status: "up" },
     { name: "Metadata API", url: "https://metadata.google.internal/computeMetadata/v1/", status: "up" },
@@ -42,7 +46,7 @@ export const mockDashboard = {
     { name: "Log Forwarder", url: "https://logs.googleapis.com/v2/entries", status: "degraded" },
   ],
 
-  // Services – restored to original format (label, value, status) for main dashboard
+  // Services (unchanged)
   services: [
     { label: "Nginx", value: "Running (12 req/s)", status: "healthy" },
     { label: "Python API", value: "Healthy", status: "healthy" },
@@ -54,7 +58,7 @@ export const mockDashboard = {
     { label: "CloudWatch Agent", value: "Failed to publish", status: "critical" },
   ],
 
-  // Logs – enough for cycling up to 30
+  // Logs (unchanged)
   logs: [
     { time: "14:32:15", level: "WARN", message: "High CPU usage detected (72%)", scope: "system" },
     { time: "14:31:02", level: "INFO", message: "Nginx request rate increased to 12 req/s", scope: "nginx" },
