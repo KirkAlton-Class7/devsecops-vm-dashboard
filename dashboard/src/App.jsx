@@ -24,18 +24,17 @@ function getRandomQuote(quotes) {
 
 // Helper to generate real monitoring endpoints based on the current host
 function getRealMonitoringEndpoints() {
-  const hostname = window.location.hostname; // e.g., VM's public IP or domain
-  const protocol = window.location.protocol; // http: or https:
-  const port = 8080; // match the Python server port
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol;
   return [
     {
       name: "Health Check",
-      url: `${protocol}//${hostname}:${port}/healthz`,
-      status: "up", // We'll assume it's up; the dashboard can later check
+      url: `${protocol}//${hostname}:80/healthz`,           // port 80 (default, served by NGINX)
+      status: "up",
     },
     {
       name: "Metadata API",
-      url: `${protocol}//${hostname}:${port}/metadata`,
+      url: `${protocol}//${hostname}:8080/metadata`,     // port 8080 for Python server
       status: "up",
     },
     // You can add more endpoints if your VM serves them
