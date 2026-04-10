@@ -143,7 +143,7 @@ export default function ImageGallery() {
         transition={{ duration: 0.5 }}
       >
         <Card title="Scenes from Around the World" subtitle="Where will you go next?">
-          {/* Location displayed above the image (widget area) */}
+          {/* Location displayed above the image (plain text, centered) */}
           <div className="text-center mb-2">
             <p className="text-sm text-slate-300 font-medium">
               {currentImage?.location || ""}
@@ -173,11 +173,11 @@ export default function ImageGallery() {
                   </div>
                 )}
 
-                {/* TITLE OVERLAY – bottom left (only title) */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                  <p className="text-sm font-medium text-white/90 truncate">
+                {/* TITLE OVERLAY – centered at bottom with pill background */}
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none">
+                  <div className="inline-block px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-sm font-medium max-w-[90%] truncate pointer-events-auto">
                     {currentImage?.title || ""}
-                  </p>
+                  </div>
                 </div>
               </motion.div>
             </AnimatePresence>
