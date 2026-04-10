@@ -90,12 +90,12 @@ A real-time infrastructure monitoring dashboard that automatically deploys on **
 > [!NOTE]
 > Logs are written to `/var/log/bootstrap.log` for troubleshooting.
 
-> [!NOTE]
-> When changes are made to `scripts/bootstrap/app_bootstrap.sh` and pushed to the repo, they are automatically applied to the dashboard application via cron job.
+> [!TIP]
+> There is no need to redeploy the VM after making changes to `scripts/bootstrap/app_bootstrap.sh`. When changes are pushed to the repo, they are automatically applied to the dashboard application via cron job.
 
 4. Open the VM’s public IP in your browser to view the dashboard
 
-> [!NOTE]
+> [!IMPORTANT]
 > After the VM starts, the dashboard may take up to 10 minutes to fully populate estimated cost, images, and other dynamic widgets.
 
 ---
@@ -316,13 +316,13 @@ dashboard-deploy.sh
 
 ### Cost Estimation Disclaimer
 
-> [!NOTE]
+> [!IMPORTANT]
 > Cost values are approximate and based on static assumptions and runtime heuristics.
 > Use your cloud provider’s billing APIs or dashboards for accurate data.
 
 ### Clipboard Features (`copy`)
 
-> [!NOTE]
+> [!IMPORTANT]
 > Clipboard features like `copy` require **HTTPS or localhost**.
 > When running the dashboard via `http` (public IP), the copy buttons on widgets are unresponseive.
 
