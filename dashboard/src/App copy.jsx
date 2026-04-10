@@ -22,25 +22,6 @@ function getRandomQuote(quotes) {
   return quotes[Math.floor(Math.random() * quotes.length)];
 }
 
-// Helper to generate real monitoring endpoints based on the current host
-function getRealMonitoringEndpoints() {
-  const hostname = window.location.hostname; // e.g., VM's public IP or domain
-  const protocol = window.location.protocol; // http: or https:
-  return [
-    {
-      name: "Health Check",
-      url: `${protocol}//${hostname}/healthz`,
-      status: "up", // We'll assume it's up; the dashboard can later check
-    },
-    {
-      name: "Metadata API",
-      url: `${protocol}//${hostname}/metadata`,
-      status: "up",
-    },
-    // You can add more endpoints if your VM serves them
-  ];
-}
-
 export default function App() {
   const [dashboard, setDashboard] = useState(mockDashboard);
   const [quotes, setQuotes] = useState(mockQuotes);
@@ -83,13 +64,9 @@ export default function App() {
         const res = await fetch("/data/dashboard-data.json", { cache: "no-store" });
         if (!res.ok) throw new Error("dashboard fetch failed");
         const data = await res.json();
-        // Replace mock monitoringEndpoints with real URLs
-        data.monitoringEndpoints = getRealMonitoringEndpoints();
         setDashboard(data);
       } catch {
-        // Use mock data but still replace endpoints with real ones
-        const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
-        setDashboard(mockWithRealEndpoints);
+        setDashboard(mockDashboard);
       } finally {
         setIsLoading(false);
       }
@@ -254,8 +231,9 @@ export default function App() {
           >
             <SystemResourcesCard resources={dashboard.systemResources || {}} />
           </motion.section>
+          
 
-          {/* Monitoring Endpoints Card */}
+          {/* NEW: Monitoring Endpoints Card */}
           <motion.section
             id="monitoring-endpoints"
             className="grid grid-cols-1 gap-6"
