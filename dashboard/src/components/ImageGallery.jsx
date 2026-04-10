@@ -25,6 +25,11 @@ export default function ImageGallery() {
   const [showLocation, setShowLocation] = useState(true);
   const hideLocationTimeout = useRef(null);
 
+  // --- Define currentImage and imageUrl EARLY so they are available in handlers ---
+  const currentImage = shuffledImages[currentIndex];
+  const imageUrl = currentImage ? `/data/images/${currentImage.filename}` : "";
+
+  // --- Timer functions ---
   const clearHideTimeout = () => {
     if (hideLocationTimeout.current) {
       clearTimeout(hideLocationTimeout.current);
@@ -44,10 +49,16 @@ export default function ImageGallery() {
     startHideTimer();
   };
 
+  // --- Effects that depend on currentIndex ---
   useEffect(() => {
     showLocationWithTimer();
   }, [currentIndex]);
 
+  useEffect(() => {
+    return () => clearHideTimeout();
+  }, []);
+
+  // --- Handlers (now currentImage is already defined) ---
   const handleImageLoad = () => {
     showLocationWithTimer();
   };
@@ -55,10 +66,6 @@ export default function ImageGallery() {
   const handleImageClick = () => {
     showLocationWithTimer();
   };
-
-  useEffect(() => {
-    return () => clearHideTimeout();
-  }, []);
 
   const handleRefresh = () => {
     if (!shuffledImages.length) return;
@@ -125,8 +132,29 @@ export default function ImageGallery() {
     window.open(url, '_blank');
   };
 
-  const currentImage = shuffledImages[currentIndex];
-  const imageUrl = currentImage ? `/data/images/${currentImage.filename}` : "";
+  // --- Data fetching ---
+  useEffect(() => {
+    const savedLikes = localStorage.getItem('likedImages');
+    if (savedLikes) {
+      setLikedImageIds(JSON.parse(savedLikes));
+    }
+  }, []);
+
+  useEffect(() => {
+    fetch('/data/images.json?t=' + Date.now())
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to load images.json');
+        return response.json();
+      })
+      .then(images => {
+        setShuffledImages(shuffleArray(images));
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error loading images:', err);
+        setLoading(false);
+      });
+  }, []);
 
   if (loading) {
     return (
@@ -201,7 +229,7 @@ export default function ImageGallery() {
                   )}
                 </AnimatePresence>
 
-                {/* Persistent Info Icon – bottom right, always visible */}
+                {/* Persistent Info Icon – bottom right */}
                 <div className="absolute bottom-4 right-4 z-10">
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowInfoModal(true); }}
@@ -232,7 +260,7 @@ export default function ImageGallery() {
             )}
           </div>
 
-          {/* Button bar – left buttons and right counter */}
+          {/* Button bar */}
           <div className="flex items-center justify-between mt-4">
             <div className="flex gap-2">
               <motion.button
@@ -282,7 +310,7 @@ export default function ImageGallery() {
         </Card>
       </motion.div>
 
-      {/* Info Modal (portal) */}
+      {/* Info Modal */}
       {showInfoModal && createPortal(
         <motion.div
           initial={{ opacity: 0 }}
@@ -325,7 +353,7 @@ export default function ImageGallery() {
         document.body
       )}
 
-      {/* Book Modal (unchanged) */}
+      {/* Book Modal */}
       <AnimatePresence>
         {showBookModal && (
           <motion.div
