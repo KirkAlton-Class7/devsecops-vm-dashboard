@@ -35,7 +35,7 @@ function getRealMonitoringEndpoints() {
     },
     {
       name: "Metadata API",
-      url: `${protocol}//${hostname}/metadata`,
+      url: `${protocol}//${hostname}:${port}/metadata`,
       status: "up",
     },
     // You can add more endpoints if your VM serves them

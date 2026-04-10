@@ -1,15 +1,49 @@
 import { motion } from "framer-motion";
 import { Clock, Activity, Bell, User, ChevronDown, Terminal } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 export default function Header({ appName, tagline, uptime, isPowerOffMode, onPowerToggle }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+  const buttonRef = useRef(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Update dropdown position when menu opens or on window resize/scroll
+  useEffect(() => {
+    if (showUserMenu && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8, // 8px gap below button
+        right: window.innerWidth - rect.right,
+      });
+    }
+  }, [showUserMenu]);
+
+  // Recalculate position on scroll/resize while menu is open
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handleUpdate = () => {
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + 8,
+          right: window.innerWidth - rect.right,
+        });
+      }
+    };
+    window.addEventListener("scroll", handleUpdate);
+    window.addEventListener("resize", handleUpdate);
+    return () => {
+      window.removeEventListener("scroll", handleUpdate);
+      window.removeEventListener("resize", handleUpdate);
+    };
+  }, [showUserMenu]);
 
   const formattedTime = currentTime.toLocaleTimeString('en-US', { 
     hour: '2-digit', 
@@ -28,10 +62,10 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
       initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 100 }}
-      className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl shadow-lg overflow-x-hidden"
+      className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl shadow-lg"
     >
       <div className="relative">
-        {/* Top bar (optional, can keep or remove) */}
+        {/* Top bar */}
         <motion.div 
           className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500"
           animate={{ x: ['-100%', '100%'] }}
@@ -85,7 +119,7 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
               </span>
             </motion.div>
 
-            {/* Power Toggle Button - placed here */}
+            {/* Power Toggle Button */}
             <motion.button
               onClick={onPowerToggle}
               whileHover={{ scale: 1.05 }}
@@ -117,6 +151,7 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
             {/* User Avatar */}
             <div className="relative">
               <motion.button
+                ref={buttonRef}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -127,37 +162,42 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
                 </div>
                 <ChevronDown className={`w-3 h-3 text-white transition-transform duration-200 mr-1 lg:mr-2 ${showUserMenu ? 'rotate-180' : ''}`} />
               </motion.button>
-              
-              {/* User Dropdown Menu */}
-              {showUserMenu && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="absolute right-0 mt-2 w-48 rounded-xl bg-slate-800/95 backdrop-blur-xl border border-white/10 shadow-xl overflow-hidden z-50"
-                >
-                  <div className="py-2">
-                    <div className="px-4 py-2 border-b border-white/10">
-                      <p className="text-xs text-slate-400">Signed in as</p>
-                      <p className="text-sm text-slate-200 font-medium">admin@devsecops</p>
-                    </div>
-                    <button className="w-full px-4 py-2 text-sm text-slate-300 hover:bg-white/10 transition-colors text-left">
-                      Profile Settings
-                    </button>
-                    <button className="w-full px-4 py-2 text-sm text-slate-300 hover:bg-white/10 transition-colors text-left">
-                      Dashboard Preferences
-                    </button>
-                    <div className="border-t border-white/10 my-1"></div>
-                    <button className="w-full px-4 py-2 text-sm text-red-400 hover:bg-white/10 transition-colors text-left">
-                      Sign Out
-                    </button>
-                  </div>
-                </motion.div>
-              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Dropdown Menu rendered via Portal */}
+      {showUserMenu && createPortal(
+        <motion.div
+          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+          className="fixed w-48 rounded-xl bg-slate-800/95 backdrop-blur-xl border border-white/10 shadow-xl overflow-hidden z-[9999]"
+          style={{
+            top: dropdownPosition.top,
+            right: dropdownPosition.right,
+          }}
+        >
+          <div className="py-2">
+            <div className="px-4 py-2 border-b border-white/10">
+              <p className="text-xs text-slate-400">Signed in as</p>
+              <p className="text-sm text-slate-200 font-medium">admin@devsecops</p>
+            </div>
+            <button className="w-full px-4 py-2 text-sm text-slate-300 hover:bg-white/10 transition-colors text-left">
+              Profile Settings
+            </button>
+            <button className="w-full px-4 py-2 text-sm text-slate-300 hover:bg-white/10 transition-colors text-left">
+              Dashboard Preferences
+            </button>
+            <div className="border-t border-white/10 my-1"></div>
+            <button className="w-full px-4 py-2 text-sm text-red-400 hover:bg-white/10 transition-colors text-left">
+              Sign Out
+            </button>
+          </div>
+        </motion.div>,
+        document.body
+      )}
     </motion.header>
   );
 }
