@@ -32,7 +32,7 @@ A real-time infrastructure monitoring dashboard that automatically deploys on **
 
 ### Azure
 
-> [!WARNING]
+> [!NOTE]
 > Partial metadata support. Experiences inconsistent responses.
 
 > [!BUG]
