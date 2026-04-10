@@ -3,7 +3,7 @@ import { Clock, Activity, Bell, User, ChevronDown, Terminal } from "lucide-react
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
-export default function Header({ appName, tagline, uptime, isPowerOffMode, onPowerToggle }) {
+export default function Header({ appName, tagline, uptime, isTextDashMode, onTextDashToggle }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
@@ -14,18 +14,16 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
     return () => clearInterval(timer);
   }, []);
 
-  // Update dropdown position when menu opens or on window resize/scroll
   useEffect(() => {
     if (showUserMenu && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setDropdownPosition({
-        top: rect.bottom + 8, // 8px gap below button
+        top: rect.bottom + 8,
         right: window.innerWidth - rect.right,
       });
     }
   }, [showUserMenu]);
 
-  // Recalculate position on scroll/resize while menu is open
   useEffect(() => {
     if (!showUserMenu) return;
     const handleUpdate = () => {
@@ -65,7 +63,6 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
       className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl shadow-lg overflow-x-hidden"
     >
       <div className="relative">
-        {/* Top bar */}
         <motion.div 
           className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500"
           animate={{ x: ['-100%', '100%'] }}
@@ -88,7 +85,6 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
           </motion.div>
           
           <div className="flex items-center gap-2 lg:gap-4">
-            {/* Date Display */}
             <motion.div 
               className="hidden md:flex items-center gap-2 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-white/5 backdrop-blur-sm border border-white/10"
               whileHover={{ scale: 1.05 }}
@@ -96,7 +92,6 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
               <span className="text-xs text-slate-400">{formattedDate}</span>
             </motion.div>
             
-            {/* Time Display */}
             <motion.div 
               className="hidden sm:flex items-center gap-2 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-white/5 backdrop-blur-sm border border-white/10"
               whileHover={{ scale: 1.05 }}
@@ -105,7 +100,6 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
               <span className="text-xs lg:text-sm text-slate-300 font-mono">{formattedTime}</span>
             </motion.div>
             
-            {/* Uptime */}
             <motion.div 
               className="flex items-center gap-2 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30"
               whileHover={{ scale: 1.05 }}
@@ -119,19 +113,19 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
               </span>
             </motion.div>
 
-            {/* Power Toggle Button */}
+            {/* Text dash toggle button - text unchanged */}
             <motion.button
-              onClick={onPowerToggle}
+              onClick={onTextDashToggle}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-xs font-mono ${
-                isPowerOffMode
+                isTextDashMode
                   ? 'bg-white/10 border-white/30 text-white'
                   : 'bg-transparent border-white/20 text-slate-300 hover:border-white/40'
               }`}
             >
               <Terminal className="w-3 h-3" />
-              <span className="hidden sm:inline">{isPowerOffMode ? 'UI MODE' : 'TEXT MODE'}</span>
+              <span className="hidden sm:inline">{isTextDashMode ? 'UI MODE' : 'TEXT MODE'}</span>
             </motion.button>
             
             {/* Notifications */}
@@ -167,7 +161,6 @@ export default function Header({ appName, tagline, uptime, isPowerOffMode, onPow
         </div>
       </div>
 
-      {/* Dropdown Menu rendered via Portal */}
       {showUserMenu && createPortal(
         <motion.div
           initial={{ opacity: 0, y: -10, scale: 0.95 }}

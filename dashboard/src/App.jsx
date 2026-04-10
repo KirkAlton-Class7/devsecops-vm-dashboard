@@ -29,15 +29,14 @@ function getRealMonitoringEndpoints() {
   return [
     {
       name: "Health Check",
-      url: `${protocol}//${hostname}:80/healthz`,           // port 80 (default, served by NGINX)
+      url: `${protocol}//${hostname}:80/healthz`,
       status: "up",
     },
     {
       name: "Metadata API",
-      url: `${protocol}//${hostname}:8080/metadata`,     // port 8080 for Python server
+      url: `${protocol}//${hostname}:8080/metadata`,
       status: "up",
     },
-    // You can add more endpoints if your VM serves them
   ];
 }
 
@@ -46,17 +45,17 @@ export default function App() {
   const [quotes, setQuotes] = useState(mockQuotes);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Power mode state and toggle
-  const POWER_MODE_KEY = "dashboard-power-mode";
-  const [isPowerOffMode, setIsPowerOffMode] = useState(() => {
-    const saved = localStorage.getItem(POWER_MODE_KEY);
+  // Text dash mode state and toggle (renamed from power mode)
+  const TEXT_DASH_MODE_KEY = "dashboard-text-dash-mode";
+  const [isTextDashMode, setIsTextDashMode] = useState(() => {
+    const saved = localStorage.getItem(TEXT_DASH_MODE_KEY);
     return saved === "true";
   });
 
-  const togglePowerMode = () => {
-    const newMode = !isPowerOffMode;
-    setIsPowerOffMode(newMode);
-    localStorage.setItem(POWER_MODE_KEY, newMode);
+  const toggleTextDashMode = () => {
+    const newMode = !isTextDashMode;
+    setIsTextDashMode(newMode);
+    localStorage.setItem(TEXT_DASH_MODE_KEY, newMode);
   };
 
   // Shared limits for logs and services (persisted)
@@ -83,11 +82,9 @@ export default function App() {
         const res = await fetch("/data/dashboard-data.json", { cache: "no-store" });
         if (!res.ok) throw new Error("dashboard fetch failed");
         const data = await res.json();
-        // Replace mock monitoringEndpoints with real URLs
         data.monitoringEndpoints = getRealMonitoringEndpoints();
         setDashboard(data);
       } catch {
-        // Use mock data but still replace endpoints with real ones
         const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
         setDashboard(mockWithRealEndpoints);
       } finally {
@@ -146,12 +143,12 @@ export default function App() {
     );
   }
 
-  // Power-off mode render
-  if (isPowerOffMode) {
+  // Text dash mode render
+  if (isTextDashMode) {
     return (
       <TextDashboard 
         dashboard={dashboard} 
-        onPowerOn={togglePowerMode}
+        onExitTextDash={toggleTextDashMode}    // changed from onPowerOn
         logLimit={logLimit}
         serviceLimit={serviceLimit}
         onLogLimitChange={setLogLimit}
@@ -178,8 +175,8 @@ export default function App() {
           appName={dashboard.meta?.appName || "Custom Application"}
           tagline={dashboard.meta?.tagline || "Real-time infrastructure monitoring"}
           uptime={dashboard.meta?.uptime || "Unknown"}
-          isPowerOffMode={isPowerOffMode}
-          onPowerToggle={togglePowerMode}
+          isTextDashMode={isTextDashMode}
+          onTextDashToggle={toggleTextDashMode}
         />
 
         <motion.main 

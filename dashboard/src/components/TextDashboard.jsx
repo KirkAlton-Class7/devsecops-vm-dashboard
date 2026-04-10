@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceLimit, onLogLimitChange, onServiceLimitChange, dashboardName = "DevSecOps Dashboard" }) {
+export default function TextDashboard({ dashboard, onExitTextDash, logLimit, serviceLimit, onLogLimitChange, onServiceLimitChange, dashboardName = "DevSecOps Dashboard" }) {
   const [copied, setCopied] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [showHelp, setShowHelp] = useState(false);
@@ -56,7 +56,7 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
         return;
       }
 
-      if (e.key === "Escape") onPowerOn();
+      if (e.key === "Escape") onExitTextDash();
       else if (e.key === "c" || e.key === "C") copySnapshot();
       else if (e.key === "r" || e.key === "R") window.location.reload();
       else if (e.key === "h" || e.key === "H") setShowHelp(prev => !prev);
@@ -65,7 +65,7 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [copySnapshot, onPowerOn, logLimit, serviceLimit]);
+  }, [copySnapshot, onExitTextDash, logLimit, serviceLimit]);
 
   // Auto-refresh every 60s
   useEffect(() => {
@@ -86,7 +86,7 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
               </div>
             </div>
             <div className="flex gap-2 text-xs">
-              <button onClick={onPowerOn} className="px-2 py-1 border border-white/20 rounded hover:bg-white/10">[Esc] EXIT</button>
+              <button onClick={onExitTextDash} className="px-2 py-1 border border-white/20 rounded hover:bg-white/10">[Esc] EXIT</button>
               <button onClick={copySnapshot} className="px-2 py-1 border border-white/20 rounded hover:bg-white/10">[C] {copied ? "COPIED" : "COPY"}</button>
               <button onClick={() => setShowHelp(!showHelp)} className="px-2 py-1 border border-white/20 rounded hover:bg-white/10">[H] HELP</button>
             </div>
@@ -124,7 +124,7 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
               <div>Project:      {dashboard.identity?.project || "N/A"}</div>
               <div>Instance ID:  {dashboard.identity?.instanceId || "N/A"}</div>
               <div>Hostname:     {dashboard.identity?.hostname || "N/A"}</div>
-              <div>Machine type: {dashboard.identity?.machineType || "N/A"}</div>   {/* Changed from instanceType */}
+              <div>Machine type: {dashboard.identity?.machineType || "N/A"}</div>
             </div>
           </div>
           <div className="p-3 border border-white/10 rounded">
@@ -143,19 +143,19 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Network</div>
             <div className="space-y-1 text-sm">
-              <div>VPC:         {dashboard.network?.vpc || "N/A"}</div>            {/* Changed from vpcId */}
-              <div>Subnet:      {dashboard.network?.subnet || "N/A"}</div>         {/* Changed from subnetId */}
-              <div>Internal IP: {dashboard.network?.internalIp || "N/A"}</div>     {/* Changed from privateIp */}
-              <div>External IP: {dashboard.network?.externalIp || "N/A"}</div>     {/* Changed from publicIp */}
+              <div>VPC:         {dashboard.network?.vpc || "N/A"}</div>
+              <div>Subnet:      {dashboard.network?.subnet || "N/A"}</div>
+              <div>Internal IP: {dashboard.network?.internalIp || "N/A"}</div>
+              <div>External IP: {dashboard.network?.externalIp || "N/A"}</div>
             </div>
           </div>
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Location</div>
             <div className="space-y-1 text-sm">
               <div>Region: {dashboard.location?.region || "N/A"}</div>
-              <div>Zone:   {dashboard.location?.zone || "N/A"}</div>                {/* Changed from availabilityZone */}
+              <div>Zone:   {dashboard.location?.zone || "N/A"}</div>
               <div>Uptime: {dashboard.meta?.uptime || "N/A"}</div>
-              <div>5-min load avg: {dashboard.systemResources?.cpu?.loadAvg || "0.00"}</div>   {/* Changed from load5 */}
+              <div>5-min load avg: {dashboard.systemResources?.cpu?.loadAvg || "0.00"}</div>
             </div>
           </div>
         </div>

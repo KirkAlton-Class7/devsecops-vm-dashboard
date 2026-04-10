@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceLimit, onLogLimitChange, onServiceLimitChange, dashboardName = "DevSecOps Dashboard" }) {
+export default function TextDashboard({ dashboard, onExitTextDash, logLimit, serviceLimit, onLogLimitChange, onServiceLimitChange, dashboardName = "DevSecOps Dashboard" }) {
   const [copied, setCopied] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [showHelp, setShowHelp] = useState(false);
@@ -16,7 +16,7 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
 
   const hasIssues = serviceStats.critical > 0 || serviceStats.warning > 0;
 
-  // Logs cycle: if already showing all logs, reset to 5; else go to next step
+  // Logs cycle
   const cycleLogLimit = () => {
     const totalLogs = dashboard.logs?.length || 0;
     if (logLimit >= totalLogs) {
@@ -29,7 +29,7 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
     onLogLimitChange(increments[nextIndex]);
   };
 
-  // Services cycle: if already showing all services, reset to 3; else go to next step
+  // Services cycle
   const cycleServiceLimit = () => {
     if (serviceLimit >= serviceStats.total) {
       onServiceLimitChange(3);
@@ -51,12 +51,11 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // For R and H: ignore repeated events (holding key)
       if ((e.key === "r" || e.key === "R" || e.key === "h" || e.key === "H") && e.repeat) {
         return;
       }
 
-      if (e.key === "Escape") onPowerOn();
+      if (e.key === "Escape") onExitTextDash();
       else if (e.key === "c" || e.key === "C") copySnapshot();
       else if (e.key === "r" || e.key === "R") window.location.reload();
       else if (e.key === "h" || e.key === "H") setShowHelp(prev => !prev);
@@ -65,7 +64,7 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [copySnapshot, onPowerOn, logLimit, serviceLimit]);
+  }, [copySnapshot, onExitTextDash, logLimit, serviceLimit]);
 
   // Auto-refresh every 60s
   useEffect(() => {
@@ -86,7 +85,7 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
               </div>
             </div>
             <div className="flex gap-2 text-xs">
-              <button onClick={onPowerOn} className="px-2 py-1 border border-white/20 rounded hover:bg-white/10">[Esc] EXIT</button>
+              <button onClick={onExitTextDash} className="px-2 py-1 border border-white/20 rounded hover:bg-white/10">[Esc] EXIT</button>
               <button onClick={copySnapshot} className="px-2 py-1 border border-white/20 rounded hover:bg-white/10">[C] {copied ? "COPIED" : "COPY"}</button>
               <button onClick={() => setShowHelp(!showHelp)} className="px-2 py-1 border border-white/20 rounded hover:bg-white/10">[H] HELP</button>
             </div>
@@ -124,7 +123,7 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
               <div>Project:      {dashboard.identity?.project || "N/A"}</div>
               <div>Instance ID:  {dashboard.identity?.instanceId || "N/A"}</div>
               <div>Hostname:     {dashboard.identity?.hostname || "N/A"}</div>
-              <div>Machine type: {dashboard.identity?.instanceType || "N/A"}</div>
+              <div>Machine type: {dashboard.identity?.machineType || "N/A"}</div>
             </div>
           </div>
           <div className="p-3 border border-white/10 rounded">
@@ -143,19 +142,19 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Network</div>
             <div className="space-y-1 text-sm">
-              <div>VPC:         {dashboard.network?.vpcId || "N/A"}</div>
-              <div>Subnet:      {dashboard.network?.subnetId || "N/A"}</div>
-              <div>Internal IP: {dashboard.network?.privateIp || "N/A"}</div>
-              <div>External IP: {dashboard.network?.publicIp || "N/A"}</div>
+              <div>VPC:         {dashboard.network?.vpc || "N/A"}</div>
+              <div>Subnet:      {dashboard.network?.subnet || "N/A"}</div>
+              <div>Internal IP: {dashboard.network?.internalIp || "N/A"}</div>
+              <div>External IP: {dashboard.network?.externalIp || "N/A"}</div>
             </div>
           </div>
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Location</div>
             <div className="space-y-1 text-sm">
               <div>Region: {dashboard.location?.region || "N/A"}</div>
-              <div>Zone:   {dashboard.location?.availabilityZone || "N/A"}</div>
+              <div>Zone:   {dashboard.location?.zone || "N/A"}</div>
               <div>Uptime: {dashboard.meta?.uptime || "N/A"}</div>
-              <div>5-min load avg: {dashboard.systemResources?.load5 || "0.00"}</div>
+              <div>5-min load avg: {dashboard.systemResources?.cpu?.loadAvg || "0.00"}</div>
             </div>
           </div>
         </div>
@@ -232,7 +231,7 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
   );
 }
 
-// Helper: generate snapshot for copying (updated to include dashboardName)
+// Helper: generate snapshot for copying
 function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, dashboardName) {
   const serviceStats = {
     total: dashboard.services?.length || 0,
@@ -253,7 +252,7 @@ IDENTITY
 Project: ${dashboard.identity?.project || "N/A"}
 Instance ID: ${dashboard.identity?.instanceId || "N/A"}
 Hostname: ${dashboard.identity?.hostname || "N/A"}
-Machine type: ${dashboard.identity?.instanceType || "N/A"}
+Machine type: ${dashboard.identity?.machineType || "N/A"}
 
 OVERVIEW
 CPU: ${dashboard.summaryCards?.find(c => c.label === "CPU")?.value || "N/A"}%
@@ -262,16 +261,16 @@ Disk: ${dashboard.summaryCards?.find(c => c.label === "Disk")?.value || "N/A"}%
 Cost: ${dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "$0.00"}
 
 NETWORK
-VPC: ${dashboard.network?.vpcId || "N/A"}
-Subnet: ${dashboard.network?.subnetId || "N/A"}
-Internal IP: ${dashboard.network?.privateIp || "N/A"}
-External IP: ${dashboard.network?.publicIp || "N/A"}
+VPC: ${dashboard.network?.vpc || "N/A"}
+Subnet: ${dashboard.network?.subnet || "N/A"}
+Internal IP: ${dashboard.network?.internalIp || "N/A"}
+External IP: ${dashboard.network?.externalIp || "N/A"}
 
 LOCATION
 Region: ${dashboard.location?.region || "N/A"}
-Zone: ${dashboard.location?.availabilityZone || "N/A"}
+Zone: ${dashboard.location?.zone || "N/A"}
 Uptime: ${dashboard.meta?.uptime || "N/A"}
-5-min load avg: ${dashboard.systemResources?.load5 || "0.00"}
+5-min load avg: ${dashboard.systemResources?.cpu?.loadAvg || "0.00"}
 
 MONITORING ENDPOINTS
 ${dashboard.monitoringEndpoints?.map(ep => `${ep.name}: ${ep.url} [${ep.status}]`).join("\n") || "None"}
