@@ -16,7 +16,7 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
 
   const hasIssues = serviceStats.critical > 0 || serviceStats.warning > 0;
 
-  // Logs cycle: if already showing all logs, reset to 5; else go to next step
+  // Logs cycle
   const cycleLogLimit = () => {
     const totalLogs = dashboard.logs?.length || 0;
     if (logLimit >= totalLogs) {
@@ -29,7 +29,7 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
     onLogLimitChange(increments[nextIndex]);
   };
 
-  // Services cycle: if already showing all services, reset to 3; else go to next step
+  // Services cycle
   const cycleServiceLimit = () => {
     if (serviceLimit >= serviceStats.total) {
       onServiceLimitChange(3);
@@ -51,7 +51,6 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // For R and H: ignore repeated events (holding key)
       if ((e.key === "r" || e.key === "R" || e.key === "h" || e.key === "H") && e.repeat) {
         return;
       }
@@ -133,7 +132,7 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
               <div>CPU:     {dashboard.summaryCards?.find(c => c.label === "CPU")?.value || "N/A"}%</div>
               <div>Memory:  {dashboard.summaryCards?.find(c => c.label === "Memory")?.value || "N/A"}%</div>
               <div>Disk:    {dashboard.summaryCards?.find(c => c.label === "Disk")?.value || "N/A"}%</div>
-              <div>Cost:    {dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "$0.00"}/month</div>
+              <div>Estimated Cost:    {dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "$0.00"}/month</div>
             </div>
           </div>
         </div>
@@ -232,7 +231,7 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
   );
 }
 
-// Helper: generate snapshot for copying (updated to match field names)
+// Helper: generate snapshot for copying
 function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, dashboardName) {
   const serviceStats = {
     total: dashboard.services?.length || 0,
@@ -259,7 +258,7 @@ OVERVIEW
 CPU: ${dashboard.summaryCards?.find(c => c.label === "CPU")?.value || "N/A"}%
 Memory: ${dashboard.summaryCards?.find(c => c.label === "Memory")?.value || "N/A"}%
 Disk: ${dashboard.summaryCards?.find(c => c.label === "Disk")?.value || "N/A"}%
-Cost: ${dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "N/A"}
+Estimated Cost: ${dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "N/A"}
 
 NETWORK
 VPC: ${dashboard.network?.vpc || "N/A"}
