@@ -66,7 +66,7 @@ export default function LoadTrendChart() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card title="System Load Trend" subtitle="Last 10 readings • 1-minute load average">
+      <Card title="System Load Trend" subtitle="Load (1m) • Last 10 samples">
         <div className="space-y-4">
           {/* Current Load Indicator */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
@@ -74,7 +74,7 @@ export default function LoadTrendChart() {
               <Gauge className="w-5 h-5 text-amber-400" />
               <div>
                 <p className="text-sm text-slate-300">Current Load</p>
-                <p className="text-xs text-slate-500">1-minute average, last 5 minutes</p>
+                <p className="text-xs text-slate-500">Load (1m)</p>
               </div>
             </div>
             <div className="text-right">
@@ -170,7 +170,7 @@ export default function LoadTrendChart() {
           <div className="mt-2 pt-2 flex justify-between text-xs border-t border-white/10">
             <div className="flex items-center gap-4">
               <span className="text-slate-500">Peak: <span className="text-cyan-400 font-mono">{Math.max(...historicalLoad).toFixed(2)}</span></span>
-              <span className="text-slate-500">Avg: <span className="text-emerald-400 font-mono">{(historicalLoad.reduce((a,b) => a + b, 0) / historicalLoad.length).toFixed(2)}</span></span>
+              <span className="text-slate-500">Avg (10 samples): <span className="text-emerald-400 font-mono">{(historicalLoad.reduce((a,b) => a + b, 0) / historicalLoad.length).toFixed(2)}</span></span>
               <span className="text-slate-500">Current: <span className="text-white font-mono">{currentLoad}</span></span>
             </div>
           </div>
