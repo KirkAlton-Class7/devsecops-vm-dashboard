@@ -1162,7 +1162,7 @@ fi
 # -------------------------------
 # Nginx Configuration
 # -------------------------------
-# Sets up nginx to serve the dashboard, data, health check, and metadata proxy
+# Sets up nginx to serve the dashboard and data endpoints
 # Removes any existing configurations to prevent conflicts
 
 log "Configuring nginx"
@@ -1172,7 +1172,7 @@ systemctl stop nginx || true
 rm -f /etc/nginx/sites-enabled/*
 rm -f /etc/nginx/sites-available/default
 
-# Create site config
+# Create our site config
 cat > "${NGINX_SITE}" <<EOF
 server {
     listen 80 default_server;
@@ -1182,20 +1182,6 @@ server {
     root ${APP_DIR};
     index index.html;
     
-    # Health check endpoint – handled directly by nginx
-    location = /healthz {
-        access_log off;
-        return 200 'OK\n';
-        add_header Content-Type text/plain;
-    }
-    
-    # Metadata endpoint – proxy to Python server on port 8080
-    location = /metadata {
-        proxy_pass http://127.0.0.1:8080/metadata;
-        proxy_set_header Host \$host;
-    }
-    
-    # Data directory (static JSON files)
     location /data/ {
         alias ${DATA_DIR}/;
         add_header Access-Control-Allow-Origin *;
@@ -1207,7 +1193,6 @@ server {
         }
     }
     
-    # Dashboard SPA – fallback to index.html
     location / {
         try_files \$uri \$uri/ /index.html;
     }

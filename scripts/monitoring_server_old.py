@@ -3,11 +3,6 @@ import json
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import subprocess
 
-
-# If health/metadata routes are served upstream (e.g., NGINX),
-# these handlers are bypassed and not invoked by the application.
-# Logic is retained for fallback and debug scenarios.
-
 class MonitoringHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/healthz':
