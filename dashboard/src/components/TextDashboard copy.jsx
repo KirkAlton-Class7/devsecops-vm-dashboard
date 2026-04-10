@@ -124,7 +124,7 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
               <div>Project:      {dashboard.identity?.project || "N/A"}</div>
               <div>Instance ID:  {dashboard.identity?.instanceId || "N/A"}</div>
               <div>Hostname:     {dashboard.identity?.hostname || "N/A"}</div>
-              <div>Machine type: {dashboard.identity?.machineType || "N/A"}</div>   {/* Changed from instanceType */}
+              <div>Machine type: {dashboard.identity?.instanceType || "N/A"}</div>
             </div>
           </div>
           <div className="p-3 border border-white/10 rounded">
@@ -143,19 +143,19 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Network</div>
             <div className="space-y-1 text-sm">
-              <div>VPC:         {dashboard.network?.vpc || "N/A"}</div>            {/* Changed from vpcId */}
-              <div>Subnet:      {dashboard.network?.subnet || "N/A"}</div>         {/* Changed from subnetId */}
-              <div>Internal IP: {dashboard.network?.internalIp || "N/A"}</div>     {/* Changed from privateIp */}
-              <div>External IP: {dashboard.network?.externalIp || "N/A"}</div>     {/* Changed from publicIp */}
+              <div>VPC:         {dashboard.network?.vpcId || "N/A"}</div>
+              <div>Subnet:      {dashboard.network?.subnetId || "N/A"}</div>
+              <div>Internal IP: {dashboard.network?.privateIp || "N/A"}</div>
+              <div>External IP: {dashboard.network?.publicIp || "N/A"}</div>
             </div>
           </div>
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Location</div>
             <div className="space-y-1 text-sm">
               <div>Region: {dashboard.location?.region || "N/A"}</div>
-              <div>Zone:   {dashboard.location?.zone || "N/A"}</div>                {/* Changed from availabilityZone */}
+              <div>Zone:   {dashboard.location?.availabilityZone || "N/A"}</div>
               <div>Uptime: {dashboard.meta?.uptime || "N/A"}</div>
-              <div>5-min load avg: {dashboard.systemResources?.cpu?.loadAvg || "0.00"}</div>   {/* Changed from load5 */}
+              <div>5-min load avg: {dashboard.systemResources?.load5 || "0.00"}</div>
             </div>
           </div>
         </div>
@@ -232,7 +232,7 @@ export default function TextDashboard({ dashboard, onPowerOn, logLimit, serviceL
   );
 }
 
-// Helper: generate snapshot for copying (updated to match field names)
+// Helper: generate snapshot for copying (updated to include dashboardName)
 function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, dashboardName) {
   const serviceStats = {
     total: dashboard.services?.length || 0,
@@ -253,7 +253,7 @@ IDENTITY
 Project: ${dashboard.identity?.project || "N/A"}
 Instance ID: ${dashboard.identity?.instanceId || "N/A"}
 Hostname: ${dashboard.identity?.hostname || "N/A"}
-Machine type: ${dashboard.identity?.machineType || "N/A"}
+Machine type: ${dashboard.identity?.instanceType || "N/A"}
 
 OVERVIEW
 CPU: ${dashboard.summaryCards?.find(c => c.label === "CPU")?.value || "N/A"}%
@@ -262,16 +262,16 @@ Disk: ${dashboard.summaryCards?.find(c => c.label === "Disk")?.value || "N/A"}%
 Cost: ${dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "$0.00"}
 
 NETWORK
-VPC: ${dashboard.network?.vpc || "N/A"}
-Subnet: ${dashboard.network?.subnet || "N/A"}
-Internal IP: ${dashboard.network?.internalIp || "N/A"}
-External IP: ${dashboard.network?.externalIp || "N/A"}
+VPC: ${dashboard.network?.vpcId || "N/A"}
+Subnet: ${dashboard.network?.subnetId || "N/A"}
+Internal IP: ${dashboard.network?.privateIp || "N/A"}
+External IP: ${dashboard.network?.publicIp || "N/A"}
 
 LOCATION
 Region: ${dashboard.location?.region || "N/A"}
-Zone: ${dashboard.location?.zone || "N/A"}
+Zone: ${dashboard.location?.availabilityZone || "N/A"}
 Uptime: ${dashboard.meta?.uptime || "N/A"}
-5-min load avg: ${dashboard.systemResources?.cpu?.loadAvg || "0.00"}
+5-min load avg: ${dashboard.systemResources?.load5 || "0.00"}
 
 MONITORING ENDPOINTS
 ${dashboard.monitoringEndpoints?.map(ep => `${ep.name}: ${ep.url} [${ep.status}]`).join("\n") || "None"}
