@@ -113,25 +113,21 @@ export default function ImageGallery() {
     return Object.values(unique);
   };
 
-  // Extract country from a location string (e.g., "Chiang Mai, Thailand" → "Thailand")
+  const openGoogleTravel = (location) => {
+    const url = `https://www.google.com/travel/explore?q=${encodeURIComponent(location)}`;
+    window.open(url, '_blank');
+  };
+
   const getCountryFromLocation = (location) => {
     if (!location) return "";
     const parts = location.split(',').map(p => p.trim());
     return parts.length > 1 ? parts[parts.length - 1] : parts[0];
   };
 
-  // Open Google Travel for the country (not the full location)
-  const openGoogleTravel = (location) => {
-    const country = getCountryFromLocation(location);
-    const url = `https://www.google.com/travel/explore?q=${encodeURIComponent(country)}`;
-    window.open(url, '_blank');
-  };
-
-  // "What is it really like to live in..." – uses the FULL location (city + country)
   const handleLivingSearch = () => {
     if (!currentImage) return;
-    const fullLocation = currentImage.location;
-    const query = `What is it really like to live in ${fullLocation}`;
+    const country = getCountryFromLocation(currentImage.location);
+    const query = `What is it really like to live in ${country}`;
     const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
     window.open(url, '_blank');
   };
