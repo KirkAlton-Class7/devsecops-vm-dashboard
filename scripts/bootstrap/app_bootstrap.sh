@@ -6,7 +6,7 @@
 # Edit these values to customize your dashboard
 
 # App name shown in the header (top left)
-DASHBOARD_APP_NAME="GCP Deployment2"
+DASHBOARD_APP_NAME="GCP Deployment"
 
 # Tagline shown below the app name
 DASHBOARD_TAGLINE="Infrastructure health and activity"

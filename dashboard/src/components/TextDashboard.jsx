@@ -16,6 +16,32 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
 
   const hasIssues = serviceStats.critical > 0 || serviceStats.warning > 0;
 
+  // Helper: format metric values (strip existing %)
+  const formatMetric = (value) => {
+    if (!value && value !== 0) return "N/A";
+    const cleaned = value.toString().replace(/%$/, "");
+    return `${cleaned}%`;
+  };
+
+  // Helper: format cost – accepts either "Cost" or "Estimated Cost" labels
+  const getCostValue = () => {
+    const costCard = dashboard.summaryCards?.find(c => c.label === "Estimated Cost" || c.label === "Cost");
+    let raw = costCard?.value;
+    if (!raw && raw !== 0) return "N/A";
+    if (typeof raw === "number") return `$${raw.toFixed(2)}`;
+    if (typeof raw === "string") {
+      // Already formatted? e.g., "$0.05 total"
+      if (raw.startsWith("$")) return raw;
+      const numeric = parseFloat(raw.replace(/[^0-9.-]/g, ""));
+      if (!isNaN(numeric)) return `$${numeric.toFixed(2)}`;
+      return raw;
+    }
+    return "N/A";
+  };
+
+  // Load average: first try location.loadAvg (written by Python), then fallbacks
+  const loadAvg = dashboard.location?.loadAvg || dashboard.systemResources?.cpu?.loadAvg || dashboard.systemResources?.load5 || "0.00";
+
   // Logs cycle
   const cycleLogLimit = () => {
     const totalLogs = dashboard.logs?.length || 0;
@@ -71,6 +97,11 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
     const interval = setInterval(() => setLastRefresh(new Date()), 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Extract metric values (they already include % from script)
+  const cpuRaw = dashboard.summaryCards?.find(c => c.label === "CPU")?.value;
+  const memRaw = dashboard.summaryCards?.find(c => c.label === "Memory")?.value;
+  const diskRaw = dashboard.summaryCards?.find(c => c.label === "Disk")?.value;
 
   return (
     <div className="min-h-screen bg-black text-white font-mono p-4 md:p-6">
@@ -129,10 +160,10 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Overview</div>
             <div className="space-y-1 text-sm">
-              <div>CPU:     {dashboard.summaryCards?.find(c => c.label === "CPU")?.value || "N/A"}%</div>
-              <div>Memory:  {dashboard.summaryCards?.find(c => c.label === "Memory")?.value || "N/A"}%</div>
-              <div>Disk:    {dashboard.summaryCards?.find(c => c.label === "Disk")?.value || "N/A"}%</div>
-              <div>Estimated Cost:    {dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "$0.00"}/month</div>
+              <div>CPU:     {formatMetric(cpuRaw)}</div>
+              <div>Memory:  {formatMetric(memRaw)}</div>
+              <div>Disk:    {formatMetric(diskRaw)}</div>
+              <div>Estimated Cost:    {getCostValue()}/month</div>
             </div>
           </div>
         </div>
@@ -154,7 +185,7 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
               <div>Region: {dashboard.location?.region || "N/A"}</div>
               <div>Zone:   {dashboard.location?.zone || "N/A"}</div>
               <div>Uptime: {dashboard.meta?.uptime || "N/A"}</div>
-              <div>5-min load avg: {dashboard.systemResources?.cpu?.loadAvg || "0.00"}</div>
+              <div>5-min load avg: {loadAvg}</div>
             </div>
           </div>
         </div>
@@ -241,6 +272,31 @@ function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, da
   };
   const hasIssues = serviceStats.critical > 0 || serviceStats.warning > 0;
   const totalLogs = dashboard.logs?.length || 0;
+  const loadAvg = dashboard.location?.loadAvg || dashboard.systemResources?.cpu?.loadAvg || dashboard.systemResources?.load5 || "0.00";
+
+  const formatMetric = (value) => {
+    if (!value && value !== 0) return "N/A";
+    const cleaned = value.toString().replace(/%$/, "");
+    return `${cleaned}%`;
+  };
+
+  const getCostValue = () => {
+    const costCard = dashboard.summaryCards?.find(c => c.label === "Estimated Cost" || c.label === "Cost");
+    let raw = costCard?.value;
+    if (!raw && raw !== 0) return "N/A";
+    if (typeof raw === "number") return `$${raw.toFixed(2)}`;
+    if (typeof raw === "string") {
+      if (raw.startsWith("$")) return raw;
+      const numeric = parseFloat(raw.replace(/[^0-9.-]/g, ""));
+      if (!isNaN(numeric)) return `$${numeric.toFixed(2)}`;
+      return raw;
+    }
+    return "N/A";
+  };
+
+  const cpuRaw = dashboard.summaryCards?.find(c => c.label === "CPU")?.value;
+  const memRaw = dashboard.summaryCards?.find(c => c.label === "Memory")?.value;
+  const diskRaw = dashboard.summaryCards?.find(c => c.label === "Disk")?.value;
 
   return `
 ${dashboardName.toUpperCase()} SNAPSHOT
@@ -255,10 +311,10 @@ Hostname: ${dashboard.identity?.hostname || "N/A"}
 Machine type: ${dashboard.identity?.machineType || "N/A"}
 
 OVERVIEW
-CPU: ${dashboard.summaryCards?.find(c => c.label === "CPU")?.value || "N/A"}%
-Memory: ${dashboard.summaryCards?.find(c => c.label === "Memory")?.value || "N/A"}%
-Disk: ${dashboard.summaryCards?.find(c => c.label === "Disk")?.value || "N/A"}%
-Estimated Cost: ${dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "N/A"}
+CPU: ${formatMetric(cpuRaw)}
+Memory: ${formatMetric(memRaw)}
+Disk: ${formatMetric(diskRaw)}
+Estimated Cost: ${getCostValue()}
 
 NETWORK
 VPC: ${dashboard.network?.vpc || "N/A"}
@@ -270,7 +326,7 @@ LOCATION
 Region: ${dashboard.location?.region || "N/A"}
 Zone: ${dashboard.location?.zone || "N/A"}
 Uptime: ${dashboard.meta?.uptime || "N/A"}
-5-min load avg: ${dashboard.systemResources?.cpu?.loadAvg || "0.00"}
+5-min load avg: ${loadAvg}
 
 MONITORING ENDPOINTS
 ${dashboard.monitoringEndpoints?.map(ep => `${ep.name}: ${ep.url} [${ep.status}]`).join("\n") || "None"}

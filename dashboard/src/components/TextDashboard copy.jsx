@@ -132,7 +132,7 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
               <div>CPU:     {dashboard.summaryCards?.find(c => c.label === "CPU")?.value || "N/A"}%</div>
               <div>Memory:  {dashboard.summaryCards?.find(c => c.label === "Memory")?.value || "N/A"}%</div>
               <div>Disk:    {dashboard.summaryCards?.find(c => c.label === "Disk")?.value || "N/A"}%</div>
-              <div>Cost:    {dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "$0.00"}/month</div>
+              <div>Estimated Cost:    {dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "$0.00"}/month</div>
             </div>
           </div>
         </div>
@@ -258,7 +258,7 @@ OVERVIEW
 CPU: ${dashboard.summaryCards?.find(c => c.label === "CPU")?.value || "N/A"}%
 Memory: ${dashboard.summaryCards?.find(c => c.label === "Memory")?.value || "N/A"}%
 Disk: ${dashboard.summaryCards?.find(c => c.label === "Disk")?.value || "N/A"}%
-Cost: ${dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "$0.00"}
+Estimated Cost: ${dashboard.summaryCards?.find(c => c.label === "Cost")?.value || "N/A"}
 
 NETWORK
 VPC: ${dashboard.network?.vpc || "N/A"}
