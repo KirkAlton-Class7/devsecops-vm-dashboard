@@ -879,12 +879,15 @@ data = {
         "uptime": uptime,
         "loadAvg": f"{load_5min:.2f}"
     },
+
     "systemResources": {
         "memory": memory_details,
         "disk": disk_details,
         "cpu": cpu_info,
         "endpoints": {"healthz": "/healthz", "metadata": "/metadata"}
-    }
+    },
+    "instance_name": hostname, # Top level key. Added for Theo's gate check
+    "region": region,          # Top level key. Added for Theo's gate check
 }
 
 output_file = os.path.join(DATA_DIR, "dashboard-data.json")
@@ -1182,17 +1185,17 @@ server {
     root ${APP_DIR};
     index index.html;
     
-    # Health check endpoint – handled directly by nginx
+    # Health check endpoint – returns exactly "ok" (gate script will trim newline)
     location = /healthz {
         access_log off;
-        return 200 'ok\n';
+        return 200 'OK';
         add_header Content-Type text/plain;
     }
     
-    # Metadata endpoint – proxy to Python server on port 8080
+    # Metadata endpoint – serves static JSON from dashboard data
     location = /metadata {
-        proxy_pass http://127.0.0.1:8080/metadata;
-        proxy_set_header Host \$host;
+        alias ${DATA_DIR}/dashboard-data.json;
+        default_type application/json;
     }
     
     # Data directory (static JSON files)

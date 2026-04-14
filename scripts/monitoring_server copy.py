@@ -29,23 +29,15 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 # Get external IP
                 external_ip = subprocess.getoutput("curl -s -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip")
                 
-                # Get zone and derive region
-                zone_full = subprocess.getoutput("curl -s -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/zone")
-                zone = zone_full.split('/')[-1]                     # "us-central1-a"
-                region = zone.rsplit('-', 1)[0] if '-' in zone else "unknown"   # "us-central1"
-                
                 metadata = {
                     "instance_id": instance_id,
                     "hostname": hostname,
                     "machine_type": machine_type.split('/')[-1], # Extract just the type name
                     "internal_ip": internal_ip,
-                    "external_ip": external_ip,
-                    "instance_name": hostname,   # added for gate script
-                    "region": region             # added for gate script
+                    "external_ip": external_ip
                 }
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
-                
                 self.end_headers()
                 self.wfile.write(json.dumps(metadata).encode())
             except Exception as e:
