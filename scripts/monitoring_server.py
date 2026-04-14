@@ -34,14 +34,15 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 zone = zone_full.split('/')[-1]                     # "us-central1-a"
                 region = zone.rsplit('-', 1)[0] if '-' in zone else "unknown"   # "us-central1"
                 
+                # Instance metadata dictionary
                 metadata = {
                     "instance_id": instance_id,
+                    "instance_name": hostname,   # added for Theo's gate script
                     "hostname": hostname,
                     "machine_type": machine_type.split('/')[-1], # Extract just the type name
                     "internal_ip": internal_ip,
                     "external_ip": external_ip,
-                    "instance_name": hostname,   # added for gate script
-                    "region": region             # added for gate script
+                    "region": region             # added for Theo's gate script
                 }
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
