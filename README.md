@@ -113,7 +113,7 @@ The dashboard exposes two endpoints:
 
 ### `/metadata`
 
-- **`/metadata`** returns JSON with instance metadata (ID, hostname, machine type, IPs).
+- **`/metadata`** returns JSON with instance metadata (ID, hostname, instance name, machine type, IPs).
 
 ```JSON
 {

@@ -547,15 +547,38 @@ chown ${APP_USER}:${APP_USER} "${DATA_DIR}" || { log "ERROR: Failed to chown ${D
 # Be sure to prevent variable expansion in this heredoc
 sudo -u ${APP_USER} python3 <<'PYTHON_SCRIPT' || { log "ERROR: Python script failed"; exit 1; }
 
-import json, os, random, subprocess
+import json, os, random, subprocess, urllib.request
 from datetime import datetime, timedelta
 
+# Data directory for static assets (images, quotes, etc.)
 DATA_DIR = "/var/www/vm-dashboard/data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# ------------------------------------------------------------
-# Helper functions – fetch everything directly, no environment vars
-# ------------------------------------------------------------
+# Path to the main dashboard JSON file
+DASHBOARD_JSON = f"{DATA_DIR}/dashboard-data.json"
+
+# Cost tracking file (persisted across reboots)
+COST_FILE = "/var/tmp/vm-cost.json"
+
+# ----------------------------------------------------------------------
+# SYSTEM & OS INFORMATION
+# ----------------------------------------------------------------------
+def get_os_name():
+    try:
+        with open("/etc/os-release", "r") as f:
+            for line in f:
+                if line.startswith("PRETTY_NAME="):
+                    return line.split("=")[1].strip().strip('"')
+    except:
+        pass
+    return "unknown"
+
+def get_uptime():
+    return subprocess.check_output(["uptime", "-p"], text=True).strip()
+
+# ----------------------------------------------------------------------
+# SYSTEM METRICS (CPU, MEMORY, DISK, LOAD)
+# ----------------------------------------------------------------------
 def get_cpu_usage():
     with open("/proc/stat", "r") as f:
         line = f.readline()
@@ -584,91 +607,9 @@ def get_load_averages():
         parts = f.read().split()
         return float(parts[0]), float(parts[1])   # (1min, 5min)
 
-def get_uptime():
-    return subprocess.check_output(["uptime", "-p"], text=True).strip()
-
-def get_hostname():
-    return subprocess.check_output(["hostname"], text=True).strip()
-
-def get_instance_id():
-    try:
-        import urllib.request
-        req = urllib.request.Request("http://metadata.google.internal/computeMetadata/v1/instance/id",
-                                     headers={"Metadata-Flavor": "Google"})
-        with urllib.request.urlopen(req, timeout=2) as resp:
-            return resp.read().decode().strip()
-    except:
-        return "unknown"
-
-def get_zone():
-    try:
-        import urllib.request
-        req = urllib.request.Request("http://metadata.google.internal/computeMetadata/v1/instance/zone",
-                                     headers={"Metadata-Flavor": "Google"})
-        with urllib.request.urlopen(req, timeout=2) as resp:
-            full = resp.read().decode().strip()
-            return full.split("/")[-1]
-    except:
-        return "unknown"
-
-def get_machine_type():
-    try:
-        import urllib.request
-        req = urllib.request.Request("http://metadata.google.internal/computeMetadata/v1/instance/machine-type",
-                                     headers={"Metadata-Flavor": "Google"})
-        with urllib.request.urlopen(req, timeout=2) as resp:
-            full = resp.read().decode().strip()
-            return full.split("/")[-1]
-    except:
-        return "unknown"
-
-def get_project_id():
-    try:
-        import urllib.request
-        req = urllib.request.Request("http://metadata.google.internal/computeMetadata/v1/project/project-id",
-                                     headers={"Metadata-Flavor": "Google"})
-        with urllib.request.urlopen(req, timeout=2) as resp:
-            return resp.read().decode().strip()
-    except:
-        return "unknown"
-
-def get_os_name():
-    try:
-        with open("/etc/os-release", "r") as f:
-            for line in f:
-                if line.startswith("PRETTY_NAME="):
-                    return line.split("=")[1].strip().strip('"')
-    except:
-        pass
-    return "unknown"
-
-def get_internal_ip():
-    try:
-        import urllib.request
-        req = urllib.request.Request("http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip",
-                                     headers={"Metadata-Flavor": "Google"})
-        with urllib.request.urlopen(req, timeout=2) as resp:
-            return resp.read().decode().strip()
-    except:
-        try:
-            return subprocess.check_output(["hostname", "-I"], text=True).split()[0]
-        except:
-            return "unknown"
-
-def get_external_ip():
-    try:
-        import urllib.request
-        req = urllib.request.Request("http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip",
-                                     headers={"Metadata-Flavor": "Google"})
-        with urllib.request.urlopen(req, timeout=2) as resp:
-            return resp.read().decode().strip()
-    except:
-        try:
-            with urllib.request.urlopen("http://ifconfig.me", timeout=5) as resp:
-                return resp.read().decode().strip()
-        except:
-            return "unknown"
-
+# ----------------------------------------------------------------------
+# SECURITY & UPDATES
+# ----------------------------------------------------------------------
 def get_ssh_status():
     return "Enabled (22/tcp)" if subprocess.call(["systemctl", "is-active", "--quiet", "ssh"]) == 0 else "Disabled"
 
@@ -677,9 +618,39 @@ def get_update_status():
     updates = len([l for l in out.stdout.strip().split("\n") if l and not l.startswith("Listing")])
     return "Up to date" if updates == 0 else f"{updates} updates available"
 
+# ------------------------------------------------------------
+# METADATA - Helper: Get Metadata from GCE Metadata Server
+# ------------------------------------------------------------
+def get_metadata(path, timeout=2):
+    """
+    Fetch a specific metadata value from the GCP metadata server.
+    Uses subprocess.run with curl and timeout.
+    """
+    url = f"http://metadata.google.internal/computeMetadata/v1/{path}"
+    cmd = ["curl", "-s", "-H", "Metadata-Flavor: Google", url]
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+        else:
+            return "unknown"
+    except subprocess.TimeoutExpired:
+        return "unknown"
+    except Exception:
+        return "unknown"
+
+# ----------------------------------------------------------------------
+# COST ESTIMATION (heuristic, cloud‑specific)
+# ----------------------------------------------------------------------
 def get_cumulative_cost():
-    cost_file = "/var/tmp/vm-cost.json"
-    machine_type = get_machine_type()
+    machine_type = get_machine_type()   # uses metadata function defined earlier
     rates = {"e2-micro": 0.0076, "e2-small": 0.0150, "e2-medium": 0.0301,
              "n1-standard-1": 0.0475, "n2-standard-2": 0.0972}
     if machine_type not in rates:
@@ -691,7 +662,7 @@ def get_cumulative_cost():
     except:
         current_uptime = 0
     try:
-        with open(cost_file, "r") as f:
+        with open(COST_FILE, "r") as f:
             data = json.load(f)
         total_cost = data.get("total_cost", 0.0)
         last_uptime = data.get("last_uptime_sec", current_uptime)
@@ -705,7 +676,7 @@ def get_cumulative_cost():
         if delta_hours > 0:
             total_cost += hourly_rate * delta_hours
             last_uptime = current_uptime
-    with open(cost_file, "w") as f:
+    with open(COST_FILE, "w") as f:
         json.dump({"total_cost": total_cost, "last_uptime_sec": last_uptime}, f)
     if total_cost <= 0.0:
         return "N/A"
@@ -716,34 +687,71 @@ def get_cumulative_cost():
     else:
         return f"${total_cost:.2f} total"
 
-def status_color(val, warn=70):
+# ------------------------------------------------------------
+# Status Helper
+# ------------------------------------------------------------
+WARN_THRESHOLD = 70
+def status(val, warn=WARN_THRESHOLD):
     try:
         return "warning" if float(val) > warn else "healthy"
     except:
         return "healthy"
 
 # ------------------------------------------------------------
-# Collect all data
+# COLLECT ALL DATA
 # ------------------------------------------------------------
+
+# System Metrics
 cpu = get_cpu_usage()
 mem = get_memory_percent()
 disk = get_disk_percent()
 load_1min, load_5min = get_load_averages()
-uptime = get_uptime()
-hostname = get_hostname()
-instance_id = get_instance_id()
-zone = get_zone()
-machine_type = get_machine_type()
-project_id = get_project_id()
+
+# System & OS Information
 os_name = get_os_name()
-internal_ip = get_internal_ip()
-external_ip = get_external_ip()
+uptime = get_uptime()
+
+# Security & Updates
 ssh_status = get_ssh_status()
 update_status = get_update_status()
-cost = get_cumulative_cost()
-region = zone[:-2] if len(zone) > 2 else "unknown"
 
-# Load quotes
+# Cost
+cost = get_cumulative_cost()
+
+# Metadata - Collect Data
+# ------------------------------------------------------------
+# Fetch all metadata values using the get_metadata function
+instance_id   = get_metadata("instance/id")
+instance_name = get_metadata("instance/name")
+hostname      = get_metadata("instance/hostname")
+zone_full     = get_metadata("instance/zone")
+machine_full  = get_metadata("instance/machine-type")
+project_id    = get_metadata("project/project-id")
+internal_ip   = get_metadata("instance/network-interfaces/0/ip")
+external_ip   = get_metadata("instance/network-interfaces/0/access-configs/0/external-ip")
+
+# Metadata - Derive Values and Fallback Logic
+# ------------------------------------------------------------
+# If external_ip fails, fallback to ifconfig.me
+if external_ip == "unknown":
+    try:
+        with urllib.request.urlopen("http://ifconfig.me", timeout=5) as resp:
+            external_ip = resp.read().decode().strip()
+    except:
+        pass
+
+# Parse zone
+zone = zone_full.split('/')[-1] if '/' in zone_full else zone_full
+
+# Derive region from zone
+region = zone.rsplit('-', 1)[0] if '-' in zone else "unknown"
+
+# Parse machine type
+machine_type = machine_full.split('/')[-1] if '/' in machine_full else machine_full
+
+# ------------------------------------------------------------
+# LOAD QUOTES
+# ------------------------------------------------------------
 quotes = []
 quotes_path = f"{DATA_DIR}/quotes.json"
 if os.path.exists(quotes_path):
@@ -751,6 +759,7 @@ if os.path.exists(quotes_path):
         quotes = json.load(f)
 if not quotes:
     quotes = [{"text": "Welcome to DevSecOps!", "author": "System"}]
+
 
 # Memory and disk details (for systemResources)
 def get_memory_details():
@@ -820,9 +829,9 @@ resource_table = [
 # Build final data object
 data = {
     "summaryCards": [
-        {"label": "CPU", "value": f"{cpu}%", "status": status_color(cpu)},
-        {"label": "Memory", "value": f"{mem}%", "status": status_color(mem)},
-        {"label": "Disk", "value": f"{disk}%", "status": status_color(disk)},
+        {"label": "CPU", "value": f"{cpu}%", "status": status(cpu)},
+        {"label": "Memory", "value": f"{mem}%", "status": status(mem)},
+        {"label": "Disk", "value": f"{disk}%", "status": status(disk)},
         {"label": "Estimated Cost", "value": cost, "status": "info"}
     ],
     "vmInformation": [
@@ -865,6 +874,7 @@ data = {
         "project": project_id,
         "instanceId": instance_id,
         "hostname": hostname,
+        "instanceName": instance_name,
         "machineType": machine_type
     },
     "network": {
@@ -911,12 +921,15 @@ sudo tee /opt/refresh-dashboard-data.py > /dev/null << 'EOF'
 import json, os, random, subprocess
 from datetime import datetime, timedelta
 
+# ------------------------------------------------------------
+# Constants
+# ------------------------------------------------------------
 DATA_DIR = "/var/www/vm-dashboard/data"
 DASHBOARD_JSON = f"{DATA_DIR}/dashboard-data.json"
 COST_FILE = "/var/tmp/vm-cost.json"
 
 # ------------------------------------------------------------
-# Helper functions (must be defined before use)
+# Helper functions
 # ------------------------------------------------------------
 def get_machine_type():
     try:
@@ -957,7 +970,7 @@ def get_disk_percent():
 def get_load_averages():
     with open('/proc/loadavg', 'r') as f:
         parts = f.read().split()
-        return float(parts[0]), float(parts[1])   # (1min, 5min)
+        return float(parts[0]), float(parts[1])
 
 def get_uptime():
     try:
@@ -982,7 +995,7 @@ def get_uptime():
             return "up 0 minutes"
 
 # ------------------------------------------------------------
-# Cost calculation (same as startup script)
+# Cost calculation
 # ------------------------------------------------------------
 def get_cumulative_cost():
     machine_type = get_machine_type()
@@ -1026,7 +1039,11 @@ def get_cumulative_cost():
     else:
         return f"${total_cost:.2f} total"
 
-def status(val, warn=70):
+# ------------------------------------------------------------
+# Status Helper
+# ------------------------------------------------------------
+WARN_THRESHOLD = 70
+def status(val, warn=WARN_THRESHOLD):
     try:
         return "warning" if float(val) > warn else "healthy"
     except:
@@ -1069,7 +1086,7 @@ if "systemResources" in data and "cpu" in data["systemResources"]:
     data["systemResources"]["cpu"]["usage"] = float(cpu)
 
 # ------------------------------------------------------------
-# Dynamic log entry (replaces old logs block)
+# Dynamic log entry
 # ------------------------------------------------------------
 cpu_status = "high" if cpu > 80 else "normal" if cpu < 60 else "moderate"
 mem_status = "high" if mem > 90 else "normal" if mem < 70 else "moderate"
@@ -1105,7 +1122,7 @@ new_log = {
     "message": message
 }
 
-# Keep last 30 entries (2.5 hours of history at 5‑minute cron)
+# Keep last 30 entries
 data["logs"] = [new_log] + data.get("logs", [])[:29]
 
 # Refresh the quote of the day

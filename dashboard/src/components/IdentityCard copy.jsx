@@ -6,7 +6,7 @@ export default function IdentityCard({ identity }) {
   const items = [
     { label: "Project", value: identity?.project, icon: Cloud },
     { label: "Instance ID", value: identity?.instanceId, icon: Fingerprint },
-    { label: "Instance Name", value: identity?.instanceName, icon: Globe},
+    { label: "Hostname", value: identity?.hostname, icon: Globe },
     { label: "Machine Type", value: identity?.machineType, icon: Cpu }
   ];
 
