@@ -153,7 +153,7 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
             <div className="space-y-1 text-sm">
               <div>Project:      {dashboard.identity?.project || "N/A"}</div>
               <div>Instance ID:  {dashboard.identity?.instanceId || "N/A"}</div>
-              <div>Hostname:     {dashboard.identity?.hostname || "N/A"}</div>
+              <div>Instance Name:     {dashboard.identity?.instanceName || "N/A"}</div>
               <div>Machine type: {dashboard.identity?.machineType || "N/A"}</div>
             </div>
           </div>

@@ -3,42 +3,64 @@ export const mockDashboard = {
     { label: "CPU", value: "72%", status: "warning" },
     { label: "Memory", value: "68%", status: "warning" },
     { label: "Disk", value: "45%", status: "healthy" },
-    { label: "Cost", value: "$12.48", status: "info" },
+    { label: "Estimated Cost", value: "$12.48", status: "info" },
   ],
 
-  // Identity – matches normal dashboard (machineType, not instanceType)
   identity: {
     project: "devsecops-production",
     instanceId: "i-0a1b2c3d4e5f67890",
+    instanceName: "prod-worker-03",
     hostname: "prod-worker-03.internal",
-    machineType: "t3.medium",      // changed from instanceType
+    machineType: "t3.medium",
   },
 
-  // Network – matches normal dashboard (vpc, subnet, internalIp, externalIp)
   network: {
-    vpc: "vpc-abc123def",          // changed from vpcId
-    subnet: "subnet-xyz789",       // changed from subnetId
-    internalIp: "10.128.0.5",      // changed from privateIp
-    externalIp: "34.122.10.22",    // changed from publicIp
+    vpc: "vpc-abc123def",
+    subnet: "subnet-xyz789",
+    internalIp: "10.128.0.5",
+    externalIp: "34.122.10.22",
   },
 
-  // Location – matches normal dashboard (zone, not availabilityZone)
   location: {
     region: "us-east-1",
-    zone: "us-east-1a",            // changed from availabilityZone
+    zone: "us-east-1a",
+    loadAvg: "2.45",            // 5‑minute load average
+    uptime: "6 days, 14 hours", // for LocationCard
   },
 
   systemResources: {
-    // Load average from CPU
     cpu: {
       cores: 2,
       usage: 72,
-      loadAvg: "2.45",             // added (used by text dashboard)
+      loadAvg: "2.45",
+      history: [                // for LoadTrendChart
+        { time: "14:20", value: 68 },
+        { time: "14:22", value: 71 },
+        { time: "14:24", value: 73 },
+        { time: "14:26", value: 70 },
+        { time: "14:28", value: 74 },
+        { time: "14:30", value: 72 },
+        { time: "14:32", value: 75 },
+        { time: "14:34", value: 73 },
+        { time: "14:36", value: 71 },
+        { time: "14:38", value: 69 },
+        { time: "14:40", value: 72 },
+        { time: "14:42", value: 74 },
+        { time: "14:44", value: 76 },
+        { time: "14:46", value: 73 },
+        { time: "14:48", value: 71 },
+        { time: "14:50", value: 70 },
+        { time: "14:52", value: 72 },
+        { time: "14:54", value: 74 },
+        { time: "14:56", value: 75 },
+        { time: "14:58", value: 72 },
+      ],
     },
     memory: { total: 8192, used: 5570 },
   },
 
-  // Monitoring endpoints (unchanged)
+  systemLoad: 2.45,            // 1‑minute load average
+
   monitoringEndpoints: [
     { name: "Health Check", url: "https://api.devsecops.com/healthz", status: "up" },
     { name: "Metadata API", url: "https://metadata.google.internal/computeMetadata/v1/", status: "up" },
@@ -46,7 +68,6 @@ export const mockDashboard = {
     { name: "Log Forwarder", url: "https://logs.googleapis.com/v2/entries", status: "degraded" },
   ],
 
-  // Services (unchanged)
   services: [
     { label: "Nginx", value: "Running (12 req/s)", status: "healthy" },
     { label: "Python API", value: "Healthy", status: "healthy" },
@@ -58,7 +79,6 @@ export const mockDashboard = {
     { label: "CloudWatch Agent", value: "Failed to publish", status: "critical" },
   ],
 
-  // Logs (unchanged)
   logs: [
     { time: "14:32:15", level: "WARN", message: "High CPU usage detected (72%)", scope: "system" },
     { time: "14:31:02", level: "INFO", message: "Nginx request rate increased to 12 req/s", scope: "nginx" },
