@@ -65,10 +65,11 @@ export default function QuoteCard({ quote: initialQuote }) {
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(`"${currentQuote.text}" — ${currentQuote.author}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const textToCopy = `Quote of the day\n\n"${currentQuote.text}"\n\n– ${currentQuote.author}`;
+  navigator.clipboard.writeText(textToCopy);
+  setCopied(true);
+  setTimeout(() => setCopied(false), 2000);
+};
 
   const handleSave = () => {
     const savedQuotes = localStorage.getItem('savedQuotes');
