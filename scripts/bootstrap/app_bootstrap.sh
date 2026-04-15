@@ -646,6 +646,14 @@ def get_metadata(path, timeout=2):
     except Exception:
         return "unknown"
 
+# ------------------------------------------------------------
+# METADATA - Get machine type
+# ------------------------------------------------------------
+def get_machine_type():
+    """Fetch machine type from GCP metadata."""
+    full = get_metadata("instance/machine-type")
+    return full.split('/')[-1] if '/' in full else full
+    
 # ----------------------------------------------------------------------
 # COST ESTIMATION (heuristic, cloud‑specific)
 # ----------------------------------------------------------------------
