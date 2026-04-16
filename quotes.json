@@ -11,16 +11,16 @@
     "id": 2,
     "text": "It's no use going back to yesterday because I was a different person then.",
     "speaker": "Alice",
-    "author": null,
+    "author": "Lewis Carroll",
     "source": "Alice in Wonderland",
     "tags": ["growth", "change"]
   },
   {
     "id": 3,
     "text": "Nothing comes from nothing; nothing ever could. Do something!",
-    "speaker": "Richard Rodgers & Oscar Hammerstein II",
-    "author": null,
-    "source": "The Sound of Music",
+    "speaker": "Maria, Captain von Trapp",
+    "author": "Richard Rodgers, Oscar Hammerstein II",
+    "source": "'Something Good' (The Sound of Music)",
     "tags": ["action", "motivation"]
   },
   {

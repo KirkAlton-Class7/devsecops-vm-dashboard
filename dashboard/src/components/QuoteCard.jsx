@@ -35,7 +35,7 @@ function getAttribution(quote) {
       }
     } else if (source) {
       // Only speaker + source (no separate author)
-      secondary = [`source: ${source}`];
+      secondary = [`from ${source}`];
     }
   } else if (author) {
     primary = formatNameList(author);

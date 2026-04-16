@@ -5,8 +5,8 @@ Serves /healthz (plain text) and /metadata (JSON).
 """
 
 import json
-import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import subprocess
 
 
 def get_metadata(path, timeout=2):
@@ -23,7 +23,7 @@ def get_metadata(path, timeout=2):
             capture_output=True,
             text=True,
             timeout=timeout,
-            check=False
+            check=False          # Don't raise on non-zero exit – we'll handle manually
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
@@ -35,95 +35,52 @@ def get_metadata(path, timeout=2):
         return "unknown"
 
 
-def safe_basename(full_path):
-    """Extract last component of a resource path (e.g., projects/123/networks/default -> default)."""
-    if not full_path or full_path == "unknown":
-        return full_path
-    return full_path.split('/')[-1]
-
-
-def get_uptime():
-    """Return human-readable uptime (e.g., 'up 2 hours, 3 minutes')."""
-    try:
-        result = subprocess.run(["uptime", "-p"], capture_output=True, text=True, timeout=2)
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
-    except Exception:
-        pass
-    # Fallback: read /proc/uptime
-    try:
-        with open("/proc/uptime", "r") as f:
-            seconds = float(f.read().split()[0])
-            minutes = int(seconds // 60)
-            hours = int(minutes // 60)
-            days = int(hours // 24)
-            minutes = minutes % 60
-            hours = hours % 24
-            if days > 0:
-                return f"up {days} day{'s' if days != 1 else ''}, {hours} hour{'s' if hours != 1 else ''}, {minutes} minute{'s' if minutes != 1 else ''}"
-            elif hours > 0:
-                return f"up {hours} hour{'s' if hours != 1 else ''}, {minutes} minute{'s' if minutes != 1 else ''}"
-            else:
-                return f"up {minutes} minute{'s' if minutes != 1 else ''}"
-    except Exception:
-        return "unknown"
-
-
 class MonitoringHandler(BaseHTTPRequestHandler):
     """
     Handles HTTP GET requests for /healthz and /metadata.
     """
 
     def do_GET(self):
-        # Health endpoint
+        # -------------------------------------------------
+        # 1) Health endpoint – returns "OK" (plain text)
+        # -------------------------------------------------
         if self.path == '/healthz':
             self.send_response(200)
             self.send_header('Content-type', 'text/plain')
             self.end_headers()
             self.wfile.write(b'OK')
 
-        # Metadata endpoint
+        # -------------------------------------------------
+        # 2) Metadata endpoint – returns VM info as JSON
+        # -------------------------------------------------
         elif self.path == '/metadata':
             try:
-                # ----- Core identity -----
+                # ----- Core identity + naming -----
                 instance_id   = get_metadata("instance/id")
                 instance_name = get_metadata("instance/name")
                 hostname      = get_metadata("instance/hostname")
-                project_id    = get_metadata("project/project-id")
 
-                # ----- Infrastructure -----
+                # ----- Infrastructure details -----
                 machine_type_full = get_metadata("instance/machine-type")
-                machine_type = safe_basename(machine_type_full)
+                machine_type = machine_type_full.split('/')[-1] if '/' in machine_type_full else machine_type_full
 
                 internal_ip   = get_metadata("instance/network-interfaces/0/ip")
                 external_ip   = get_metadata("instance/network-interfaces/0/access-configs/0/external-ip")
 
-                # ----- Networking (VPC & subnet) -----
-                vpc_full   = get_metadata("instance/network-interfaces/0/network")
-                subnet_full = get_metadata("instance/network-interfaces/0/subnetwork")
-                vpc        = safe_basename(vpc_full)
-                subnet     = safe_basename(subnet_full)
-
-                # ----- Location & uptime -----
+                # ----- Region parsing -----
                 zone_full = get_metadata("instance/zone")
-                zone = safe_basename(zone_full)
+                zone = zone_full.split('/')[-1] if '/' in zone_full else zone_full
                 region = zone.rsplit('-', 1)[0] if '-' in zone else "unknown"
-                uptime = get_uptime()
 
                 # ----- Build JSON response -----
                 metadata = {
                     "instance_id": instance_id,
                     "instance_name": instance_name,
                     "hostname": hostname,
-                    "project_id": project_id,
                     "machine_type": machine_type,
                     "internal_ip": internal_ip,
                     "external_ip": external_ip,
-                    "vpc": vpc,
-                    "subnet": subnet,
-                    "region": region,
-                    "zone": zone,
-                    "uptime": uptime
+                    "region": region
                 }
 
                 self.send_response(200)
@@ -132,17 +89,21 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(metadata).encode())
 
             except Exception as e:
+                # Catch-all for any unexpected errors
                 self.send_response(500)
                 self.send_header('Content-type', 'text/plain')
                 self.end_headers()
                 self.wfile.write(f"Error fetching metadata: {e}".encode())
 
+        # -------------------------------------------------
+        # 3) 404 for any other path
+        # -------------------------------------------------
         else:
             self.send_response(404)
             self.end_headers()
 
     def log_message(self, format, *args):
-        """Suppress default HTTP server logging."""
+        """Suppress default HTTP server logging (clean console output)."""
         return
 
 

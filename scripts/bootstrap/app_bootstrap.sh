@@ -757,6 +757,12 @@ region = zone.rsplit('-', 1)[0] if '-' in zone else "unknown"
 # Parse machine type
 machine_type = machine_full.split('/')[-1] if '/' in machine_full else machine_full
 
+# Fetch VPC and subnet from metadata
+vpc_full = get_metadata("instance/network-interfaces/0/network")
+subnet_full = get_metadata("instance/network-interfaces/0/subnetwork")
+vpc = vpc_full.split('/')[-1] if '/' in vpc_full else vpc_full
+subnet = subnet_full.split('/')[-1] if '/' in subnet_full else subnet_full
+
 # ------------------------------------------------------------
 # LOAD QUOTES
 # ------------------------------------------------------------
@@ -886,8 +892,8 @@ data = {
         "machineType": machine_type
     },
     "network": {
-        "vpc": "default",
-        "subnet": f"{region}-subnet" if region != "unknown" else "default-subnet",
+        "vpc": vpc if vpc != "unknown" else "default",
+        "subnet": subnet if subnet != "unknown" else f"{region}-subnet",
         "internalIp": internal_ip,
         "externalIp": external_ip
     },
