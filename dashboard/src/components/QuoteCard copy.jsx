@@ -3,54 +3,6 @@ import { useState, useEffect } from "react";
 import { Quote, RefreshCw, Bookmark, Copy, Check, BookmarkCheck, Heart, Star, X } from "lucide-react";
 import Card from "./Card";
 
-// Helper to format a comma-separated name list with "and"
-function formatNameList(nameStr) {
-  if (!nameStr || nameStr.trim() === '') return '';
-  const names = nameStr.split(',').map(s => s.trim()).filter(s => s);
-  if (names.length === 0) return '';
-  if (names.length === 1) return names[0];
-  const last = names.pop();
-  return `${names.join(', ')} and ${last}`;
-}
-
-// Helper to get primary and secondary attribution from a quote
-function getAttribution(quote) {
-  let primary = '';
-  let secondary = []; // array of strings (each line)
-
-  const speaker = quote.speaker ? quote.speaker.trim() : '';
-  const author = quote.author ? quote.author.trim() : '';
-  const source = quote.source ? quote.source.trim() : '';
-
-  // Primary: speaker > author > source
-  if (speaker) {
-    primary = formatNameList(speaker);
-    if (author && author !== speaker) {
-      if (source) {
-        // Three lines: speaker, then from source, then by author
-        secondary = [`from ${source}`, `by ${formatNameList(author)}`];
-      } else {
-        // Only speaker + author
-        secondary = [`from ${formatNameList(author)}`];
-      }
-    } else if (source) {
-      // Only speaker + source (no separate author)
-      secondary = [`source: ${source}`];
-    }
-  } else if (author) {
-    primary = formatNameList(author);
-    if (source) {
-      secondary = [`from ${source}`];
-    }
-  } else if (source) {
-    primary = source;
-  } else {
-    primary = 'Unknown';
-  }
-
-  return { primary, secondary };
-}
-
 export default function QuoteCard({ quote: initialQuote }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -113,15 +65,11 @@ export default function QuoteCard({ quote: initialQuote }) {
   };
 
   const handleCopy = () => {
-    const { primary, secondary } = getAttribution(currentQuote);
-    let textToCopy = `Quote of the day\n\n"${currentQuote.text}"\n\n– ${primary}`;
-    if (secondary.length > 0) {
-      textToCopy += `\n${secondary.join('\n')}`;
-    }
-    navigator.clipboard.writeText(textToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const textToCopy = `Quote of the day\n\n"${currentQuote.text}"\n\n– ${currentQuote.author}`;
+  navigator.clipboard.writeText(textToCopy);
+  setCopied(true);
+  setTimeout(() => setCopied(false), 2000);
+};
 
   const handleSave = () => {
     const savedQuotes = localStorage.getItem('savedQuotes');
@@ -153,9 +101,6 @@ export default function QuoteCard({ quote: initialQuote }) {
     loadFavorites();
   };
 
-  // Get attribution for current quote
-  const { primary: currentPrimary, secondary: currentSecondary } = currentQuote ? getAttribution(currentQuote) : { primary: '', secondary: [] };
-
   return (
     <>
       <motion.div
@@ -181,14 +126,14 @@ export default function QuoteCard({ quote: initialQuote }) {
                 
                 <AnimatePresence mode="wait">
                   <motion.p
-                    key={currentQuote?.text}
+                    key={currentQuote.text}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
                     className="text-base lg:text-lg leading-relaxed text-slate-200 flex-1"
                   >
-                    "{currentQuote?.text}"
+                    "{currentQuote.text}"
                   </motion.p>
                 </AnimatePresence>
               </div>
@@ -199,14 +144,10 @@ export default function QuoteCard({ quote: initialQuote }) {
                     className="text-sm font-medium bg-gradient-to-r from-slate-200 to-slate-300 bg-clip-text text-transparent"
                     whileHover={{ x: 5 }}
                   >
-                    — {currentPrimary}
+                    — {currentQuote.author}
                   </motion.p>
-                  {currentSecondary.length > 0 && (
-                    <div className="mt-1 space-y-0.5">
-                      {currentSecondary.map((line, idx) => (
-                        <p key={idx} className="text-xs text-slate-500">{line}</p>
-                      ))}
-                    </div>
+                  {currentQuote.source && (
+                    <p className="text-xs text-slate-500 mt-1">from {currentQuote.source}</p>
                   )}
                 </div>
                 
@@ -297,37 +238,28 @@ export default function QuoteCard({ quote: initialQuote }) {
                 {favorites.length === 0 ? (
                   <p className="text-center text-slate-400 py-8">No favorites yet. Click the bookmark button to save quotes!</p>
                 ) : (
-                  favorites.map((fav, idx) => {
-                    const { primary, secondary } = getAttribution(fav);
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => handleSelectFavorite(fav)}
-                        className="group p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all cursor-pointer border border-white/10"
-                      >
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1">
-                            <p className="text-sm text-slate-200">"{fav.text.substring(0, 100)}..."</p>
-                            <p className="text-xs text-slate-400 mt-1">— {primary}</p>
-                            {secondary.length > 0 && (
-                              <div className="mt-1 space-y-0.5">
-                                {secondary.map((line, i) => (
-                                  <p key={i} className="text-xs text-slate-500">{line}</p>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <button
-                            onClick={(e) => handleRemoveFavorite(fav, e)}
-                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
-                            title="Remove from favorites"
-                          >
-                            <X className="w-4 h-4 text-red-400" />
-                          </button>
+                  favorites.map((fav, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => handleSelectFavorite(fav)}
+                      className="group p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all cursor-pointer border border-white/10"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex-1">
+                          <p className="text-sm text-slate-200">"{fav.text.substring(0, 100)}..."</p>
+                          <p className="text-xs text-slate-400 mt-1">— {fav.author}</p>
+                          {fav.source && <p className="text-xs text-slate-500 mt-1">from {fav.source}</p>}
                         </div>
+                        <button
+                          onClick={(e) => handleRemoveFavorite(fav, e)}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
+                          title="Remove from favorites"
+                        >
+                          <X className="w-4 h-4 text-red-400" />
+                        </button>
                       </div>
-                    );
-                  })
+                    </div>
+                  ))
                 )}
               </div>
             </motion.div>

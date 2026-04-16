@@ -2,6 +2,7 @@
   {
     "id": 1,
     "text": "Never miss a good chance to shut up and listen.",
+    "speaker": null,
     "author": "Will Rogers",
     "source": null,
     "tags": ["listening", "wisdom"]
@@ -9,27 +10,31 @@
   {
     "id": 2,
     "text": "It's no use going back to yesterday because I was a different person then.",
-    "author": "Alice",
+    "speaker": "Alice",
+    "author": null,
     "source": "Alice in Wonderland",
     "tags": ["growth", "change"]
   },
   {
     "id": 3,
     "text": "Nothing comes from nothing; nothing ever could. Do something!",
-    "author": "Richard Rodgers & Oscar Hammerstein II",
+    "speaker": "Richard Rodgers & Oscar Hammerstein II",
+    "author": null,
     "source": "The Sound of Music",
     "tags": ["action", "motivation"]
   },
   {
     "id": 4,
     "text": "Battles aren’t lost from fatigue; they’re lost from losing will.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["resilience", "discipline"]
   },
   {
     "id": 5,
     "text": "Maybe midnight was the hour of answers.",
+    "speaker": null,
     "author": "Quiara Alegría Hudes",
     "source": null,
     "tags": ["reflection", "insight"]
@@ -37,6 +42,7 @@
   {
     "id": 6,
     "text": "As a man dances, there are drums beaten for him.",
+    "speaker": null,
     "author": "Chinua Achebe",
     "source": null,
     "tags": ["life", "consequences"]
@@ -44,13 +50,15 @@
   {
     "id": 7,
     "text": "The greatest battles are fought in silence; in your soul.",
-    "author": "Ezra Taft Benson",
+    "speaker": "Ezra Taft Benson",
+    "author": null,
     "source": null,
     "tags": ["inner struggle", "mental strength"]
   },
   {
     "id": 8,
     "text": "All great minds contain within them a touch of madness.",
+    "speaker": null,
     "author": "Aristotle",
     "source": null,
     "tags": ["creativity", "genius"]
@@ -58,41 +66,47 @@
   {
     "id": 9,
     "text": "Fear of a name increases fear of the thing itself.",
+    "speaker": "Albus Dumbledore",
     "author": "J.K. Rowling",
-    "source": null,
+    "source": "Harry Potter and the Sorcerer's Stone",
     "tags": ["fear", "psychology"]
   },
   {
     "id": 10,
     "text": "Believe in yourself; you’re capable of more than you imagine.",
-    "author": "Roy T. Bennett",
+    "speaker": "Roy T. Bennett",
+    "author": null,
     "source": null,
     "tags": ["self-belief", "motivation"]
   },
   {
     "id": 11,
     "text": "Don't wish the work were easier. Wish you were better.",
-    "author": "Jim Rohn",
+    "speaker": "Jim Rohn",
+    "author": null,
     "source": null,
     "tags": ["growth", "discipline"]
   },
   {
     "id": 12,
     "text": "If you want something valuable, you must give something valuable.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["value", "exchange"]
   },
   {
     "id": 13,
     "text": "Lately, I find my mind considering an array of choices.",
-    "author": "Demrezel",
-    "source": "Foundation",
+    "speaker": "Demrezel",
+    "author": "Isaac Asimov",
+    "source": "The Foundation",
     "tags": ["decision-making", "reflection"]
   },
   {
     "id": 14,
     "text": "Even a soul submerged in sleep is hard at work.",
+    "speaker": null,
     "author": "Heraclitus",
     "source": "Fragments",
     "tags": ["mind", "philosophy"]
@@ -100,6 +114,7 @@
   {
     "id": 15,
     "text": "You can’t cross the sea by staring at the water.",
+    "speaker": null,
     "author": "Rabindranath Tagore",
     "source": null,
     "tags": ["action", "courage"]
@@ -107,48 +122,55 @@
   {
     "id": 16,
     "text": "To succeed, planning alone is insufficient. One must improvise also.",
-    "author": "Salvor Hardin",
-    "source": "Foundation",
+    "speaker": "Salvor Hardin",
+    "author": "Isaac Asimov",
+    "source": "The Foundation",
     "tags": ["strategy", "adaptability"]
   },
   {
     "id": 17,
     "text": "What I expect from you is to not give up.",
-    "author": "@Theo WAF",
+    "speaker": null,
+    "author": "Theo WAF",
     "source": null,
     "tags": ["perseverance"]
   },
   {
     "id": 18,
     "text": "We all make choices in life, but in the end, our choices make us.",
-    "author": "Andrew Ryan",
+    "speaker": "Andrew Ryan",
+    "author": "Irrational Games",
     "source": "BioShock",
     "tags": ["choices", "identity"]
   },
   {
     "id": 19,
     "text": "It always seems bad, but then I find a way.",
-    "author": "Samurai Jack",
-    "source": null,
+    "speaker": "Samurai Jack",
+    "author": "Genndy Tartakovsky",
+    "source": "Samurai Jack",
     "tags": ["resilience", "optimism"]
   },
   {
     "id": 20,
     "text": "Everybody falls the first time.",
-    "author": "Cypher",
+    "speaker": "Cypher",
+    "author": "Lana Wachowski, Lilly Wachowski",
     "source": "The Matrix",
     "tags": ["learning", "failure"]
   },
   {
     "id": 21,
     "text": "You get used to it. I don't even see the code anymore.",
-    "author": "Cypher",
+    "speaker": "Cypher",
+    "author": "Lana Wachowski, Lilly Wachowski",
     "source": "The Matrix",
     "tags": ["adaptation", "experience"]
   },
   {
     "id": 22,
     "text": "Perfection isn’t possible, but chasing it helps you catch excellence.",
+    "speaker": null,
     "author": "Vince Lombardi",
     "source": null,
     "tags": ["excellence", "growth"]
@@ -156,34 +178,39 @@
   {
     "id": 23,
     "text": "It’s the question that drives you. It brought you here.",
-    "author": "Trinity",
+    "speaker": "Trinity",
+    "author": "Lana Wachowski, Lilly Wachowski",
     "source": "The Matrix",
     "tags": ["purpose", "curiosity"]
   },
   {
     "id": 24,
     "text": "It’s Christmas. We’re going to Applebee’s after this!",
-    "author": "Bowery King",
+    "speaker": "Bowery King",
+    "author": "Chad Stahelski",
     "source": "John Wick: Chapter 2",
     "tags": ["humor"]
   },
   {
     "id": 25,
     "text": "So be it. The path to paradise begins in hell.",
-    "author": "The Director",
+    "speaker": "The Director",
+    "author": "Chad Stahelski",
     "source": "John Wick 3",
     "tags": ["struggle", "journey"]
   },
   {
     "id": 26,
     "text": "If it doesn’t challenge you, then it doesn’t change you.",
-    "author": "Jennifer Lau",
+    "speaker": "Jennifer Lau",
+    "author": "Apple Fitness+",
     "source": null,
     "tags": ["growth", "challenge"]
   },
   {
     "id": 27,
     "text": "Success is the sum of small efforts repeated every day.",
+    "speaker": null,
     "author": "Robert Collier",
     "source": null,
     "tags": ["consistency", "success"]
@@ -191,6 +218,7 @@
   {
     "id": 28,
     "text": "The greatest loss is what dies inside while still alive.",
+    "speaker": null,
     "author": "Norman Cousins",
     "source": null,
     "tags": ["purpose", "regret"]
@@ -198,6 +226,7 @@
   {
     "id": 29,
     "text": "Keep setting goals, push forward and choose discipline over comfort.",
+    "speaker": null,
     "author": "Chuck Norris",
     "source": null,
     "tags": ["discipline", "goals"]
@@ -205,6 +234,7 @@
   {
     "id": 30,
     "text": "He who has a why to live for can bear almost any how.",
+    "speaker": null,
     "author": "Friedrich Nietzsche",
     "source": null,
     "tags": ["purpose", "resilience"]
@@ -212,6 +242,7 @@
   {
     "id": 31,
     "text": "Success is achieved by ordinary people with extraordinary determination.",
+    "speaker": null,
     "author": "Zig Ziglar",
     "source": null,
     "tags": ["success", "determination"]
@@ -219,6 +250,7 @@
   {
     "id": 32,
     "text": "Perseverance is the hard work you do after you get tired of doing the hard work you already did.",
+    "speaker": null,
     "author": "Newt Gingrich",
     "source": null,
     "tags": ["perseverance", "effort"]
@@ -226,6 +258,7 @@
   {
     "id": 33,
     "text": "I have no special talents. I am only passionately curious.",
+    "speaker": null,
     "author": "Albert Einstein",
     "source": null,
     "tags": ["curiosity", "learning"]
@@ -233,6 +266,7 @@
   {
     "id": 34,
     "text": "If you’re going through hell, keep going.",
+    "speaker": null,
     "author": "Winston Churchill",
     "source": null,
     "tags": ["resilience"]
@@ -240,6 +274,7 @@
   {
     "id": 35,
     "text": "The bitterness of poor quality remains long after the sweetness of low price is forgotten.",
+    "speaker": null,
     "author": "Benjamin Franklin",
     "source": null,
     "tags": ["quality", "value"]
@@ -247,6 +282,7 @@
   {
     "id": 36,
     "text": "If you're not making a mistake, it's a mistake.",
+    "speaker": null,
     "author": "Miles Davis",
     "source": null,
     "tags": ["learning", "risk"]
@@ -254,6 +290,7 @@
   {
     "id": 37,
     "text": "You can’t build a reputation on what you are going to do.",
+    "speaker": null,
     "author": "Henry Ford",
     "source": null,
     "tags": ["action", "reputation"]
@@ -261,13 +298,15 @@
   {
     "id": 38,
     "text": "We are what we pretend to be, so we must be careful about what we pretend to be.",
+    "speaker": null,
     "author": "Kurt Vonnegut",
-    "source": null,
+    "source": "Mother Night",
     "tags": ["identity", "behavior"]
   },
   {
     "id": 39,
     "text": "Easy choices, hard life. Hard choices, easy life.",
+    "speaker": null,
     "author": "Jerzy Gregorek",
     "source": null,
     "tags": ["discipline", "choices"]
@@ -275,20 +314,23 @@
   {
     "id": 40,
     "text": "It’s supposed to be hard. If it wasn’t hard, everyone would do it. The hard is what makes it great.",
-    "author": "Jimmy",
+    "speaker": "Jimmy",
+    "author": "Penny Marshall",
     "source": "A League of Their Own",
     "tags": ["difficulty", "greatness"]
   },
   {
     "id": 41,
     "text": "Commit yourself to today and secure a better tomorrow.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["discipline", "future", "focus"]
   },
   {
     "id": 42,
     "text": "It costs nothing to teach something, and everything to learn.",
+    "speaker": null,
     "author": "The Lead Attorney",
     "source": null,
     "tags": ["learning", "teaching", "growth"]
@@ -296,13 +338,15 @@
   {
     "id": 43,
     "text": "No such thing as a fight that can’t be lost.",
-    "author": "Piccolo",
+    "speaker": "Piccolo",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball Super",
     "tags": ["reality", "battle", "risk"]
   },
   {
     "id": 44,
     "text": "Those who make peaceful resolution impossible make violent revolution inevitable.",
+    "speaker": null,
     "author": "John F. Kennedy",
     "source": null,
     "tags": ["politics", "conflict", "power"]
@@ -310,55 +354,63 @@
   {
     "id": 45,
     "text": "Your own strength keeps you alive. Everything you need is in you.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["self-reliance", "strength", "mindset"]
   },
   {
     "id": 46,
     "text": "Courage truly shines only in the darkest depths of fear.",
-    "author": "Unattributed",
+    "speaker": "Mob",
+    "author": "ONE",
     "source": "Mob Psycho 100",
     "tags": ["courage", "fear", "growth"]
   },
   {
     "id": 47,
     "text": "I don’t engage ignorance; you’re not entitled to uninformed opinions.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["wisdom", "boundaries", "intellect"]
   },
   {
     "id": 48,
     "text": "Life can be tough but the ride is worth it!",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["life", "resilience", "optimism"]
   },
   {
     "id": 49,
     "text": "Never stop letting life grow you into a better person!",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["growth", "self-improvement"]
   },
   {
     "id": 50,
     "text": "Always believe something great is going to happen to you!",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["belief", "optimism", "mindset"]
   },
   {
     "id": 51,
     "text": "I asked the stars what to do, they just shined.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["reflection", "philosophy", "uncertainty"]
   },
   {
     "id": 52,
     "text": "Either you run the day or the day runs you.",
+    "speaker": null,
     "author": "Jim Rohn",
     "source": null,
     "tags": ["discipline", "control", "time"]
@@ -366,6 +418,7 @@
   {
     "id": 53,
     "text": "You were born an original, so don't die a copy.",
+    "speaker": null,
     "author": "John Mason",
     "source": null,
     "tags": ["individuality", "identity"]
@@ -373,97 +426,111 @@
   {
     "id": 54,
     "text": "Success will only come to those who dare to attempt.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["success", "risk", "action"]
   },
   {
     "id": 55,
     "text": "Life is difficult, choose your difficult before it chooses you.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["discipline", "choices", "hardship"]
   },
   {
     "id": 56,
     "text": "Live the moment, cherish the experience and go for more!",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["presence", "life", "experience"]
   },
   {
     "id": 57,
     "text": "If there can be no victory, then I'll fight forever.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["perseverance", "fight", "determination"]
   },
   {
     "id": 58,
     "text": "A question opens the mind, a statement closes the mind.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["thinking", "curiosity", "learning"]
   },
   {
     "id": 59,
     "text": "Life is a game. When you lose, always choose continue.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["resilience", "mindset", "life"]
   },
   {
     "id": 60,
     "text": "Don’t laugh if unfunny. Don’t scratch if it don’t itch.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["authenticity", "self-control"]
   },
   {
     "id": 61,
     "text": "The hen pecks a cock and makes him a crow.",
-    "author": "Lord Ichimonji",
+    "speaker": "Lord Ichimonji",
+    "author": "Akira Kurosawa",
     "source": "Ran",
     "tags": ["power", "influence", "transformation"]
   },
   {
     "id": 62,
     "text": "My favorite sort of problem is one that handles itself.",
-    "author": "Vados",
+    "speaker": "Vados",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball Super",
     "tags": ["strategy", "efficiency"]
   },
   {
     "id": 63,
     "text": "You can either make excuses or you make it work.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["accountability", "action"]
   },
   {
     "id": 64,
     "text": "There’s nothing you can hold on to in this world.",
-    "author": "Wudan Master",
+    "speaker": "Wudan Master",
+    "author": "Ang Lee",
     "source": "Crouching Tiger Hidden Dragon",
     "tags": ["impermanence", "philosophy"]
   },
   {
     "id": 65,
     "text": "Life is like a circle; when something ends, another begins.",
-    "author": "Stranger",
+    "speaker": "Stranger",
+    "author": "Isao Takahata",
     "source": "Princess Kaguya",
     "tags": ["cycles", "life", "change"]
   },
   {
     "id": 66,
     "text": "Might is not one’s outer brawn, it’s their inner strength.",
-    "author": "The Emperor",
+    "speaker": "The Emperor",
+    "author": "Genndy Tartakovsky",
     "source": "Samurai Jack",
     "tags": ["strength", "inner strength"]
   },
   {
     "id": 67,
     "text": "When we’re at our freest, we’re most susceptible to pain.",
+    "speaker": null,
     "author": "Jeff James",
     "source": null,
     "tags": ["freedom", "vulnerability"]
@@ -471,321 +538,367 @@
   {
     "id": 68,
     "text": "You never ask a fish how to catch a fish.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["strategy", "learning"]
   },
   {
     "id": 69,
     "text": "Everything ends, and we’re lost to the dust of time.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["time", "mortality"]
   },
   {
     "id": 70,
     "text": "Time continues to pass us mercilessly; so many squander it.",
-    "author": "Jinta",
+    "speaker": "Jinta",
+    "author": "Motoo Nakanihi",
     "source": "Kijin Gentoushou",
     "tags": ["time", "discipline", "urgency"]
   },
   {
     "id": 71,
     "text": "Be wary my child, for evil always finds a way.",
-    "author": "The Emperor",
+    "speaker": "The Emperor",
+    "author": "Genndy Tartakovsky",
     "source": "Samurai Jack",
     "tags": ["evil", "warning", "wisdom"]
   },
   {
     "id": 72,
     "text": "Money and power corrupts, especially when it’s new to you.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["power", "corruption", "wealth"]
   },
   {
     "id": 73,
     "text": "When you fall, stand; hold your head two inches higher.",
-    "author": "Captain Sheridan",
+    "speaker": "Captain Sheridan",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["resilience", "pride", "strength"]
   },
   {
     "id": 74,
     "text": "If you run into trouble, walk out of it dignified.",
-    "author": "Delenn",
+    "speaker": "Delenn",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["dignity", "composure", "character"]
   },
   {
     "id": 75,
     "text": "Death is not the enemy to life; death simply is.",
-    "author": "Captain Montoya",
+    "speaker": "Captain Montoya",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["death", "philosophy", "acceptance"]
   },
   {
     "id": 76,
     "text": "Truth is a river; God is the mouth of the river.",
-    "author": "G'Kar",
+    "speaker": "G'Kar",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["truth", "spirituality", "philosophy"]
   },
   {
     "id": 77,
     "text": "Light isn’t the goal of the search, it’s the result.",
-    "author": "G'Kar",
+    "speaker": "G'Kar",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["truth", "journey", "enlightenment"]
   },
   {
     "id": 78,
     "text": "It’s not necessary to know. It’s necessary only to try.",
-    "author": "Lennier",
+    "speaker": "Lennier",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["action", "uncertainty", "courage"]
   },
   {
     "id": 79,
     "text": "Think in steps. Problems can’t be solved all at once.",
-    "author": "Captain Sheridan",
+    "speaker": "Captain Sheridan",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["problem-solving", "strategy", "focus"]
   },
   {
     "id": 80,
     "text": "Life is hard. Can’t carry the load? Grow bigger shoulders.",
-    "author": "Bo",
+    "speaker": "Bo",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["resilience", "strength", "responsibility"]
   },
   {
     "id": 81,
     "text": "People ignore things for convenience. Knowledge is always a burden.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["truth", "ignorance", "human-nature"]
   },
   {
     "id": 82,
     "text": "You always have choices, and those choices always have consequences.",
-    "author": "Captain Sheridan",
+    "speaker": "Captain Sheridan",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["choices", "consequences", "responsibility"]
   },
   {
     "id": 83,
     "text": "Open your mind; slowly, dimly, you can begin to understand.",
-    "author": "Neroon",
+    "speaker": "Neroon",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["understanding", "growth", "mindset"]
   },
   {
     "id": 84,
     "text": "People doubt good news but rarely question the bad news.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["psychology", "bias", "human-nature"]
   },
   {
     "id": 85,
     "text": "Teach others, then step aside and allow them to grow.",
-    "author": "Lorien",
+    "speaker": "Lorien",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["leadership", "teaching", "growth"]
   },
   {
     "id": 86,
     "text": "Skepticism is the mind’s language; what does your heart say?",
-    "author": "Lorien",
+    "speaker": "Lorien",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["reason", "emotion", "balance"]
   },
   {
     "id": 87,
     "text": "Words create meaning. Names have power. Everything was created with words.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["language", "power", "creation"]
   },
   {
     "id": 88,
     "text": "Entropy consumes everything. We all hit bottom sooner or later.",
-    "author": "Mr. Garibaldi",
+    "speaker": "Mr. Garibaldi",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["entropy", "inevitability", "life"]
   },
   {
     "id": 89,
     "text": "Use time wisely; there’s infinite possibilities between tick and tock.",
-    "author": "Lorien",
+    "speaker": "Lorien",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["time", "opportunity", "urgency"]
   },
   {
     "id": 90,
     "text": "Together, all our thoughts form the universe; they’ll always matter.",
-    "author": "G'Kar",
+    "speaker": "G'Kar",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["collective", "existence", "philosophy"]
   },
   {
     "id": 91,
     "text": "Greater than the death of flesh is death of hope.",
-    "author": "G'Kar",
+    "speaker": "G'Kar",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["hope", "despair", "philosophy"]
   },
   {
     "id": 92,
     "text": "I met myself and found out I didn’t like myself.",
-    "author": "Dr. Stephen Franklin",
+    "speaker": "Dr. Stephen Franklin",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["self-awareness", "identity", "reflection"]
   },
   {
     "id": 93,
     "text": "Death is much more important to life than you know.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["death", "life", "philosophy"]
   },
   {
     "id": 94,
     "text": "The war is never won; only new battles to conquer.",
-    "author": "Delenn",
+    "speaker": "Delenn",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["struggle", "conflict", "endurance"]
   },
   {
     "id": 95,
     "text": "You can keep lying to yourself, or you can get help.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["self-awareness", "truth", "accountability"]
   },
   {
     "id": 96,
     "text": "Good news can wait. Bad news will refuse to leave.",
-    "author": "Susan Ivanova",
+    "speaker": "Susan Ivanova",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["reality", "truth", "urgency"]
   },
   {
     "id": 97,
     "text": "Everyone has to live with their own success or failure.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["accountability", "consequences", "responsibility"]
   },
   {
     "id": 98,
     "text": "The burden of knowledge rests on the shoulders of learners.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["knowledge", "responsibility", "learning"]
   },
   {
     "id": 99,
     "text": "All you need to succeed: direction, determination, patience, and strength.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["success", "discipline", "mindset"]
   },
   {
     "id": 100,
     "text": "Get rid of distractions. You can learn much from silence.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["focus", "discipline", "learning"]
   },
   {
     "id": 101,
     "text": "Life is good. Become something special before it’s too late.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["life", "urgency", "purpose"]
   },
   {
     "id": 102,
     "text": "You can’t deal with problems by pretending they don’t exist.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["reality", "problem-solving", "accountability"]
   },
   {
     "id": 103,
     "text": "Forgiveness is a hard thing but something to strive for.",
-    "author": "Father Theo",
+    "speaker": "Father Theo",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["forgiveness", "growth", "virtue"]
   },
   {
     "id": 104,
     "text": "Where does revenge end and justice begin? Forgiveness is hard.",
-    "author": "Captain Sheridan",
+    "speaker": "Captain Sheridan",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["justice", "revenge", "forgiveness"]
   },
   {
     "id": 105,
     "text": "Lesson Number One: A lack of information can kill you.",
-    "author": "Captain Sheridan",
+    "speaker": "Captain Sheridan",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["knowledge", "survival", "awareness"]
   },
   {
     "id": 106,
     "text": "Dreamers, shapers, singers, makers; part of me believes in magic.",
-    "author": "Captain Sheridan",
+    "speaker": "Captain Sheridan",
+    "author": "J. Michael Straczynski",
     "source": "Babylon 5",
     "tags": ["creation", "hope", "imagination"]
   },
   {
     "id": 107,
     "text": "The answer lies within the question. Ask wisely; think deeply.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["thinking", "wisdom", "curiosity"]
   },
   {
     "id": 108,
     "text": "The darkest nights will always come before the brightest mornings.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["hope", "resilience", "optimism"]
   },
   {
     "id": 109,
     "text": "We all have choices. The ones we make define us.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["choices", "identity", "responsibility"]
   },
   {
     "id": 110,
     "text": "This time it really can be different; it has to.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["change", "hope", "determination"]
   },
   {
     "id": 111,
     "text": "Everything comes to an end. Just enjoy the happy moments.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["impermanence", "life", "presence"]
   },
   {
     "id": 112,
     "text": "Life is about lessons; don’t ever stop learning from it.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["learning", "growth", "life"]
   },
   {
     "id": 113,
     "text": "You learn something new every day if you pay attention.",
+    "speaker": null,
     "author": "Kylie W.",
     "source": null,
     "tags": ["learning", "awareness"]
@@ -793,6 +906,7 @@
   {
     "id": 114,
     "text": "Doesn't matter how someone is born but how they grow.",
+    "speaker": null,
     "author": "Alberto S.",
     "source": null,
     "tags": ["growth", "identity"]
@@ -800,6 +914,7 @@
   {
     "id": 115,
     "text": "Hope is time, achieving is time, and becoming is time.",
+    "speaker": null,
     "author": "Jiddu Krishnamurti",
     "source": null,
     "tags": ["time", "growth", "philosophy"]
@@ -807,6 +922,7 @@
   {
     "id": 116,
     "text": "To change: either see the light or feel the heat.",
+    "speaker": null,
     "author": "Tavis Smiley",
     "source": null,
     "tags": ["change", "motivation"]
@@ -814,6 +930,7 @@
   {
     "id": 117,
     "text": "If you don’t handle your business, business will handle you.",
+    "speaker": null,
     "author": "Tim Black",
     "source": null,
     "tags": ["discipline", "accountability"]
@@ -821,6 +938,7 @@
   {
     "id": 118,
     "text": "Feels like it rained in my head for 100 days.",
+    "speaker": null,
     "author": "Linkin Park",
     "source": null,
     "tags": ["emotion", "mental-health"]
@@ -828,6 +946,7 @@
   {
     "id": 119,
     "text": "Progress does not roll in on the wheels of inevitability.",
+    "speaker": null,
     "author": "Dr. Martin Luther King Jr.",
     "source": null,
     "tags": ["progress", "action", "change"]
@@ -835,41 +954,47 @@
   {
     "id": 120,
     "text": "Life can be really challenging, so face it head on.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["resilience", "life"]
   },
   {
     "id": 121,
     "text": "Hard work and resilience turn dreams into reality with discipline.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["discipline", "resilience", "success"]
   },
   {
     "id": 122,
     "text": "You feel so small, but stars are too from afar.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["perspective", "reflection"]
   },
   {
     "id": 123,
     "text": "Life is too short to stress; make every second count.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["time", "life", "urgency"]
   },
   {
     "id": 124,
     "text": "Be patient with yourself. Nothing in nature blooms all year.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["patience", "growth", "nature"]
   },
   {
     "id": 125,
     "text": "Having a goal without a plan is just a wish.",
+    "speaker": null,
     "author": "Antoine de Saint-Exupéry",
     "source": null,
     "tags": ["goals", "planning"]
@@ -877,13 +1002,15 @@
   {
     "id": 126,
     "text": "In life, you prosper when you go your own speed.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["pace", "individuality"]
   },
   {
     "id": 127,
     "text": "Nothing is impossible; the world itself says I am possible.",
+    "speaker": null,
     "author": "Audrey Hepburn",
     "source": null,
     "tags": ["possibility", "mindset"]
@@ -891,41 +1018,47 @@
   {
     "id": 128,
     "text": "Life is what you make of it; so make something!",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["agency", "life", "action"]
   },
   {
     "id": 129,
     "text": "Hate will never win, but pain can be your friend.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["pain", "growth", "emotion"]
   },
   {
     "id": 130,
     "text": "Better to start something late than never start at all.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["action", "procrastination"]
   },
   {
     "id": 131,
     "text": "Don’t let yourself hold you back from achieving your goals.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["self-limitation", "goals"]
   },
   {
     "id": 132,
     "text": "When dragons arise from darkness, fear can fuel your courage.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["fear", "courage", "metaphor"]
   },
   {
     "id": 133,
     "text": "There’s no such conquering weapon as the necessity of conquering.",
+    "speaker": null,
     "author": "George Herbert",
     "source": null,
     "tags": ["necessity", "drive", "power"]
@@ -933,20 +1066,23 @@
   {
     "id": 134,
     "text": "Have discipline today and enjoy the freedom it gives tomorrow.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["discipline", "freedom"]
   },
   {
     "id": 135,
     "text": "Don't rush for gold; sell the shovel or the pan.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["strategy", "wealth"]
   },
   {
     "id": 136,
     "text": "Blue pills yield red oceans; red pills yield blue oceans.",
+    "speaker": null,
     "author": "Theo WAF",
     "source": null,
     "tags": ["strategy", "mindset", "competition"]
@@ -954,6 +1090,7 @@
   {
     "id": 137,
     "text": "People with red ocean mindset work more for much less.",
+    "speaker": null,
     "author": "Theo WAF",
     "source": null,
     "tags": ["strategy", "competition", "efficiency"]
@@ -961,13 +1098,15 @@
   {
     "id": 138,
     "text": "Don't downgrade yourself. Upgrade your mindset to match your vision.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["mindset", "self-worth", "growth"]
   },
   {
     "id": 139,
     "text": "Upskill; be a lifelong learner, stay relevant, and embrace change.",
+    "speaker": null,
     "author": "Mostofa Adib Shakib",
     "source": null,
     "tags": ["learning", "growth", "adaptability"]
@@ -975,27 +1114,31 @@
   {
     "id": 140,
     "text": "Minds are like books, easily read if you know how.",
-    "author": "Master Roshi",
+    "speaker": "Master Roshi",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball",
     "tags": ["psychology", "understanding"]
   },
   {
     "id": 141,
     "text": "Those who do not hear it will eventually feel it.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["consequences", "warning"]
   },
   {
     "id": 142,
     "text": "Close only counts in horseshoes and hand grenades; nothing else.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["precision", "standards"]
   },
   {
     "id": 143,
     "text": "What's real is family. Your family. Hold on to that.",
+    "speaker": null,
     "author": "Dom Toretto",
     "source": "The Fast and the Furious",
     "tags": ["family", "loyalty"]
@@ -1003,20 +1146,23 @@
   {
     "id": 144,
     "text": "Stand face to face and look it in the eye.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["courage", "confrontation"]
   },
   {
     "id": 145,
     "text": "Never forget: All learning requires sacrifice and embarrassment; humble yourself.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["learning", "humility", "growth"]
   },
   {
     "id": 146,
     "text": "Where we’re going, there are no roads; we build them.",
+    "speaker": null,
     "author": "Jules Williams",
     "source": null,
     "tags": ["innovation", "path", "creation"]
@@ -1024,6 +1170,7 @@
   {
     "id": 147,
     "text": "The difference between difficult and impossible is 10% more effort.",
+    "speaker": null,
     "author": "Theo WAF",
     "source": null,
     "tags": ["effort", "mindset", "limits"]
@@ -1031,27 +1178,31 @@
   {
     "id": 148,
     "text": "You have to try. If you don’t, you simply fail.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["action", "risk"]
   },
   {
     "id": 149,
     "text": "Run faster than everyone else who’s running from the bear.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["competition", "survival", "strategy"]
   },
   {
     "id": 150,
     "text": "Better to try and fail than never try at all.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["action", "failure"]
   },
   {
     "id": 151,
     "text": "Use the cards you're given as if you chose them.",
+    "speaker": null,
     "author": "Ruby",
     "source": null,
     "tags": ["acceptance", "mindset"]
@@ -1059,6 +1210,7 @@
   {
     "id": 152,
     "text": "Sacrifice for your dreams, or your dreams will be sacrificed.",
+    "speaker": null,
     "author": "Unknown",
     "source": null,
     "tags": ["sacrifice", "goals"]
@@ -1066,13 +1218,15 @@
   {
     "id": 153,
     "text": "Dragons teach strength isn't destruction, it's mastering the fire within.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["strength", "control", "metaphor"]
   },
   {
     "id": 154,
     "text": "Most I made in gov was the least I made in private.",
+    "speaker": null,
     "author": "Jules Williams",
     "source": null,
     "tags": ["wealth", "career"]
@@ -1080,111 +1234,127 @@
   {
     "id": 155,
     "text": "Succeeded and no one cares. Fail and they all laugh.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["failure", "society"]
   },
   {
     "id": 156,
     "text": "Focus your mind. Distraction is the root of all failure.",
-    "author": "Korin",
+    "speaker": "Korin",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball",
     "tags": ["focus", "discipline"]
   },
   {
     "id": 157,
     "text": "It doesn’t matter what you’re going through; it will pass.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["resilience", "hope"]
   },
   {
     "id": 158,
     "text": "Everything you need is inside of you. Go find it.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["self-reliance", "growth"]
   },
   {
     "id": 159,
     "text": "Take everything 1% at a time and never give up.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["consistency", "discipline"]
   },
   {
     "id": 160,
     "text": "Courage, strength, determination, all qualities required for you to succeed.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["success", "traits"]
   },
   {
     "id": 161,
     "text": "New things are scary, but it gets easier with time.",
-    "author": "Goku",
+    "speaker": "Goku",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball",
     "tags": ["growth", "fear"]
   },
   {
     "id": 162,
     "text": "We must say goodbye before we can say hello again.",
-    "author": "Grandpa Gohan",
+    "speaker": "Grandpa Gohan",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball",
     "tags": ["change", "life"]
   },
   {
     "id": 163,
     "text": "The truth is always upsetting when you live a lie.",
-    "author": "Master Roshi",
+    "speaker": "Master Roshi",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball",
     "tags": ["truth", "self-awareness"]
   },
   {
     "id": 163,
     "text": "Fail forward, hold the line, and you will always prevail.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["resilience", "perseverance"]
   },
   {
     "id": 164,
     "text": "Listen to advice and accept discipline; you will become wise.",
-    "author": "Proverbs",
+    "speaker": null,
+    "author": null,
     "source": "Proverbs 19:20",
     "tags": ["wisdom", "discipline", "learning"]
   },
   {
     "id": 165,
     "text": "It’s sad when plans fail; you should have a backup.",
-    "author": "Tambourine",
+    "speaker": "Tambourine",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball",
     "tags": ["planning", "strategy"]
   },
   {
     "id": 166,
     "text": "There’s always a solution for every obstacle. Go find it.",
-    "author": "Master Roshi",
+    "speaker": "Master Roshi",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball",
     "tags": ["problem-solving", "mindset"]
   },
   {
     "id": 167,
     "text": "Just because you can’t see results doesn’t mean nothing’s happening.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["patience", "progress"]
   },
   {
     "id": 168,
     "text": "Ideas are easy. Execution is hard. Consistency is harder.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["execution", "consistency", "discipline"]
   },
   {
     "id": 169,
     "text": "Learn to deal with imposter syndrome; it will show up.",
+    "speaker": null,
     "author": "Kevin Wilcox",
     "source": null,
     "tags": ["mindset", "self-awareness"]
@@ -1192,6 +1362,7 @@
   {
     "id": 170,
     "text": "Success is always a marathon. It is not a sprint!",
+    "speaker": null,
     "author": "Theo WAF",
     "source": null,
     "tags": ["success", "consistency"]
@@ -1199,6 +1370,7 @@
   {
     "id": 171,
     "text": "What I expect from you is to not give up.",
+    "speaker": null,
     "author": "Theo WAF",
     "source": null,
     "tags": ["perseverance"]
@@ -1206,6 +1378,7 @@
   {
     "id": 172,
     "text": "If you have a problem, you should ask for help.",
+    "speaker": null,
     "author": "Theo WAF",
     "source": null,
     "tags": ["support", "learning"]
@@ -1213,6 +1386,7 @@
   {
     "id": 173,
     "text": "Always go back and help your brother who is struggling.",
+    "speaker": null,
     "author": "Theo WAF",
     "source": null,
     "tags": ["loyalty", "support"]
@@ -1220,6 +1394,7 @@
   {
     "id": 174,
     "text": "You are the new story that someone needs to hear.",
+    "speaker": null,
     "author": "Theo WAF",
     "source": null,
     "tags": ["purpose", "impact"]
@@ -1227,6 +1402,7 @@
   {
     "id": 175,
     "text": "Desperation leads to your collapse or it forces your evolution.",
+    "speaker": null,
     "author": "Breylon Lawrence-Williams",
     "source": null,
     "tags": ["pressure", "growth"]
@@ -1234,27 +1410,31 @@
   {
     "id": 176,
     "text": "The best investment you can ever make is in yourself.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["self-investment", "growth"]
   },
   {
     "id": 177,
     "text": "Your mindset is the most important factor in your success.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["mindset", "success"]
   },
   {
     "id": 178,
     "text": "Success is simply hard work. With concentration, anything is possible.",
-    "author": "Master Mutaito",
+    "speaker": "Master Mutaito",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball",
     "tags": ["discipline", "focus", "success"]
   },
   {
     "id": 179,
     "text": "When you quit, that’s the moment you decide to fail.",
+    "speaker": null,
     "author": "The Math Sorcerer",
     "source": null,
     "tags": ["perseverance", "mindset"]
@@ -1262,20 +1442,23 @@
   {
     "id": 180,
     "text": "Our breath is the only thing that holds us together.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["existence", "life"]
   },
   {
     "id": 181,
     "text": "Doing hard work is YOUR job. Others can only help.",
-    "author": "Kyle Ardill",
+    "speaker": "Kyle Ardil",
+    "author": "Apple Fitness+",
     "source": null,
     "tags": ["responsibility", "discipline"]
   },
   {
     "id": 182,
     "text": "Calmness is power, and positivity is wealth; both are choices.",
+    "speaker": null,
     "author": "Napoleon Hill",
     "source": null,
     "tags": ["mindset", "control"]
@@ -1283,6 +1466,7 @@
   {
     "id": 183,
     "text": "A person who cannot control themselves cannot control their destiny.",
+    "speaker": null,
     "author": "Napoleon Hill",
     "source": null,
     "tags": ["self-control", "discipline"]
@@ -1290,34 +1474,39 @@
   {
     "id": 184,
     "text": "Chase them, they run. Focus on yourself, they get curious.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["focus", "attraction", "mindset"]
   },
   {
     "id": 185,
-    "text": "Make preparations now. When you look up, it’ll be December.",
+    "text": "Put the work in now, 'cause you'll up and its December.",
+    "speaker": null,
     "author": "David Dallas",
-    "source": null,
+    "source": "Bourdain",
     "tags": ["time", "urgency", "planning"]
   },
   {
     "id": 186,
     "text": "Always remember the golden rule: perception is a great defense.",
-    "author": "Kami (disguised as Shen)",
+    "speaker": "Kami (disguised as Shen)",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball",
     "tags": ["perception", "strategy"]
   },
   {
     "id": 187,
     "text": "The most brutal weapons are the ones forged from within.",
-    "author": "Yamcha",
+    "speaker": "Yamcha",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball",
     "tags": ["inner-strength", "power"]
   },
   {
     "id": 188,
     "text": "Every new day gives you another chance to be successful.",
+    "speaker": null,
     "author": "Christopher Webb",
     "source": null,
     "tags": ["opportunity", "success"]
@@ -1325,90 +1514,103 @@
   {
     "id": 189,
     "text": "The dark places you’re in will eventually lead to light.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["hope", "resilience"]
   },
   {
     "id": 190,
     "text": "It’s okay to disappear until you feel like you again.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["mental-health", "healing"]
   },
   {
     "id": 191,
     "text": "You got you here; every decision, every delay and denial.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["accountability", "self-awareness"]
   },
   {
     "id": 192,
     "text": "The only time everything is ‘done’ is when you’re dead.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["life", "urgency"]
   },
   {
     "id": 193,
     "text": "Love isn’t something you fall into. It’s something you choose.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["love", "choice"]
   },
   {
     "id": 194,
     "text": "If you’re not earning what you want, look inward first.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["accountability", "growth"]
   },
   {
     "id": 195,
     "text": "There’s always a choice, even if it’s a hard one.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["choices", "responsibility"]
   },
   {
     "id": 196,
     "text": "The errors you make aren’t failures, they’re your best teachers.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["learning", "failure"]
   },
   {
     "id": 197,
     "text": "Remember this: work hard, stay well, eat and sleep plenty.",
-    "author": "Master Roshi",
+    "speaker": "Master Roshi",
+    "author": "Akira Toriyama",
     "source": "Dragon Ball Super",
     "tags": ["balance", "discipline"]
   },
   {
     "id": 198,
     "text": "Pain is real. It teaches us things we’ll always remember.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["pain", "learning"]
   },
   {
     "id": 199,
     "text": "Practice slow, you grow fast. Practice fast, you grow slow.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["practice", "learning"]
   },
   {
     "id": 200,
     "text": "Technology people who understand business outperform those who don’t.",
-    "author": "Paul Zikopoulos & Christopher Bienko",
+    "speaker": null,
+    "author": "Paul Zikopoulos, Christopher Bienko",
     "source": "Cloud Without Compromise",
     "tags": ["technology", "business", "strategy"]
   },
   {
     "id": 201,
     "text": "Don’t be an island; you’ll get swallowed by the waves.",
+    "speaker": null,
     "author": "Theo WAF",
     "source": null,
     "tags": ["community", "support"]
@@ -1416,13 +1618,15 @@
   {
     "id": 202,
     "text": "The weakest dog always barks loudest; there’s strength in silence.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": null,
     "source": null,
     "tags": ["silence", "strength"]
   },
   {
     "id": 203,
     "text": "It's a lot you have to remember. Just keep studying.",
+    "speaker": null,
     "author": "Yahshua Ball",
     "source": null,
     "tags": ["learning", "discipline"]
@@ -1430,6 +1634,7 @@
   {
     "id": 204,
     "text": "A life of comfort won’t get you what you want.",
+    "speaker": null,
     "author": "Ed Wilson",
     "source": null,
     "tags": ["comfort", "growth"]
@@ -1437,6 +1642,7 @@
   {
     "id": 205,
     "text": "We talk about what we don’t understand until we do.",
+    "speaker": null,
     "author": "Blk Muzlim",
     "source": null,
     "tags": ["learning", "understanding"]
@@ -1444,6 +1650,7 @@
   {
     "id": 206,
     "text": "You have to finish what you started... you have to.",
+    "speaker": null,
     "author": "Jamila Huston",
     "source": "Invasion",
     "tags": ["completion", "discipline"]
@@ -1451,27 +1658,31 @@
   {
     "id": 207,
     "text": "Your mind is a minefield; be careful what you think.",
-    "author": "Nikhil Kapoor",
+    "speaker": "Nikhil Kapoor",
+    "author": "Simon Kinberg, David Weil",
     "source": "Invasion",
     "tags": ["mindset", "thoughts"]
   },
   {
     "id": 208,
     "text": "Goals that feel impossible will become real when you practice.",
-    "author": "Sherica Holman",
+    "speaker": "Sherica Holman",
+    "author": "Apple Fitness+",
     "source": null,
     "tags": ["practice", "goals"]
   },
   {
     "id": 209,
     "text": "Practice every day. Repetition is the heartbeat of your progress.",
-    "author": "Sherica Holman",
+    "speaker": "Sherica Holman",
+    "author": "Apple Fitness+",
     "source": null,
     "tags": ["consistency", "practice"]
   },
   {
     "id": 211,
     "text": "Excuses are the nails that build the house of failure.",
+    "speaker": null,
     "author": "Michael Churchill",
     "source": null,
     "tags": ["discipline", "accountability"]
@@ -1479,6 +1690,7 @@
   {
     "id": 212,
     "text": "Discipline weighs ounces; regret weighs tons. Be disciplined. Eliminate regret.",
+    "speaker": null,
     "author": "Jim Rohn",
     "source": null,
     "tags": ["discipline", "regret"]
@@ -1486,6 +1698,7 @@
   {
     "id": 213,
     "text": "Success is the sum of small efforts repeated every day.",
+    "speaker": null,
     "author": "Robert Collier",
     "source": null,
     "tags": ["success", "consistency"]
@@ -1493,6 +1706,7 @@
   {
     "id": 214,
     "text": "Success comes from preparation, hard work, and learning from failure.",
+    "speaker": null,
     "author": "Colin Powell",
     "source": null,
     "tags": ["success", "discipline", "learning"]
@@ -1500,6 +1714,7 @@
   {
     "id": 215,
     "text": "Success is not in what you have, but who you are.",
+    "speaker": null,
     "author": "Bo Bennett",
     "source": null,
     "tags": ["success", "identity"]
@@ -1507,6 +1722,7 @@
   {
     "id": 216,
     "text": "A dream becomes a goal when the dreamer takes action.",
+    "speaker": null,
     "author": "Bo Bennett",
     "source": null,
     "tags": ["goals", "action"]
@@ -1514,6 +1730,7 @@
   {
     "id": 217,
     "text": "When the economy is down, they always come back around.",
+    "speaker": null,
     "author": "Somebody’s Grandpa",
     "source": null,
     "tags": ["economy", "cycles"]
@@ -1521,6 +1738,7 @@
   {
     "id": 218,
     "text": "The greatest loss is what dies inside while still alive.",
+    "speaker": null,
     "author": "Norman Cousins",
     "source": null,
     "tags": ["purpose", "regret"]
@@ -1528,6 +1746,7 @@
   {
     "id": 219,
     "text": "Frontend looks nice, but learning backend will get you paid.",
+    "speaker": null,
     "author": "Theo WAF",
     "source": null,
     "tags": ["technology", "career", "strategy"]
@@ -1535,253 +1754,305 @@
   {
     "id": 220,
     "text": "Help others. When one person teaches, two people are learning.",
-    "author": "Paul Zikopoulos & Christopher Bienko",
-    "source": null,
+    "speaker": null,
+    "author": "Paul Zikopoulos, Christopher Bienko",
+    "source": "Cloud Without Compromise",
     "tags": ["teaching", "learning"]
   },
   {
     "id": 221,
     "text": "Great work. I knew you would get it right eventually.",
+    "speaker": null,
     "author": "Glorio",
     "source": "Dragon Ball Daima",
     "tags": ["encouragement", "growth"]
   },
   {
     "id": 222,
-    "text": "If it doesn’t challenge you, then it doesn’t change you.",
-    "author": "Jennifer Lau",
-    "source": null,
-    "tags": ["growth", "challenge"]
-  },
-  {
-    "id": 223,
     "text": "Constantly evolve and enjoy each day for what it is.",
+    "speaker": null,
     "author": "Izaya Orihara",
     "source": "Durarara",
     "tags": ["growth", "life"]
   },
   {
-    "id": 224,
+    "id": 223,
     "text": "Two choices: evolve or remain; stagnation is just slow decay.",
+    "speaker": null,
     "author": "Yahshua Ball",
     "source": null,
     "tags": ["growth", "stagnation"]
   },
   {
-    "id": 225,
+    "id": 224,
     "text": "It's okay to struggle. You can always develop yourself.",
+    "speaker": null,
     "author": "Glenn Harrold",
     "source": null,
     "tags": ["growth", "resilience"]
   },
   {
-    "id": 226,
+    "id": 225,
     "text": "Change is the only constant. You evolve or fall behind.",
-    "author": "Unattributed",
+    "speaker": null,
+    "author": "Paul Zikopoulos, Christopher Bienko",
     "source": "Cloud Without Compromise",
     "tags": ["change", "adaptability"]
   },
   {
-    "id": 227,
-    "text": "Memory is like gravity... it just needs a little push.",
-    "author": "Joker",
-    "source": "The Dark Knight (altered)",
+    "id": 226,
+    "text": "Memory is like gravity . . . it just needs a little push.",
+    "speaker": "Joker",
+    "author": "Christopher Nolan",
+    "source": "The Dark Knight",
     "tags": ["memory", "psychology"]
   },
   {
-    "id": 228,
+    "id": 227,
     "text": "What's done in the dark will come to the light.",
-    "author": "Bible",
+    "speaker": null,
+    "author": null,
     "source": "Luke 12:2-3",
     "tags": ["truth", "accountability"]
   },
   {
-    "id": 229,
+    "id": 228,
     "text": "Work in the shadows; emerge when it's time to shine.",
+    "speaker": null,
     "author": "Kirk Alton",
     "source": null,
     "tags": ["strategy", "timing"]
   },
   {
-    "id": 230,
+    "id": 229,
     "text": "The time to meditate is when you don't have time.",
+    "speaker": null,
     "author": "Sydney J. Harris",
     "source": null,
     "tags": ["reflection", "mindfulness"]
   },
   {
-    "id": 231,
+    "id": 230,
     "text": "Open up your mind and let a thousand flowers bloom.",
+    "speaker": null,
     "author": "Mao Zedong",
     "source": null,
     "tags": ["thinking", "openness"]
   },
   {
-    "id": 232,
+    "id": 231,
     "text": "Kid: What's up in the clouds? — Cloud Engineer: A bunch of Linux servers.",
-    "author": "Paul Zikopoulos & Christopher Bienko",
+    "speaker": null,
+    "author": "Paul Zikopoulos, Christopher Bienko",
     "source": "Cloud Without Compromise",
     "tags": ["technology", "humor"]
   },
   {
-    "id": 233,
+    "id": 232,
     "text": "The purpose of memory is to learn from your mistakes.",
+    "speaker": null,
     "author": "Unknown",
     "source": null,
     "tags": ["learning", "memory"]
   },
   {
-    "id": 234,
+    "id": 233,
     "text": "A furious rampaging beast lives deep inside you. Release it.",
-    "author": "Rei Kiriyama",
+    "author": "Chica Umino",
+    "speaker": "Rei Kiriyama",
     "source": "March Comes in Like a Lion",
     "tags": ["inner-strength", "emotion"]
   },
   {
-    "id": 235,
+    "id": 234,
     "text": "Women may betray you, but gaining more pieces never will.",
-    "author": "Okuyasu Yokomizo",
+    "speaker": "Okuyasu Yokomizo",
+    "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
     "tags": ["strategy", "chess"]
   },
   {
-    "id": 236,
+    "id": 235,
     "text": "Life is a game. Keep studying and clear the board!",
+    "speaker": null,
     "author": "Kirk Alton",
     "source": null,
     "tags": ["learning", "strategy"]
   },
   {
-    "id": 237,
+    "id": 236,
     "text": "A real professional can measure their ability with brutal precision.",
-    "author": "Smith",
+    "speaker": "Smith",
+    "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
     "tags": ["self-awareness", "mastery"]
   },
   {
-    "id": 238,
+    "id": 237,
     "text": "Victory or defeat is never guaranteed before the match begins.",
-    "author": "Smith",
+    "speaker": "Smith",
+    "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
     "tags": ["uncertainty", "competition"]
   },
   {
-    "id": 239,
+    "id": 238,
     "text": "You have to keep on trying. That's all that matters.",
-    "author": "Kai Shimada",
+    "speaker": "Kai Shimada",
+    "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
     "tags": ["perseverance"]
   },
   {
-    "id": 240,
+    "id": 239,
     "text": "When you fall, pick up the pieces and move on.",
-    "author": "Rei Kiriyama",
+    "speaker": "Rei Kiriyama",
+    "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
     "tags": ["resilience", "recovery"]
   },
   {
-    "id": 241,
+    "id": 240,
     "text": "It's easier to do something than to worry about it.",
-    "author": "Takashi Hayashida",
+    "speaker": "Takashi Hayashida",
+    "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
     "tags": ["action", "anxiety"]
   },
   {
-    "id": 242,
+    "id": 241,
     "text": "Sometimes life fucks you over. You have to unfuck yourself.",
+    "speaker": null,
     "author": "Serge’s Drill Sergeant",
     "source": null,
     "tags": ["accountability", "resilience"]
   },
   {
-    "id": 243,
+    "id": 242,
     "text": "Don't continue without fixing your errors. Go step by step.",
+    "speaker": null,
     "author": "Ross Agginie",
     "source": null,
     "tags": ["learning", "process"]
   },
   {
-    "id": 244,
+    "id": 243,
     "text": "Help others. When one person teaches, two people are learning.",
-    "author": "Paul Zikopoulos & Christopher Bienko",
+    "speaker": null,
+    "author": "Paul Zikopoulos, Christopher Bienko",
     "source": "Cloud Without Compromise",
     "tags": ["teaching", "learning"]
   },
   {
-    "id": 245,
+    "id": 244,
     "text": "The only way to get good at it is studying.",
-    "author": "Kai Shimada",
+    "speaker": "Kai Shimada",
+    "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
     "tags": ["practice", "learning"]
   },
   {
-    "id": 246,
+    "id": 245,
     "text": "Silence is a good thing; it can make you think.",
+    "speaker": null,
     "author": "Unknown",
     "source": null,
     "tags": ["reflection", "silence"]
   },
   {
-    "id": 247,
+    "id": 246,
     "text": "Moscow rules, watch your back; London rules, cover your arse.",
-    "author": "Diana Taverner",
+    "speaker": "Diana Taverner",
+    "author": "Will Smith",
     "source": "Slow Horses",
     "tags": ["strategy", "awareness"]
   },
   {
-    "id": 248,
+    "id": 247,
     "text": "Not hope, but knowing hope kills you — that kills you.",
-    "author": "Jackson Lamb",
+    "speaker": "Jackson Lamb",
+    "author": "Will Smith",
     "source": "Slow Horses",
     "tags": ["realism", "philosophy"]
   },
   {
-    "id": 249,
+    "id": 248,
     "text": "How you prepare for something determines how you finish it.",
-    "author": "Bakari Williams",
+    "speaker": "Bakari Williams",
+    "author": "Apple Fitness+",
     "source": null,
     "tags": ["preparation", "success"]
   },
   {
-  "id": 250,
+  "id": 249,
   "text": "If fate doesn't make you laugh, then you just don't get the joke.",
-  "author": "Karla",
+  "speaker": "Karla",
+  "author": "Gregory David Roberts",
   "source": "Shantaram",
   "tags": ["fate", "wisdom"]
   },
   {
-    "id": 251,
+    "id": 250,
     "text": "Fear and guilt are the dark angels that haunt rich men. Despair and humiliation haunt the poor.",
-    "author": "Khader Bhai & Lin",
+    "speaker": "Khader Bhai & Lin",
+    "author": "Gregory David Roberts",
     "source": "Shantaram",
     "tags": ["fear", "guilt", "despair", "wealth", "poverty"]
   },
   {
-    "id": 252,
+    "id": 251,
     "text": "Fate's way of beating us in a fair fight is to give us warnings that we hear, but never heed.",
-    "author": "Lin",
+    "speaker": "Lin",
+    "author": "Gregory David Roberts",
     "source": "Shantaram",
     "tags": ["fate", "warning", "wisdom"]
   },
   {
-    "id": 253,
+    "id": 252,
     "text": "The only force more ruthless and cynical than the business of big politics is the politics of big business.",
-    "author": "Didier",
+    "speaker": "Didier",
+    "author": "Gregory David Roberts",
     "source": "Shantaram",
     "tags": ["politics", "business", "power", "cynicism"]
   },
   {
-    "id": 254,
+    "id": 253,
     "text": "Sometimes the lion must roar, just to remind the horse of his fear.",
-    "author": "Abdullah",
+    "speaker": "Abdullah",
+    "author": "Gregory David Roberts",
     "source": "Shantaram",
     "tags": ["courage", "power", "fear", "strength"]
   },
   {
-    "id": 255,
+    "id": 254,
     "text": "If we can't respect the way we earn it, money has no value. If we can't use it to make life better for our families and loved ones, money has no purpose.",
-    "author": "Lin",
+    "speaker": "Lin",
+    "author": "Gregory David Roberts",
     "source": "Shantaram",
     "tags": ["money", "values", "family", "purpose"]
-  }
+  },
+    {
+    "id": 255,
+    "text": "All things are ready if our mind be so",
+    "speaker": "King Henry",
+    "author": "William Shakespeare",
+    "source": "Henry V - Act 4, scene 3",
+    "tags": ["money", "values", "family", "purpose"]
+  },
+    {
+    "id": 256,
+    "text": "If we can't respect the way we earn it, money has no value. If we can't use it to make life better for our families and loved ones, money has no purpose.",
+    "speaker": "Lin",
+    "author": "Gregory David Roberts",
+    "source": "Shantaram",
+    "tags": ["money", "values", "family", "purpose"]
+  },
+  {
+  "id": 257,
+  "text": "In a mad world, only the mad are sane.",
+  "author": "Akira Kurosawa",
+  "speaker": "Hidetora Ichimonji",
+  "source": "Ran",
+  "tags": ["madness", "power", "chaos"]
+}
 ]
