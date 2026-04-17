@@ -446,21 +446,6 @@ def build_dashboard_data():
 
 class MonitoringHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # Dashboard API endpoint
-        if self.path == '/api/dashboard':
-            try:
-                data = build_dashboard_data()
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps(data).encode())
-            except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-type', 'text/plain')
-                self.end_headers()
-                self.wfile.write(f"Error building dashboard data: {e}".encode())
-            return
-
         # Health check endpoint
         if self.path == '/healthz':
             self.send_response(200)
@@ -469,7 +454,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'ok\n')
             return
 
-        # Legacy metadata endpoint
+        # Metadata endpoint
         if self.path == '/metadata':
             try:
                 meta_student = get_metadata("instance/attributes/student_name")
@@ -495,6 +480,27 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 startup_utc = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
                 uptime = get_uptime()
 
+                # ----- Health data (required by instructor's gates) -----
+                load_avg_str = get_load_avg_string()
+
+                # RAM in MB (using your existing get_memory_details)
+                mem = get_memory_details()
+                ram_mb = {
+                    "used": mem.get("used", 0),
+                    "free": mem.get("free", 0),
+                    "total": mem.get("total", 0)
+                }
+
+                # Disk root in human‑readable format
+                disk = get_disk_details()
+                disk_root = {
+                    "size": format_bytes_human(disk.get("total", 0)),
+                    "used": format_bytes_human(disk.get("used", 0)),
+                    "avail": format_bytes_human(disk.get("available", 0)),
+                    "use_pct": f"{get_disk_percent()}%"
+                }
+                
+                # Metadata dictionary
                 metadata = {
                     "student_name": final_student,
                     "project_id": project_id,
@@ -511,8 +517,15 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                     "region": region,
                     "zone": zone,
                     "startup_utc": startup_utc,
-                    "uptime": uptime
+                    "uptime": uptime,
+                    "health": {
+                        "uptime": uptime,
+                        "load_avg": load_avg_str,
+                        "ram_mb": ram_mb,
+                        "disk_root": disk_root
+                    }
                 }
+
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
@@ -524,6 +537,21 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f"Error fetching metadata: {e}".encode())
             return
 
+        # Dashboard API endpoint
+        if self.path == '/api/dashboard':
+            try:
+                data = build_dashboard_data()
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(data).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(f"Error building dashboard data: {e}".encode())
+            return
+        
         # Not found
         self.send_response(404)
         self.end_headers()
