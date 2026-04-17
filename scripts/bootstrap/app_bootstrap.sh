@@ -921,8 +921,8 @@ data = {
         "machineType": machine_type
     },
     "network": {
-        "vpc": vpc if vpc != "unknown" else "default",
-        "subnet": subnet if subnet != "unknown" else f"{region}-subnet",
+        "vpc": vpc
+        "subnet": subnet,
         "internalIp": internal_ip,
         "externalIp": external_ip
     },
