@@ -49,10 +49,10 @@ export default function RealTimeMetrics() {
     }
   };
 
-  // Fetch immediately and then every 30 seconds
+  // Fetch immediately and then every 10 seconds
   useEffect(() => {
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 30000);
+    const interval = setInterval(fetchMetrics, 10000); // Changed from 30000 to 10000
     return () => clearInterval(interval);
   }, []);
 
@@ -171,7 +171,7 @@ export default function RealTimeMetrics() {
                 <TrendingUp className="w-4 h-4 text-cyan-400" />
                 <span className="text-sm text-slate-300 font-medium">CPU Trend History</span>
               </div>
-              <span className="text-xs text-slate-500">Last 10 readings • Every 30s</span>
+              <span className="text-xs text-slate-500">Last 10 readings • Every 10s</span>
             </div>
             
             {/* Bars container - now each bar reflects actual percentage */}
@@ -179,7 +179,7 @@ export default function RealTimeMetrics() {
               {historicalData.map((value, index) => {
                 // Calculate time ago for this bar (newest on right)
                 const readingsAgo = historicalData.length - 1 - index;
-                const secondsAgo = readingsAgo * 30;
+                const secondsAgo = readingsAgo * 10; // Each reading is 10 seconds apart
                 const minutesAgo = Math.floor(secondsAgo / 60);
                 const remainingSeconds = secondsAgo % 60;
                 

@@ -92,6 +92,16 @@ export default function App() {
       }
     }
 
+    // Initial load
+    loadDashboard();
+
+    // Poll every 10 seconds
+    const interval = setInterval(loadDashboard, 10000);
+
+    // Cleanup on unmount
+    return () => clearInterval(interval);
+  }, []); // Empty dependency array means this runs once on mount
+
     async function loadQuotes() {
       try {
         const res = await fetch("/data/quotes.json", { cache: "no-store" });

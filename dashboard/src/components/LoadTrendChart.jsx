@@ -32,10 +32,10 @@ export default function LoadTrendChart() {
     }
   };
 
-  // Fetch immediately and then every 30 seconds
+  // Fetch immediately and then every 10 seconds
   useEffect(() => {
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 30000);
+    const interval = setInterval(fetchMetrics, 10000); // Changed from 30000 to 10000
     return () => clearInterval(interval);
   }, []);
 
@@ -90,7 +90,7 @@ export default function LoadTrendChart() {
             {historicalLoad.map((value, index) => {
               // Calculate time ago for this bar (newest on right)
               const readingsAgo = historicalLoad.length - 1 - index;
-              const secondsAgo = readingsAgo * 30;
+              const secondsAgo = readingsAgo * 10; // Now each reading is 10 seconds apart
               const minutesAgo = Math.floor(secondsAgo / 60);
               const remainingSeconds = secondsAgo % 60;
               

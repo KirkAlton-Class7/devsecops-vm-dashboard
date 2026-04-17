@@ -37,6 +37,8 @@ import subprocess
 import urllib.request
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from functools import wraps
+import time
 
 # -------------------------------
 # Constants
@@ -53,6 +55,21 @@ student_name = "Kirk Alton"
 # -------------------------------
 # Helper Functions
 # -------------------------------
+
+def ttl_cache(seconds):
+    def decorator(func):
+        cache = {}
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            now = time.time()
+            key = (func.__name__, args, tuple(kwargs.items()))
+            if key in cache and (now - cache[key]['time']) < seconds:
+                return cache[key]['value']
+            result = func(*args, **kwargs)
+            cache[key] = {'value': result, 'time': now}
+            return result
+        return wrapper
+    return decorator
 
 def get_metadata(path, timeout=2):
     """Fetch a specific metadata value from the GCE metadata server."""
@@ -143,9 +160,11 @@ def get_load_averages():
         parts = f.read().split()
         return float(parts[0]), float(parts[1])   # (1min, 5min)
 
+@ttl_cache(seconds=60)    # 1 minute – optional
 def get_ssh_status():
     return "Enabled (22/tcp)" if subprocess.call(["systemctl", "is-active", "--quiet", "ssh"]) == 0 else "Disabled"
 
+@ttl_cache(seconds=300)   # 5 minutes
 def get_update_status():
     out = subprocess.run(["apt", "list", "--upgradable", "2>/dev/null"], shell=True, capture_output=True, text=True)
     updates = len([l for l in out.stdout.strip().split("\n") if l and not l.startswith("Listing")])
