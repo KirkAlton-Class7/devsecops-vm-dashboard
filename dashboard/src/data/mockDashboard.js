@@ -114,7 +114,7 @@ export const mockDashboard = {
 
   meta: {
     appName: "DevSecOps",
-    tagline: "Production monitoring • High activity detected",
+    tagline: "Mock Dashboard • Dev/Test | Prod Fallback",
     dashboardUser: "Kirk Alton",
     dashboardName: "DevSecOps Dashboard",
     uptime: "6 days, 14 hours",
