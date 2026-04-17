@@ -18,7 +18,7 @@ DASHBOARD_USER="Kirk Alton"
 DASHBOARD_NAME="DevSecOps Dashboard"
 
 # ---------------------------------------------------------------------------------------------
-# !!! END OF CONFICURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
+# !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
 # ---------------------------------------------------------------------------------------------
 
 # Repo to pull the dashboard code from (can be changed to your fork)

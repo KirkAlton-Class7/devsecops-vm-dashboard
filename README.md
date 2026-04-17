@@ -1,63 +1,266 @@
+---
+
 # DevSecOps Cloud Dashboard
 
-## Version v1.1-dev
+## Version v1.2-dev
 
-A real-time infrastructure monitoring dashboard that automatically deploys on **GCP, AWS, Azure**, or any Linux VM. It provides system metrics (CPU, memory, disk, network), estimated cost and other helpful information. The dashboard also integrates widgets with inspirational quotes, custom screen savers, and an international photo gallery.
-
----
-
-## Features
-
-- **Multi-Cloud Support**: Runs on GCP, AWS, Azure, or any Linux VM
-- **Zero External Services**: No managed monitoring stack required
-- **Real-Time Metrics**: CPU, memory, disk, and network usage
-- **Dynamic Metadata Detection**: Pulls instance data from cloud metadata services
-- **Cost Estimation Engine**: Lightweight, heuristic-based _(in development)_
-- **Static Asset Delivery**: Quotes (GitHub-synced) and photo gallery (Python-generated metadata) served via NGINX
-- **Health Check Endpoint**: `/healthz` for monitoring
-- **Metadata API**: Python-based service exposing VM metadata as JSON
-- **Text Dashboard Mode**: Terminal-style view for metrics, services, and logs
-- **Automatic Re-Deployment** An auto-deploy cron job runs every 15 minutes to detect changes in the repository.
-  If changes are found, it pulls the latest code, rebuilds the application, and redeploys the updated files.
+A real-time infrastructure monitoring dashboard that deploys automatically on **GCP, AWS, Azure**, or any Linux VM. It provides live system metrics, cost estimates, a particle screensaver, an international photo gallery, inspirational quotes, and a terminal-style text mode – all without external monitoring services.
 
 ---
 
-## Cloud Provider Status
+## Features Menu
 
-### GCP (Recommended)
+### Overview
 
-- Full feature support
-- Stable metadata integration
-- All dashboard fields populate correctly
+* Four interactive summary cards:
 
-### Azure
-
-> [!NOTE]
-> Partial metadata support. Experiences inconsistent responses.
-
-> [!BUG]
->
-> - Instance ID unreliable
-> - Machine type missing or incorrect
-> - Subnet not consistently resolved
-> - Region / zone parsing inconsistent
-> - Uptime calculation may drift
-
-### AWS
-
-> [!WARNING]
-> Deployment is unstable and not currently supported. Under active development.
+  * **CPU Usage** – current percentage with color-coded health status
+  * **Memory Usage** – real-time memory consumption
+  * **Disk Usage** – root partition utilization
+  * **Estimated Cost** – heuristic, cloud-specific running cost (approximate)
+* Each card updates every 10 seconds via the live API.
 
 ---
 
-## Future Improvements
+### Load
 
-- Updated scripts for providers (AWS, GCP, Azure), including:
-  - AWS compatibility
-  - Provider adapters for metadata normalization
-  - Billing API integration (AWS, GCP, Azure)
-- Persistent storage for historical metrics
-- More accurate uptime and lifecycle tracking
+* **System Load (1m)** – current load average
+* **Trend Chart** – bar graph of the last 10 load samples (each sample taken every 10 seconds)
+* **Detailed insights**:
+
+  * Peak load over the last 10 readings
+  * Average load
+  * Color-coded status (Normal, Elevated, High, Critical)
+* The chart automatically rescales to the peak load (capped at 5.0).
+
+---
+
+### Ambience
+
+Aesthetic and atmospheric widgets that add character to the dashboard:
+
+* **Featured Quote** – view inspirational quotes (refreshes every 10 seconds, sourced from `quotes.json`; GitHub-synced every 10 minutes)
+* **Screensaver** – interactive particle background. Click to cycle through three modes:
+
+  * *Drift*: drifting cyan particles with connecting lines
+  * *Haze*: kinetic purple particles that randomly settle into one of three geometric quilt patterns
+  * *State*: white static particles that glow and snap to new positions
+* **International Photo Gallery** – images from around the world, dynamically generated from the `/images` folder. Each image includes a title, location, and photographer credit.
+
+---
+
+### VM Information
+
+Grouped into three compact cards:
+
+* **Identity**
+
+  * Project ID
+  * Instance ID
+  * Instance Name
+  * Hostname
+  * Machine Type
+
+* **Network**
+
+  * VPC
+  * Subnet
+  * Internal IP
+  * External IP
+
+* **Location**
+
+  * Region
+  * Zone
+  * Uptime (human-readable)
+  * Load average (5m)
+
+All fields are fetched from the cloud metadata service (with fallbacks) and update live.
+
+---
+
+### System Resources
+
+A detailed widget split into three sections:
+
+* **CPU**
+
+  * Current usage (percentage bar)
+  * Number of cores and frequency (if available)
+  * **Live CPU Trend** – mini line chart updated every 10 seconds, showing the last 20 readings
+
+* **Memory**
+
+  * Total, used, and free (in MB or GB)
+  * Usage bar
+
+* **Disk**
+
+  * Total, used, and available (in MB or GB)
+  * Usage bar
+
+---
+
+### Monitoring Endpoints
+
+Quick access to the built-in HTTP endpoints:
+
+* **`/healthz`** – plain text health check (served by NGINX)
+* **`/metadata`** – JSON with instance metadata + health object (uptime, load average, RAM, disk)
+* **`/api/dashboard`** – live JSON data used by the frontend (not normally exposed to users, but listed for completeness)
+
+Each endpoint is displayed as a clickable link (relative URL) that opens in a new tab.
+
+---
+
+### Featured Quote
+
+* Random quote displayed in the Ambience section.
+* **Bookmark quotes** – click the star icon to add a quote to your favorites list.
+* **Favorites list** – view and manage your saved quotes (stored in browser `localStorage`).
+* Quotes are refreshed every 10 seconds from the live API.
+
+---
+
+### International Photo Gallery
+
+* Static images are scanned from the `/images` directory and displayed in a responsive grid.
+* Image metadata is sourced from `images.json` and saved locally.
+
+* Click the **info icon** on any image to see:
+
+  * Image title
+  * Location (city / country)
+
+* **Save favorites** – mark images you like (stored locally).
+
+* **Book flights** – the ✈️ button opens a new tab in Google Flights with a location pre-filled (uses the image’s location metadata).
+
+* **Living info** – the 🏠 button triggers a Google search for “What is it really like to live in [location]?”
+
+---
+
+### Services
+
+* Displays the health status and performance of key system components:
+
+  * **nginx** – running / stopped
+  * **Python3** – installed / missing
+  * **Metadata Service** – reachable / unreachable
+  * **HTTP Service** – serving / not serving
+  * **Startup Script** – completed / pending
+  * **GitHub Quotes Sync** – successful / failed
+  * **Bootstrap Packages** – list of installed packages
+
+* **Cycle services** – use button or keyboard shortcut to show a custom number of services (3 - 30).
+
+---
+
+### Cycle Application Logs
+
+* Displays the last **X** log entries (default 5, user-configurable up to 30).
+
+* Each log entry shows:
+
+  * Time (HH:MM:SS)
+  * Log level (info, warning, error)
+  * Scope (system, metrics, quotes, nginx, security)
+  * Message
+
+* **Cycle logs** – adjust the number of displayed logs (5 - 30) via the button or keyboard shortcut.
+
+---
+
+### Text Mode
+
+A minimalist, terminal-style view of all the same information, optimized for keyboard navigation and quick copy-paste.
+
+#### How to Use
+
+1. Click the **TEXT MODE** button in the top-right corner.
+
+2. The dashboard switches to a monospace layout showing:
+
+   * Identity, Overview, Network, Location
+   * Monitoring endpoints
+   * Services
+   * Application logs
+
+3. Press `Esc` or click the `[Esc] EXIT` link to return to the graphical dashboard.
+
+#### Keyboard Shortcuts
+
+| Key   | Action                                          |
+| ----- | ----------------------------------------------- |
+| `Esc` | Exit text mode                                  |
+| `C`   | Copy the entire dashboard snapshot to clipboard |
+| `R`   | Refresh the displayed data                      |
+| `H`   | Toggle help overlay                             |
+| `L`   | Cycle the log limit (5 → 10 → 20 → 30)          |
+| `S`   | Cycle the service limit (3 → 5 → 10 → 20 → 30)  |
+
+> [!TIP]
+> All preferences (service limit, log limit, favorite quotes, favorite images) are saved in your browser’s `localStorage`. This data persists across modes and sessions.
+
+---
+
+## Endpoints (Quick Reference)
+
+| Endpoint         | Method | Description                                                                                        |
+| ---------------- | ------ | -------------------------------------------------------------------------------------------------- |
+| `/healthz`       | GET    | Returns `ok\n` (HTTP 200) – confirms NGINX is running.                                             |
+| `/metadata`      | GET    | JSON with VM identity, network details, and a `health` object.                                     |
+| `/api/dashboard` | GET    | Live dashboard data (CPU%, memory%, disk%, cost, quotes, logs, etc.) – used by the React frontend. |
+
+---
+
+### Example `/metadata` response (GCP)
+
+```json
+{
+  "student_name": "Kirk Alton",
+  "project_id": "kirk-devsecops-sandbox",
+  "instance_id": "1234567890123456789",
+  "instance_name": "devsecops-dashboard",
+  "hostname": "devsecops-dashboard.us-central1-a.c...",
+  "machine_type": "e2-medium",
+  "network": {
+    "vpc": "main",
+    "subnet": "private-subnet",
+    "internal_ip": "10.0.0.9",
+    "external_ip": "34.59.220.4"
+  },
+  "region": "us-central1",
+  "zone": "us-central1-a",
+  "startup_utc": "2025-04-17T19:21:15Z",
+  "uptime": "up 2 hours, 3 minutes",
+  "health": {
+    "uptime": "up 2 hours, 3 minutes",
+    "load_avg": "0.12 0.34 0.56",
+    "ram_mb": { "used": 512, "free": 3400, "total": 3912 },
+    "disk_root": { "size": "20G", "used": "2.3G", "avail": "17G", "use_pct": "12%" }
+  }
+}
+```
+
+---
+
+## GCP – Required IAM Role for Subnet Retrieval
+
+> [!IMPORTANT]
+> For the `/metadata` endpoint to return the correct subnet name, the VM’s default Compute Engine service account must have the `roles/compute.viewer` role.
+> Grant it once from your **local machine** (not inside the VM):
+
+```bash
+PROJECT_NUMBER=$(gcloud projects describe YOUR_PROJECT_ID --format="value(projectNumber)")
+DEFAULT_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:${DEFAULT_SA}" \
+  --role="roles/compute.viewer"
+```
+
+If you use a custom service account, grant the role to that account instead.
 
 ---
 
@@ -66,204 +269,71 @@ A real-time infrastructure monitoring dashboard that automatically deploys on **
 > [!IMPORTANT]
 > Deployment is fully automated using a startup script (user-data / startup script).
 
-### Steps
+1. **Copy the appropriate bootstrap script** into your VM’s user-data / startup script field.
 
-1. Copy the appropriate bootstrap script into your VM:
-   - infra/startup/startup.sh
+   * Use `infra/startup/startup.sh` as the wrapper – it installs dependencies, clones the repo, starts the Flask API, and then runs `app_bootstrap.sh`.
 
-2. Launch a VM
-   - Ubuntu 20.04 / 22.04 recommended
-   - Works on Amazon Linux 2 / 2023
+---
 
-3. Wait 5–10 minutes while:
-   - startup.sh
-     - installs dependencies
-     - clones this repo (shallow clone, most recent commit)
-     - starts monitoring server on port **8080**
-     - fetches bootsrap.sh to install dashboard application
-   - bootstrap.sh
-     - installs dependencies
-     - builds React app
-     - starts NGINX on port **80**
-     - serves app and health endpoint on port **80**
+## Dashboard Customization (Bootstrap Script)
 
-> [!NOTE]
-> Logs are written to `/var/log/bootstrap.log` for troubleshooting.
+> See: **`docs/CONFIGURATION.md`** *(placeholder – app_bootstrap.sh customization guide)*
+
+---
+
+2. **Launch a VM** (Ubuntu 20.04 / 22.04 recommended).
+
+3. **Wait 5–10 minutes** while the scripts:
+
+   * Install basic tools (nginx, Python, Node.js, git)
+   * Clone the repository
+   * Create a systemd service for the Flask API (`dashboard-api.service`) on port 8080
+   * Build the React frontend
+   * Configure NGINX to serve the dashboard and proxy `/api/` to Flask
+   * Start everything
+
+4. **Open the VM’s public IP** in your browser – the dashboard appears.
 
 > [!TIP]
-> There is no need to redeploy the VM after making changes to `scripts/bootstrap/app_bootstrap.sh`. When changes are pushed to the repo, they are automatically applied to the dashboard application via cron job.
-
-4. Open the VM’s public IP in your browser to view the dashboard
+> Logs are written to `/var/log/bootstrap.log` and `/var/log/startup-script.log` for troubleshooting.
 
 > [!IMPORTANT]
-> After the VM starts, the dashboard may take up to 10 minutes to fully populate estimated cost, images, and other dynamic widgets.
+> The dashboard may take up to 10 minutes to fully populate cost estimates, images, and quotes (cron jobs run every few minutes).
 
 ---
 
-## Health Check & Metadata Endpoints
+## Dashboard API Configuration
 
-The dashboard exposes two endpoints:
-
-### `/healthz`
-
-- **`/healthz`** returns HTTP 200 (`OK`), served by NGINX.
-
-> [!NOTE]
-> `/healthz` only confirms NGINX is running and properly configured. It does not verify dashboard health or backend services.
-
-### `/metadata`
-
-- **`/metadata`** returns JSON with instance metadata (ID, hostname, instance name, machine type, IPs).
-
-```JSON
-{
-"instance_id": "7002567428969658710",
-"hostname": "vm-dashboard.us-south1-c.c.dev-project.internal",
-"machine_type": "e2-medium",
-"internal_ip": "10.206.0.55",
-"external_ip": "34.174.11.248"
-}
-```
-
-> [!NOTE]
-> The metadata service runs as `monitoring.service` and starts automatically on boot.
-
-### Test Endpoints
-
-```bash
-curl http://<YOUR_VM_IP>/healthz
-curl http://<YOUR_VM_IP>/metadata
-```
-
----
-
-## Text Dashboard Mode
-
-A minimalist, terminal-style view of all metrics, services, and logs.
-
-### How to Use
-
-1. Click **TEXT MODE** (top-right)
-2. Interface switches to monospace layout
-3. Press `Esc` or click `[Esc] EXIT` to return
-
-### Keyboard Shortcuts
-
-| Key   | Action                  |
-| ----- | ----------------------- |
-| `Esc` | Exit text mode          |
-| `C`   | Copy snapshot           |
-| `R`   | Refresh                 |
-| `H`   | Toggle help             |
-| `L`   | Cycle logs (5 → 30)     |
-| `S`   | Cycle services (3 → 30) |
-
-> [!TIP]
-> Preferences for service and log cycles are saved in `localStorage` so they carry over between modes and sessions.
-
----
-
-### Variables
-
-You can easily edit the following variables to customize your deployment.
-
-```bash
-DASHBOARD_APP_NAME="My Dashboard"
-DASHBOARD_TAGLINE="Real-time monitoring for production"
-DASHBOARD_USER="Your Name"
-DASHBOARD_NAME="DevOps Dashboard"
-```
-
-### Apply Changes
-
-1. Edit variables
-2. Commit and push
-3. Auto-deploy updates within 15 minutes
-
----
-
-## Forking & Using Your Own Repo
-
-> [!IMPORTANT]
-> Required for custom dashboards or forks.
-
-### Steps
-
-1. Fork the repository
-2. Update:
-
-```bash
-REPO_URL="https://github.com/your-username/your-repo.git"
-```
-
-3. Update clone command:
-
-```bash
-git clone https://github.com/your-username/your-repo.git /opt/deploy
-```
-
-4. Optional:
-
-```bash
-GITHUB_QUOTES_URL="..."
-```
-
-> [!WARNING]
-> Do not modify repository structure, file names, or code layout.
-> JSON files must preserve the same schema (identical keys and structure); values may be modified, but must retain their original data types.
-
-### Required Structure
-
-```
-dashboard/
-scripts/bootstrap/app_bootstrap.sh
-images/
-images.json
-```
-
----
-
-## Cloud Provider Support
-
-| Provider | Metadata           | Metrics               | Auto-deploy  |
-| -------- | ------------------ | --------------------- | ------------ |
-| GCP      | Metadata server    | `/proc`, `free`, `df` | cron         |
-| AWS      | 169.254.169.254    | same                  | cron         |
-| Azure    | 169.254.169.254    | same                  | cron         |
-| Local VM | fallback detection | same                  | if available |
-
-> [!NOTE]
-> No cloud-specific code required.
+> See: **`docs/API_CONFIGURATION.md`** *(placeholder – dashboard_api.py configuration guide)*
 
 ---
 
 ## Local Development
 
-### Clone Repo
+### Clone the repository
 
 ```bash
 git clone https://github.com/KirkAlton-Class7/devsecops-vm-dashboard.git
 cd devsecops-vm-dashboard/dashboard
 ```
 
-### Run App
+### Run the React frontend
 
 ```bash
 npm install
 npm run dev
 ```
 
-Access:
+Access: `http://localhost:5173`
 
-```
-http://localhost:5173
-```
-
-### Serve Data
+### Run the Flask API locally
 
 ```bash
-npx serve data -p 3000
+cd ..
+python3 dashboard_api.py
 ```
+
+The API will listen on `http://localhost:8080`.
 
 ---
 
@@ -273,79 +343,119 @@ npx serve data -p 3000
 devsecops-vm-dashboard/
 ├── dashboard/               # React frontend (Vite + Tailwind)
 ├── images/                  # Gallery images
-├── images.json              # Image metadata
+├── images.json              # Image metadata (auto-generated)
 ├── quotes.json              # Featured quotes
-├── scripts/bootstrap/
-│   └── app_bootstrap.sh     # Application Deployment script
-├── monitoring_server.py     # Metadata server
-├── fetch_pricing.py         # Pricing function and cost estimation logic
+├── scripts/
+│   ├── bootstrap/
+│   │   └── app_bootstrap.sh # Main dashboard deployment script
+│   ├── monitoring_server.py # Flask API (renamed to dashboard_api.py)
+│   └── fetch_pricing.py     # Pricing cache generator
+├── dashboard_api.py         # Flask API (metadata + live dashboard data)
 └── README.md
 ```
 
 ---
 
-## Auto-deploy
+## Cloud Provider Support
 
-> [!IMPORTANT]
-> Runs every **15 minutes** via cron.
+| Provider     | Metadata           | Metrics               | Auto-deploy  | Subnet (full)                |
+| ------------ | ------------------ | --------------------- | ------------ | ---------------------------- |
+| **GCP**      | Metadata server    | `/proc`, `free`, `df` | cron         | Requires `compute.viewer`    |
+| **Azure**    | 169.254.169.254    | same                  | cron         | Inconsistent                 |
+| **AWS**      | 169.254.169.254    | same                  | cron         | Unstable (under development) |
+| **Local VM** | fallback detection | same                  | if available | N/A                          |
 
-### Process
-
-- `git pull`
-- Sync images and `images.json`
-- Rebuild React app
-- Reload NGINX
-
-### Disable
-
-Edit:
-
-```bash
-app_bootstrap.sh
-```
-
-Search for:
-
-```bash
-dashboard-deploy.sh
-```
-
----
-
-## Important Notes
-
-### Cost Estimation Disclaimer
-
-> [!IMPORTANT]
-> Cost values are approximate and based on static assumptions and runtime heuristics.
-> Use your cloud provider’s billing APIs or dashboards for accurate data.
-
-### Clipboard Features (`copy`)
-
-> [!IMPORTANT]
-> Clipboard features like `copy` require **HTTPS or localhost**.
-> When running the dashboard via `http` (public IP), the copy buttons on widgets are unresponseive.
-
-**Workarounds:**
-
-- Manually hilight and copy displayed text
-- Deploy the application with HTTPS + SSL Certificate (NGINX + Let’s Encrypt)
-- Access the dashboard via `http://localhost` on the VM
-- Use a localhost tunnel (e.g. `ngrok`) to access the dashboard via `http` on your local machine.
-
-### Cloud Metadata
-
-Metadata is pulled from provider endpoints.
-AWS and Azure may return incomplete or inconsistent data. This does not impact core functionality.
+> [!NOTE]
+> No cloud-specific code is required; the dashboard automatically adapts to the available metadata.
 
 ---
 
 ## License
 
-MIT license. Free to use, modify, and distribute.
+MIT license – free to use, modify, and distribute.
 
 ---
 
-## Source
 
-Original README:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+# Dashboard API – Configuration & Important Notes
+
+The Flask‑based API server (`dashboard_api.py`) provides the live data for the dashboard (`/api/dashboard`), the metadata endpoint (`/metadata`), and the health check (`/healthz`). It runs as a systemd service on the VM (port `8080`).
+
+## User‑Configurable Variable
+
+At the top of the file, you will find:
+
+```python
+# -------------------------------
+# Metadata Customization
+# -------------------------------
+student_name = "Kirk Alton"
+```
+
+- **`student_name`** – This value appears in the `/metadata` JSON under the `student_name` field.  
+  Change it to your own name (or any identifier) – it does not affect any other part of the dashboard.
+
+## Important – Service Account Permissions for Subnet Retrieval
+
+> [!IMPORTANT]
+> For the `/metadata` endpoint to return the correct **subnet name**, the VM’s service account must have the `roles/compute.viewer` role.  
+> Without this role, the fallback mechanism that calls `gcloud` will fail, and the subnet field will show `unknown` (or a placeholder).
+
+### Grant the role from your local machine (not inside the VM)
+
+```bash
+PROJECT_NUMBER=$(gcloud projects describe YOUR_PROJECT_ID --format="value(projectNumber)")
+DEFAULT_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:${DEFAULT_SA}" \
+  --role="roles/compute.viewer"
+```
+
+If you attach a custom service account to the VM, grant the same role to that account instead.
+
+### Verify the role
+
+```bash
+gcloud projects get-iam-policy YOUR_PROJECT_ID \
+  --flatten="bindings[].members" \
+  --format='table(bindings.role)' \
+  --filter="bindings.members:serviceAccount:${DEFAULT_SA}"
+```
+
+## Other Important Notes
+
+- **Cost file location** – The API writes cost data to `/var/tmp/vm-cost.json`. This file persists across reboots.
+- **Quotes directory** – The API reads quotes from `/var/www/vm-dashboard/data/quotes.json`. The cron job updates this file every 10 minutes.
+- **Caching** – `get_ssh_status()` is cached for 60 seconds; `get_update_status()` for 5 minutes. This reduces repeated calls to `systemctl` and `apt`.
+- **No further configuration needed** – All other values (CPU, memory, disk, uptime, etc.) are automatically detected from `/proc` and system commands.
+
+## Applying Changes
+
+If you modify `dashboard_api.py` (e.g., change `student_name` or adjust any logic), you must restart the systemd service on the VM:
+
+```bash
+sudo systemctl restart dashboard-api   # or monitoring.service
+```
+
+The API will then serve the updated data.
+
+---
+
+This document is self‑contained and can be added to your repository as `docs/API_CONFIGURATION.md` or included in the main README under an “API Configuration” heading.

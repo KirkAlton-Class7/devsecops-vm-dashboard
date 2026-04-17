@@ -102,7 +102,7 @@ const DriftParticles = () => {
   );
 };
 
-// ---------- Mode 1: Haze (purple particles with repulsion and jitter) ----------
+// ---------- Mode 1: Haze (purple particles – frantic jitter, then settles into a quilt pattern in 30s) ----------
 const HazeParticles = () => {
   const canvasRef = useRef(null);
 
@@ -113,57 +113,150 @@ const HazeParticles = () => {
     const ctx = canvas.getContext("2d");
     let animationFrameId;
     let particles = [];
+    let targetPositions = [];      // target (x, y) for each particle in the chosen pattern
+    let startTime = null;          // timestamp when settling begins
+    const SETTLE_DURATION = 30000; // 30 seconds
 
-    const PARTICLE_COUNT = 80;
-    const REPULSION_RADIUS = 70;
-    const CONNECTION_MIN = 50;
-    const CONNECTION_MAX = 90;
-    const JITTER_STRENGTH = 0.03;
+    // Parameters – high initial jitter, then decay
+    const INIT_JITTER = 0.8;
+    const INIT_REPULSION_FORCE = 0.35;
+    const INIT_SPEED = 8.0;
+    const DAMPING = 0.98;
+
+    // Choose one of three quilt patterns randomly
+    const patternIndex = Math.floor(Math.random() * 3);
+    let patternName = "";
+    if (patternIndex === 0) patternName = "grid";
+    else if (patternIndex === 1) patternName = "rings";
+    else patternName = "diagonal";
 
     const resizeCanvas = () => {
-      const container = canvas.parentElement;
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+      // Re‑initialize particles and targets when canvas resizes
+      initParticlesAndTargets();
+      startTime = performance.now(); // restart settling timer
+    };
+
+    // Generate target positions based on the chosen pattern
+    const computeTargetPositions = (width, height, count) => {
+      const targets = [];
+      const margin = 30;
+      if (patternName === "grid") {
+        // Evenly spaced grid (rows x cols)
+        const cols = Math.ceil(Math.sqrt(count));
+        const rows = Math.ceil(count / cols);
+        const cellW = (width - 2 * margin) / (cols - 1);
+        const cellH = (height - 2 * margin) / (rows - 1);
+        for (let i = 0; i < count; i++) {
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          const x = margin + col * cellW;
+          const y = margin + row * cellH;
+          targets.push({ x, y });
+        }
+      } else if (patternName === "rings") {
+        // Concentric circles with random angles but fixed radii
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const maxRadius = Math.min(width, height) / 2 - margin;
+        const rings = 4;
+        const perRing = Math.floor(count / rings);
+        let idx = 0;
+        for (let r = 1; r <= rings; r++) {
+          const radius = (r / rings) * maxRadius;
+          const numInRing = (r === rings) ? count - idx : perRing;
+          for (let i = 0; i < numInRing; i++) {
+            const angle = (i / numInRing) * Math.PI * 2;
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+            targets.push({ x, y });
+            idx++;
+          }
+        }
+        // fill remaining with random positions near center
+        while (targets.length < count) {
+          targets.push({ x: centerX + (Math.random() - 0.5) * 50, y: centerY + (Math.random() - 0.5) * 50 });
+        }
+      } else {
+        // Diagonal wave / zigzag pattern
+        const stepX = (width - 2 * margin) / (Math.sqrt(count) * 2);
+        let x = margin;
+        let y = margin;
+        let direction = 1;
+        for (let i = 0; i < count; i++) {
+          targets.push({ x, y });
+          x += stepX;
+          if (x > width - margin) {
+            x = margin;
+            y += stepX * 1.5;
+            direction *= -1;
+          }
+        }
+        // shuffle slightly to avoid perfect alignment (more organic)
+        for (let i = 0; i < targets.length; i++) {
+          targets[i].x += (Math.random() - 0.5) * 8;
+          targets[i].y += (Math.random() - 0.5) * 8;
+        }
+      }
+      return targets;
     };
 
     class Particle {
-      constructor(width, height) {
-        this.x = Math.random() * width;
-        this.y = Math.random() * height;
-        this.vx = (Math.random() - 0.5) * 0.8;
-        this.vy = (Math.random() - 0.5) * 0.8;
+      constructor(x, y, targetX, targetY) {
+        this.x = x;
+        this.y = y;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.vx = (Math.random() - 0.5) * INIT_SPEED;
+        this.vy = (Math.random() - 0.5) * INIT_SPEED;
         this.size = Math.random() * 2 + 1;
       }
-
-      applyRepulsion(particles) {
-        for (const other of particles) {
-          if (other === this) continue;
-          const dx = this.x - other.x;
-          const dy = this.y - other.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < REPULSION_RADIUS && dist > 0.1) {
-            const force = (REPULSION_RADIUS - dist) / REPULSION_RADIUS;
-            this.vx += (dx / dist) * force * 0.02;
-            this.vy += (dy / dist) * force * 0.02;
+      update(width, height, particles, settleFactor) {
+        // Repulsion (only active during early settling)
+        if (settleFactor < 0.8) { // repulsion fades after 80% settled
+          const repulsionStrength = INIT_REPULSION_FORCE * (1 - settleFactor);
+          for (const other of particles) {
+            if (other === this) continue;
+            const dx = this.x - other.x;
+            const dy = this.y - other.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 100 && dist > 0.1) {
+              const force = (100 - dist) / 100;
+              this.vx += (dx / dist) * force * repulsionStrength;
+              this.vy += (dy / dist) * force * repulsionStrength;
+            }
           }
         }
-      }
 
-      update(width, height, particles) {
-        this.applyRepulsion(particles);
-        this.vx += (Math.random() - 0.5) * JITTER_STRENGTH;
-        this.vy += (Math.random() - 0.5) * JITTER_STRENGTH;
-        this.vx *= 0.97;
-        this.vy *= 0.97;
+        // Attraction toward target (increases with settleFactor)
+        const attraction = settleFactor * 0.08;
+        const toTargetX = this.targetX - this.x;
+        const toTargetY = this.targetY - this.y;
+        this.vx += toTargetX * attraction;
+        this.vy += toTargetY * attraction;
+
+        // Jitter (strong at start, decays)
+        const jitter = INIT_JITTER * (1 - settleFactor);
+        this.vx += (Math.random() - 0.5) * jitter;
+        this.vy += (Math.random() - 0.5) * jitter;
+
+        this.vx *= DAMPING;
+        this.vy *= DAMPING;
         this.x += this.vx;
         this.y += this.vy;
 
-        if (this.x < 0) { this.x = 0; this.vx = -this.vx; }
-        if (this.x > width) { this.x = width; this.vx = -this.vx; }
-        if (this.y < 0) { this.y = 0; this.vy = -this.vy; }
-        if (this.y > height) { this.y = height; this.vy = -this.vy; }
-      }
+        // Soft boundaries (repel instead of hard bounce, to allow smooth settling)
+        const boundaryMargin = 20;
+        if (this.x < boundaryMargin) this.vx += (boundaryMargin - this.x) * 0.05;
+        if (this.x > width - boundaryMargin) this.vx -= (this.x - (width - boundaryMargin)) * 0.05;
+        if (this.y < boundaryMargin) this.vy += (boundaryMargin - this.y) * 0.05;
+        if (this.y > height - boundaryMargin) this.vy -= (this.y - (height - boundaryMargin)) * 0.05;
 
+        // Clamp to canvas edges
+        this.x = Math.min(Math.max(this.x, 0), width);
+        this.y = Math.min(Math.max(this.y, 0), height);
+      }
       draw(ctx) {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
@@ -172,51 +265,66 @@ const HazeParticles = () => {
       }
     }
 
-    const initParticles = () => {
+    const initParticlesAndTargets = () => {
+      const width = canvas.width;
+      const height = canvas.height;
+      const count = 140; // slightly more for richer pattern
+      targetPositions = computeTargetPositions(width, height, count);
       particles = [];
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        particles.push(new Particle(canvas.width, canvas.height));
+      for (let i = 0; i < count; i++) {
+        // start from random positions
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        particles.push(new Particle(x, y, targetPositions[i].x, targetPositions[i].y));
       }
     };
 
-    const drawConnections = () => {
+    const drawConnections = (settleFactor) => {
+      // connections fade as particles settle
+      const maxDist = 120;
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          if (distance > CONNECTION_MIN && distance < CONNECTION_MAX) {
-            const opacity = (distance - CONNECTION_MIN) / (CONNECTION_MAX - CONNECTION_MIN);
+          if (distance < maxDist) {
+            const opacity = (1 - distance / maxDist) * 0.3 * (1 - settleFactor * 0.7);
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(192, 132, 252, ${opacity * 0.25})`;
+            ctx.strokeStyle = `rgba(192, 132, 252, ${opacity})`;
             ctx.stroke();
           }
         }
       }
     };
 
-    const animate = () => {
+    let animationStart = null;
+
+    const animate = (timestamp) => {
       if (!canvas) return;
+      if (!animationStart) animationStart = timestamp;
+      if (startTime === null) startTime = timestamp;
+
+      const elapsed = timestamp - startTime;
+      let settleFactor = Math.min(1, elapsed / SETTLE_DURATION);
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       for (const p of particles) {
-        p.update(canvas.width, canvas.height, particles);
+        p.update(canvas.width, canvas.height, particles, settleFactor);
         p.draw(ctx);
       }
-      drawConnections();
+      drawConnections(settleFactor);
+
       animationFrameId = requestAnimationFrame(animate);
     };
 
     resizeCanvas();
-    initParticles();
-    animate();
+    startTime = performance.now();
+    animate(startTime);
 
-    window.addEventListener("resize", () => {
-      resizeCanvas();
-      initParticles();
-    });
-
+    window.addEventListener("resize", resizeCanvas);
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener("resize", resizeCanvas);
