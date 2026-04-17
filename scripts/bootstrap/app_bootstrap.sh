@@ -316,82 +316,6 @@ if [ -d "$REPO_DIR/images" ]; then
     cp -rf "$REPO_DIR/images/"* "${APP_DIR}/data/images/" 2>/dev/null || true
 fi
 
-# -------------------------------
-# Metadata
-# -------------------------------
-# Collects VM information from GCP metadata service with fallbacks to system commands
-
-log "Collecting metadata"
-HOSTNAME_VM="$(md instance/hostname || hostname)"
-INSTANCE_ID="$(md instance/id || echo "unknown")"
-ZONE="$(safe_basename "$(md instance/zone)" || echo "unknown")"
-MACHINE_TYPE="$(safe_basename "$(md instance/machine-type)" || echo "unknown")"
-PROJECT_ID="$(md project/project-id || echo "unknown")"
-INTERNAL_IP="$(md instance/network-interfaces/0/ip || hostname -I | awk '{print $1}' 2>/dev/null || echo "unknown")"
-
-PUBLIC_IP=$(md instance/network-interfaces/0/access-configs/0/external-ip 2>/dev/null)
-if [ -z "$PUBLIC_IP" ] || [ "$PUBLIC_IP" = "unknown" ]; then
-    PUBLIC_IP=$(curl -s ifconfig.me | tr -d '\n')
-fi
-if [ -z "$PUBLIC_IP" ]; then
-    PUBLIC_IP="unknown"
-fi
-
-OS_NAME="$(. /etc/os-release && echo "$PRETTY_NAME")"
-UPTIME="$(uptime -p || echo "unknown")"
-
-# -------------------------------
-# System metrics
-# -------------------------------
-# Collects real-time CPU, memory, disk, and network statistics from /proc and /sys
-
-CPU_USAGE="$(grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {printf "%.0f", usage}' 2>/dev/null || echo "0")"
-MEM_PERCENT="$(free | awk '/Mem:/ {printf("%.0f"), $3/$2 * 100.0}' 2>/dev/null || echo "0")"
-DISK_PERCENT="$(df / | tail -1 | awk '{print $5}' 2>/dev/null || echo "0%")"
-
-IFACE=$(ip route get 1 2>/dev/null | awk '{print $5}' || echo "eth0")
-RX_BYTES="$(cat /sys/class/net/${IFACE}/statistics/rx_bytes 2>/dev/null || echo "0")"
-TX_BYTES="$(cat /sys/class/net/${IFACE}/statistics/tx_bytes 2>/dev/null || echo "0")"
-
-# -------------------------------
-# Services
-# -------------------------------
-# Checks running services and application health
-
-NGINX_STATUS="$(service_status nginx)"
-PYTHON_STATUS="$(command_status python3)"
-STARTUP_STATUS="Completed"
-METADATA_STATUS="Reachable"
-HTTP_STATUS="Serving"
-BOOTSTRAP_PACKAGES_JSON='["nginx","python3","curl","jq","git"]'
-
-# -------------------------------
-# Security
-# -------------------------------
-# Firewall status, SSH availability, and pending system updates
-
-FIREWALL_STATUS="Not installed"
-SSH_STATUS="$(systemctl is-active ssh 2>/dev/null || echo "Not installed")"
-UPDATES="$(apt list --upgradable 2>/dev/null | tail -n +2 | wc -l || echo "0")"
-UPDATE_STATUS="Current"
-
-# -------------------------------
-# Export for Python
-# -------------------------------
-
-export HOSTNAME_VM INSTANCE_ID ZONE MACHINE_TYPE OS_NAME PROJECT_ID INTERNAL_IP PUBLIC_IP
-export NGINX_STATUS PYTHON_STATUS STARTUP_STATUS METADATA_STATUS HTTP_STATUS GITHUB_QUOTES_SYNC
-export FIREWALL_STATUS SSH_STATUS UPDATE_STATUS UPTIME BOOTSTRAP_PACKAGES_JSON
-export CPU_USAGE MEM_PERCENT DISK_PERCENT RX_BYTES TX_BYTES
-
-# Additional exports for the refresh script (quoted heredoc safety)
-export APP_NAME
-export APP_DIR
-export DATA_DIR
-export APP_USER
-export GITHUB_QUOTES_URL
-export UPDATES
-
 # --------------------
 # Fetch GitHub Quotes
 # --------------------
@@ -536,268 +460,6 @@ if [ -f "${ACTIVE_QUOTES}" ]; then
 fi
 
 # -------------------------------
-# Dashboard Refresh Cron Job
-# -------------------------------
-# Creates a standalone Python script that collects fresh metrics and updates dashboard-data.json
-# Sets up a cron job that runs every 5 minutes to refresh dashboard data
-
-log "Setting up cron job to refresh dashboard data"
-
-# Remove any old refresh cron entries
-sudo crontab -l 2>/dev/null | grep -v refresh-dashboard-data | sudo crontab - 2>/dev/null || true
-
-# Create the new refresh script (self‑contained, no environment variables needed)
-sudo tee /opt/refresh-dashboard-data.py > /dev/null << 'EOF'
-#!/usr/bin/env python3
-import json, os, random, subprocess
-from datetime import datetime, timedelta
-
-# ------------------------------------------------------------
-# Constants
-# ------------------------------------------------------------
-DATA_DIR = "/var/www/vm-dashboard/data"
-DASHBOARD_JSON = f"{DATA_DIR}/dashboard-data.json"
-COST_FILE = "/var/tmp/vm-cost.json"
-
-# ------------------------------------------------------------
-# Helper functions
-# ------------------------------------------------------------
-def get_machine_type():
-    try:
-        req = subprocess.run(
-            ['curl', '-s', '-H', 'Metadata-Flavor: Google',
-             'http://metadata.google.internal/computeMetadata/v1/instance/machine-type'],
-            capture_output=True, text=True, timeout=2
-        )
-        if req.returncode == 0 and req.stdout:
-            return req.stdout.strip().split('/')[-1].lower()
-    except:
-        pass
-    return 'e2-micro'
-
-def get_cpu_usage():
-    with open('/proc/stat', 'r') as f:
-        line = f.readline()
-        parts = line.split()
-        user = int(parts[1]); nice = int(parts[2]); system = int(parts[3]); idle = int(parts[4])
-        total = user + nice + system + idle
-        return round((user + nice + system) * 100 / total) if total > 0 else 0
-
-def get_memory_percent():
-    with open('/proc/meminfo', 'r') as f:
-        mem = {}
-        for line in f:
-            if ':' in line:
-                k, v = line.split(':', 1)
-                mem[k] = int(v.strip().split()[0])
-    total = mem.get('MemTotal', 1)
-    avail = mem.get('MemAvailable', mem.get('MemFree', 0))
-    return round((total - avail) * 100 / total)
-
-def get_disk_percent():
-    out = subprocess.check_output(['df', '/'], text=True)
-    return int(out.split('\n')[1].split()[4].rstrip('%'))
-
-def get_load_averages():
-    with open('/proc/loadavg', 'r') as f:
-        parts = f.read().split()
-        return float(parts[0]), float(parts[1])
-
-def get_uptime():
-    try:
-        result = subprocess.check_output(['/usr/bin/uptime', '-p'], text=True, stderr=subprocess.DEVNULL)
-        return result.strip()
-    except:
-        try:
-            with open('/proc/uptime', 'r') as f:
-                seconds = float(f.read().split()[0])
-                minutes = int(seconds // 60)
-                hours = int(minutes // 60)
-                days = int(hours // 24)
-                minutes = minutes % 60
-                hours = hours % 24
-                if days > 0:
-                    return f"up {days} day{'s' if days != 1 else ''}, {hours} hour{'s' if hours != 1 else ''}, {minutes} minute{'s' if minutes != 1 else ''}"
-                elif hours > 0:
-                    return f"up {hours} hour{'s' if hours != 1 else ''}, {minutes} minute{'s' if minutes != 1 else ''}"
-                else:
-                    return f"up {minutes} minute{'s' if minutes != 1 else ''}"
-        except:
-            return "up 0 minutes"
-
-# ------------------------------------------------------------
-# Cost calculation
-# ------------------------------------------------------------
-def get_cumulative_cost():
-    machine_type = get_machine_type()
-    rates = {"e2-micro": 0.0076, "e2-small": 0.0150, "e2-medium": 0.0301,
-             "n1-standard-1": 0.0475, "n2-standard-2": 0.0972}
-    if machine_type not in rates:
-        return "N/A for instance type"
-    hourly_rate = rates[machine_type]
-
-    try:
-        with open('/proc/uptime', 'r') as f:
-            current_uptime = float(f.read().split()[0])
-    except:
-        current_uptime = 0
-    try:
-        with open(COST_FILE, 'r') as f:
-            data = json.load(f)
-        total_cost = data.get('total_cost', 0.0)
-        last_uptime = data.get('last_uptime_sec', current_uptime)
-    except:
-        total_cost = 0.0
-        last_uptime = current_uptime
-
-    if current_uptime < last_uptime:
-        last_uptime = current_uptime
-    else:
-        delta_hours = (current_uptime - last_uptime) / 3600.0
-        if delta_hours > 0:
-            total_cost += hourly_rate * delta_hours
-            last_uptime = current_uptime
-
-    with open(COST_FILE, 'w') as f:
-        json.dump({'total_cost': total_cost, 'last_uptime_sec': last_uptime}, f)
-
-    if total_cost <= 0.0:
-        return "N/A"
-    elif total_cost < 0.01:
-        return f"${total_cost:.4f} total"
-    elif total_cost < 1:
-        return f"${total_cost:.3f} total"
-    else:
-        return f"${total_cost:.2f} total"
-
-# ------------------------------------------------------------
-# Status Helper
-# ------------------------------------------------------------
-WARN_THRESHOLD = 70
-def status(val, warn=WARN_THRESHOLD):
-    try:
-        return "warning" if float(val) > warn else "healthy"
-    except:
-        return "healthy"
-
-# ------------------------------------------------------------
-# Main update – preserves all static fields
-# ------------------------------------------------------------
-with open(DASHBOARD_JSON, 'r') as f:
-    data = json.load(f)
-
-cpu = get_cpu_usage()
-mem = get_memory_percent()
-disk = get_disk_percent()
-load_1min, load_5min = get_load_averages()
-uptime = get_uptime()
-cost = get_cumulative_cost()
-
-# Update summary cards
-data["summaryCards"] = [
-    {"label": "CPU", "value": f"{cpu}%", "status": status(cpu)},
-    {"label": "Memory", "value": f"{mem}%", "status": status(mem)},
-    {"label": "Disk", "value": f"{disk}%", "status": status(disk)},
-    {"label": "Estimated Cost", "value": cost, "status": "info"}
-]
-
-# Update the cost inside vmInformation (if present)
-for item in data.get("vmInformation", []):
-    if item.get("label") == "Estimated Cost (Usage)":
-        item["value"] = cost
-
-# Use 1‑min load for systemLoad (current), 5‑min load for location (true average)
-data["systemLoad"] = load_1min
-if "location" in data:
-    data["location"]["loadAvg"] = f"{load_5min:.2f}"
-    data["location"]["uptime"] = uptime
-if "meta" in data:
-    data["meta"]["uptime"] = uptime
-if "systemResources" in data and "cpu" in data["systemResources"]:
-    data["systemResources"]["cpu"]["usage"] = float(cpu)
-
-# ------------------------------------------------------------
-# Dynamic log entry
-# ------------------------------------------------------------
-cpu_status = "high" if cpu > 80 else "normal" if cpu < 60 else "moderate"
-mem_status = "high" if mem > 90 else "normal" if mem < 70 else "moderate"
-load_status = "high" if load_5min > 1.0 else "normal" if load_5min < 0.7 else "moderate"
-
-parts = []
-parts.append(f"CPU {cpu}% ({cpu_status})")
-parts.append(f"Mem {mem}% ({mem_status})")
-parts.append(f"Load(5m) {load_5min:.2f} ({load_status})")
-if disk > 85:
-    parts.append(f"⚠️ Disk {disk}% (critical)")
-
-# Compare with previous log (if available)
-prev_logs = data.get("logs", [])
-if prev_logs and "CPU" in prev_logs[0].get("message", ""):
-    import re
-    prev_msg = prev_logs[0]["message"]
-    prev_cpu_match = re.search(r'CPU (\d+)%', prev_msg)
-    if prev_cpu_match:
-        prev_cpu = int(prev_cpu_match.group(1))
-        delta = cpu - prev_cpu
-        if delta > 5:
-            parts.append(f"📈 CPU +{delta}%")
-        elif delta < -5:
-            parts.append(f"📉 CPU {delta}%")
-
-message = ", ".join(parts)
-
-new_log = {
-    "time": datetime.now().strftime("%H:%M:%S"),
-    "level": "info" if "critical" not in message and "high" not in message else "warning",
-    "scope": "metrics",
-    "message": message
-}
-
-# Keep last 30 entries
-data["logs"] = [new_log] + data.get("logs", [])[:29]
-
-# Refresh the quote of the day
-quotes_path = f"{DATA_DIR}/quotes.json"
-if os.path.exists(quotes_path):
-    with open(quotes_path) as f:
-        quotes = json.load(f)
-        if quotes:
-            data["quote"] = random.choice(quotes)
-
-with open(DASHBOARD_JSON, 'w') as f:
-    json.dump(data, f, indent=2)
-
-print(f"Refreshed: CPU={cpu}%, MEM={mem}%, DISK={disk}%, LOAD_1min={load_1min:.2f}, LOAD_5min={load_5min:.2f}, COST={cost}, UPTIME={uptime}")
-EOF
-
-# -------------------------------
-# Set Permissions
-# -------------------------------
-# Makes the refresh script executable
-sudo chmod +x /opt/refresh-dashboard-data.py
-
-# -------------------------------
-# Register Cron Job
-# -------------------------------
-# Set up cron to run every 5 minutes (as root, with explicit PATH to ensure commands like uptime are found)
-(sudo crontab -l 2>/dev/null; echo "*/5 * * * * PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin /usr/bin/python3 /opt/refresh-dashboard-data.py >> /var/log/dashboard-refresh.log 2>&1") | sudo crontab -
-
-log "Dashboard refresh cron job configured (every 5 minutes)"
-
-# -------------------------------
-# Initialize Cost File with Root Ownership
-# -------------------------------
-# The refresh script runs as root, but the initial dashboard generation
-# (as appuser) may have created /var/tmp/vm-cost.json with wrong permissions.
-# Remove it and run the refresh script once to recreate it properly.
-log "Initializing cost file for root cron"
-
-sudo rm -f /var/tmp/vm-cost.json
-sudo /usr/bin/python3 /opt/refresh-dashboard-data.py
-
-log "Cost file initialized"
-
-# -------------------------------
 # Ensure index.html Exists
 # -------------------------------
 # Creates a fallback page if the built dashboard is missing
@@ -830,7 +492,7 @@ server {
     root ${APP_DIR};
     index index.html;
     
-    # Health check endpoint – handled directly by nginx (OK lowercase to pass Theo's gate)
+    # Health check endpoint – handled directly by nginx
     location = /healthz {
         access_log off;
         return 200 'ok\n';
@@ -843,7 +505,14 @@ server {
         proxy_set_header Host \$host;
     }
     
-    # Data directory (static JSON files)
+    # API proxy for live dashboard data (new)
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+    }
+    
+    # Data directory (static JSON files, images, quotes)
     location /data/ {
         alias ${DATA_DIR}/;
         add_header Access-Control-Allow-Origin *;
@@ -892,16 +561,18 @@ systemctl enable nginx
 sleep 2
 log "Validating deployment"
 
-if curl -f http://127.0.0.1/data/dashboard-data.json >/dev/null 2>&1; then
-  log "SUCCESS: Dashboard data endpoint working"
+# Check that the Flask API is reachable (serves dashboard data)
+if curl -f http://127.0.0.1:8080/api/dashboard >/dev/null 2>&1; then
+  log "SUCCESS: Dashboard API endpoint working"
 else
-  log "WARNING: Data endpoint not responding"
+  log "WARNING: Dashboard API endpoint not responding"
 fi
 
+# Check that nginx is serving the frontend
 if curl -f http://127.0.0.1 >/dev/null 2>&1; then
-  log "SUCCESS: Dashboard is serving"
+  log "SUCCESS: Dashboard frontend is serving"
 else
-  log "ERROR: App not serving"
+  log "ERROR: Dashboard frontend not serving"
   exit 1
 fi
 
