@@ -1216,7 +1216,7 @@ server {
     # Health check endpoint – handled directly by nginx (OK lowercase to pass Theo's gate)
     location = /healthz {
         access_log off;
-        return 200 'ok\n';
+        return 200 'OK\n';
         add_header Content-Type text/plain;
     }
     

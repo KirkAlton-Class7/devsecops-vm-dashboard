@@ -7,7 +7,9 @@ Serves /healthz (plain text) and /metadata (JSON).
 import json
 import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
 
+student_name = "Kirk Alton"
 
 def get_metadata(path, timeout=2):
     """
@@ -85,44 +87,63 @@ class MonitoringHandler(BaseHTTPRequestHandler):
         # Metadata endpoint
         elif self.path == '/metadata':
             try:
-                # ----- Core identity -----
+                # ----- Student Name -----
+                student_name  = get_metadata("instance/attributes/student_name")
+                if student_name == "unknown" or not student_name:
+                    student_name = "Anonymous Student (who are you?)"
+                
+                # ----- Prroject & VM Identity -----
+                project_id    = get_metadata("project/project-id")
                 instance_id   = get_metadata("instance/id")
                 instance_name = get_metadata("instance/name")
                 hostname      = get_metadata("instance/hostname")
-                project_id    = get_metadata("project/project-id")
-
-                # ----- Infrastructure -----
+                # Machine Type
                 machine_type_full = get_metadata("instance/machine-type")
                 machine_type = safe_basename(machine_type_full)
+
+                # ----- Network -----
+                vpc_full   = get_metadata("instance/network-interfaces/0/network")
+                vpc        = safe_basename(vpc_full)
+
+                subnet_full = get_metadata("instance/network-interfaces/0/subnetwork")
+                subnet     = safe_basename(subnet_full)
 
                 internal_ip   = get_metadata("instance/network-interfaces/0/ip")
                 external_ip   = get_metadata("instance/network-interfaces/0/access-configs/0/external-ip")
 
-                # ----- Networking (VPC & subnet) -----
-                vpc_full   = get_metadata("instance/network-interfaces/0/network")
-                subnet_full = get_metadata("instance/network-interfaces/0/subnetwork")
-                vpc        = safe_basename(vpc_full)
-                subnet     = safe_basename(subnet_full)
-
-                # ----- Location & uptime -----
+                # ----- Location & Uptime -----
                 zone_full = get_metadata("instance/zone")
                 zone = safe_basename(zone_full)
+
                 region = zone.rsplit('-', 1)[0] if '-' in zone else "unknown"
+                
+                startup_utc   = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")                
                 uptime = get_uptime()
 
                 # ----- Build JSON response -----
                 metadata = {
+                    # Student Name
+                    "student_name": student_name,
+
+                    # Project & VM Identity
+                    "project_id": project_id,
                     "instance_id": instance_id,
                     "instance_name": instance_name,
                     "hostname": hostname,
-                    "project_id": project_id,
                     "machine_type": machine_type,
-                    "internal_ip": internal_ip,
-                    "external_ip": external_ip,
-                    "vpc": vpc,
-                    "subnet": subnet,
+
+                    # Network
+                    "network":{
+                        "vpc": vpc,
+                        "subnet": subnet,
+                        "internal_ip": internal_ip,
+                        "external_ip": external_ip,
+                        },
+                    
+                    # Location & Uptime
                     "region": region,
                     "zone": zone,
+                    "startup_utc": startup_utc,
                     "uptime": uptime
                 }
 
