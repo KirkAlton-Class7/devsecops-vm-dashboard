@@ -183,11 +183,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 vpc_full   = get_metadata("instance/network-interfaces/0/network")
                 vpc        = safe_basename(vpc_full)
 
-                subnet_full = get_metadata("instance/network-interfaces/0/subnetwork")
-                if subnet_full == "unknown" or not subnet_full:
-                    subnet = get_subnet_from_gcloud()
-                else:
-                    subnet = safe_basename(subnet_full)
+                subnet = get_subnet_from_gcloud()
 
                 internal_ip   = get_metadata("instance/network-interfaces/0/ip")
                 external_ip   = get_metadata("instance/network-interfaces/0/access-configs/0/external-ip")
