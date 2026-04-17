@@ -160,6 +160,7 @@ export default function App() {
     return (
       <TextDashboard 
         dashboard={dashboard} 
+        tagline={dashboard.meta?.tagline || "Real-time infrastructure monitoring"}
         onExitTextDash={toggleTextDashMode}    // changed from onPowerOn
         logLimit={logLimit}
         serviceLimit={serviceLimit}

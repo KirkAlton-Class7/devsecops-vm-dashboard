@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function TextDashboard({ dashboard, onExitTextDash, logLimit, serviceLimit, onLogLimitChange, onServiceLimitChange, dashboardName = "DevSecOps Dashboard" }) {
+export default function TextDashboard({ dashboard, tagline = "", onExitTextDash, logLimit, serviceLimit, onLogLimitChange, onServiceLimitChange, dashboardName = "DevSecOps Dashboard" }) {
   const [copied, setCopied] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [showHelp, setShowHelp] = useState(false);
@@ -68,11 +68,11 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
   };
 
   const copySnapshot = useCallback(() => {
-    const snapshot = generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, dashboardName);
+    const snapshot = generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, dashboardName, tagline);
     navigator.clipboard.writeText(snapshot);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [dashboard, lastRefresh, logLimit, serviceLimit, dashboardName]);
+  }, [dashboard, lastRefresh, logLimit, serviceLimit, dashboardName, tagline]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -111,6 +111,8 @@ export default function TextDashboard({ dashboard, onExitTextDash, logLimit, ser
           <div className="flex justify-between items-start flex-wrap gap-2">
             <div>
               <div className="text-xl font-bold tracking-tight">{dashboardName}</div>
+              {/* Tagline */}
+              {tagline && <div className="text-xs text-white/40 mt-0.5">{tagline}</div>}
               <div className="text-xs text-white/40 mt-1">
                 {new Date().toLocaleDateString()} | {lastRefresh.toLocaleTimeString()} | auto-refresh: 60s
               </div>
@@ -300,6 +302,7 @@ function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, da
 
   return `
 ${dashboardName.toUpperCase()} SNAPSHOT
+${tagline ? `${tagline}\n` : ''}
 Taken: ${lastRefresh.toLocaleString()}
 
 STATUS: ${hasIssues ? `${serviceStats.critical} critical, ${serviceStats.warning} warning` : "All systems operational"}
