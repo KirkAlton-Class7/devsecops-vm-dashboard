@@ -43,7 +43,7 @@ export default function SystemResourcesCard({ resources }) {
     return `${mb} MB`;
   };
 
-  const memory = resources?.memory || { total: 0, used: 0, free: 0 };
+  const memory = resources?.memory || { total: 0, used: 0, available: 0 };
   const disk = resources?.disk || { total: 0, used: 0, available: 0 };
   const cpu = resources?.cpu || { usage: 0, cores: null, frequency: null, loadAvg: null };
   const memoryPercent = memory.total > 0 ? (memory.used / memory.total) * 100 : 0;
@@ -183,8 +183,8 @@ export default function SystemResourcesCard({ resources }) {
                 <span className="text-amber-400 font-mono">{formatBytes(memory.used)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Free</span>
-                <span className="text-emerald-400 font-mono">{formatBytes(memory.free)}</span>
+                <span className="text-slate-400">Available</span>
+                <span className="text-emerald-400 font-mono">{formatBytes(memory.available)}</span>
               </div>
               <div className="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
                 <motion.div

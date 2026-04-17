@@ -129,6 +129,21 @@ def get_uptime():
     except Exception:
         return "unknown"
 
+def get_load_avg_string():
+    """Return load average as a string: '1m 5m 15m' (e.g., '1.33 0.34 0.12')."""
+    try:
+        with open("/proc/loadavg", "r") as f:
+            parts = f.read().split()
+            return f"{parts[0]} {parts[1]} {parts[2]}"
+    except Exception:
+        return "0.00 0.00 0.00"
+
+def format_bytes_human(mb):
+    """Convert MB to human readable string (e.g., 20480 MB -> '20G', 512 MB -> '512M')."""
+    if mb >= 1024:
+        return f"{mb/1024:.1f}G".rstrip('0').rstrip('.')
+    return f"{int(mb)}M"
+
 def get_cpu_usage():
     with open("/proc/stat", "r") as f:
         line = f.readline()
