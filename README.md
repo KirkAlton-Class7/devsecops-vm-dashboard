@@ -245,6 +245,90 @@ A minimalist, terminal-style view of all the same information, optimized for key
 
 ---
 
+Your list is actually **strong as-is**—it just needs one structural tweak so it fits cleanly into a professional README without looking like a mixed section.
+
+Right now you’ve got:
+
+* Limitation ✅
+* Explanation ✅
+* Fix ✅
+* Workaround ✅
+* Roadmap ✅ (this is the only thing that should be separated slightly)
+
+---
+
+## ✅ Optimized Version (minimal change, your style preserved)
+
+Here’s your content cleaned up **without changing your voice**, just improving structure and section clarity:
+
+---
+
+## Known Limitation — Clipboard (HTTP vs HTTPS)
+
+The copy feature **will not work over plain HTTP**.
+
+* `navigator.clipboard.writeText()` is **blocked by the browser** unless the page is served from:
+
+  * `https://`
+  * `http://localhost`
+
+If your dashboard is accessed at:
+
+```text
+http://<public-ip>
+```
+
+then:
+
+* `navigator.clipboard` may be `undefined`, or
+* the write operation will silently fail or throw an error
+
+> [!IMPORTANT]
+> This is **not a bug in the dashboard**.
+> It is a **browser-enforced security restriction** and cannot be bypassed with modern APIs.
+
+---
+
+## Impact
+
+* Text Mode → **Copy (`C`) is unreliable or non-functional on HTTP**
+* The rest of the dashboard works normally
+* This is a **transport-layer constraint (HTTP vs HTTPS)**, not an application issue
+
+---
+
+## Required Fix
+
+To guarantee copy functionality:
+
+* Serve the dashboard over **HTTPS**
+
+Example (NGINX + Certbot):
+
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d your-domain.com
+```
+
+---
+
+## Current Workaround
+
+Fallback to legacy method:
+
+```javascript
+document.execCommand('copy')
+```
+
+* Works on HTTP
+* Requires user interaction (keyboard or click)
+* Deprecated, but still supported across major browsers
+
+> [!NOTE]
+> This provides partial functionality and should not be considered a long-term solution.
+
+---
+
 ## GCP – Required IAM Role for Subnet Retrieval
 
 > [!IMPORTANT]
@@ -376,23 +460,6 @@ MIT license – free to use, modify, and distribute.
 
 ---
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
----
-
 # Dashboard API – Configuration & Important Notes
 
 The Flask‑based API server (`dashboard_api.py`) provides the live data for the dashboard (`/api/dashboard`), the metadata endpoint (`/metadata`), and the health check (`/healthz`). It runs as a systemd service on the VM (port `8080`).
@@ -458,4 +525,28 @@ The API will then serve the updated data.
 
 ---
 
-This document is self‑contained and can be added to your repository as `docs/API_CONFIGURATION.md` or included in the main README under an “API Configuration” heading.
+## Roadmap & Upcoming Features
+
+### Security
+
+* [ ] Enable HTTPS via Let's Encrypt + NGINX
+* [ ] Add optional self-signed certificate mode for lab deployments
+* [ ] Expose `secureContext` flag in `/api/dashboard`
+
+---
+
+### Clipboard & UX Enhancements
+
+* [ ] Improve fallback handling for HTTP environments
+* [ ] Add “Copy Snapshot” button (mouse users)
+* [ ] Add “View Snapshot” modal (manual copy option)
+* [ ] Add toast: *“Copy requires HTTPS — fallback used”*
+* [ ] Add visual indicator when running in degraded (HTTP) mode
+
+---
+
+### Export Features
+
+* [ ] Download snapshot as `.txt`
+* [ ] Download snapshot as `.json`
+* [ ] Add `/api/snapshot` endpoint for remote retrieval
