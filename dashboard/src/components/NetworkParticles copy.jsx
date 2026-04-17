@@ -230,7 +230,7 @@ const HazeParticles = () => {
   );
 };
 
-// ---------- Mode 2: State (white static dots, snapshot every 8 seconds, glow implodes in 0.7s, then noticeable settle wiggle) ----------
+// ---------- Mode 2: State (white static dots, snapshot every 8 seconds, glow implodes in 0.7s, then subtle settle) ----------
 const StateParticles = () => {
   const canvasRef = useRef(null);
 
@@ -241,6 +241,7 @@ const StateParticles = () => {
     const ctx = canvas.getContext("2d");
     let animationFrameId;
     let particles = [];
+    let settleStart = 0;           // timestamp when settling begins
     let settleOffsets = [];        // per-particle offset {dx, dy}
     const PARTICLE_COUNT = 100;
     const CONNECTION_DISTANCE = 80;
@@ -249,7 +250,6 @@ const StateParticles = () => {
     const DECAY_DURATION = 700;     // glow implodes in 0.7 seconds
     const SETTLE_DURATION = 300;    // particles wiggle for 0.3 seconds after jump
     const MAX_GLOW_RADIUS = 12;     // max glow radius
-    const MAX_WIGGLE = 7;           // max pixel offset for wiggle (increased from 3)
 
     const resizeCanvas = () => {
       const container = canvas.parentElement;
@@ -354,6 +354,7 @@ const StateParticles = () => {
       }
 
       // ---- Settle wiggle offsets ----
+      // Reset offsets if not in settle period
       let settleFactor = 0;
       if (elapsed < SETTLE_DURATION) {
         settleFactor = 1 - (elapsed / SETTLE_DURATION); // 1 → 0
@@ -363,8 +364,8 @@ const StateParticles = () => {
       // Generate random offsets that decay to 0
       for (let i = 0; i < particles.length; i++) {
         if (settleFactor > 0) {
-          // Random offset up to MAX_WIGGLE pixels, scaled by settleFactor
-          const maxOffset = MAX_WIGGLE * settleFactor;
+          // Random offset up to 3 pixels, scaled by settleFactor
+          const maxOffset = 3 * settleFactor;
           settleOffsets[i].dx = (Math.random() - 0.5) * maxOffset;
           settleOffsets[i].dy = (Math.random() - 0.5) * maxOffset;
         } else {
