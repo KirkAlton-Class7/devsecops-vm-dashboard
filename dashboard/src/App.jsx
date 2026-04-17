@@ -76,6 +76,7 @@ export default function App() {
     localStorage.setItem("dashboard_service_limit", serviceLimit);
   }, [serviceLimit]);
 
+  // Dashboard data fetching (live)
   useEffect(() => {
     async function loadDashboard() {
       try {
@@ -100,8 +101,10 @@ export default function App() {
 
     // Cleanup on unmount
     return () => clearInterval(interval);
-  }, []); // Empty dependency array means this runs once on mount
+  }, []); // Empty dependency array – runs once on mount
 
+  // Quotes fetching (static, no polling needed)
+  useEffect(() => {
     async function loadQuotes() {
       try {
         const res = await fetch("/data/quotes.json", { cache: "no-store" });
@@ -112,9 +115,8 @@ export default function App() {
         setQuotes(mockQuotes);
       }
     }
-
-    Promise.all([loadDashboard(), loadQuotes()]);
-  }, []);
+    loadQuotes();
+  }, []); // Only run once on mount
 
   const featuredQuote = useMemo(() => getRandomQuote(quotes), [quotes]);
 
