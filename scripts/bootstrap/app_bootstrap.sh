@@ -654,6 +654,34 @@ def get_machine_type():
     full = get_metadata("instance/machine-type")
     return full.split('/')[-1] if '/' in full else full
     
+# ------------------------------------------------------------
+# SUBNET - Get subnet name with fallback to gcloud
+# ------------------------------------------------------------
+def get_subnet_name():
+    # First try metadata endpoint
+    sub_full = get_metadata("instance/network-interfaces/0/subnetwork")
+    if sub_full != "unknown":
+        return sub_full.split('/')[-1] if '/' in sub_full else sub_full
+    # Fallback: use gcloud describe
+    try:
+        instance_name = get_metadata("instance/name")
+        zone_full = get_metadata("instance/zone")
+        zone = zone_full.split('/')[-1] if '/' in zone_full else zone_full
+        if instance_name == "unknown" or zone == "unknown":
+            return "unknown"
+        cmd = ["gcloud", "compute", "instances", "describe", instance_name,
+               "--zone", zone, "--format=json"]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            subnet_url = data["networkInterfaces"][0].get("subnetwork", "unknown")
+            if subnet_url != "unknown":
+                return subnet_url.split('/')[-1] if '/' in subnet_url else subnet_url
+    except Exception as e:
+        # Log error but continue
+        pass
+    return "unknown"
+
 # ----------------------------------------------------------------------
 # COST ESTIMATION (heuristic, cloud‑specific)
 # ----------------------------------------------------------------------
@@ -757,11 +785,12 @@ region = zone.rsplit('-', 1)[0] if '-' in zone else "unknown"
 # Parse machine type
 machine_type = machine_full.split('/')[-1] if '/' in machine_full else machine_full
 
-# Fetch VPC and subnet from metadata
+# Fetch VPC (metadata works for VPC)
 vpc_full = get_metadata("instance/network-interfaces/0/network")
-subnet_full = get_metadata("instance/network-interfaces/0/subnetwork")
 vpc = vpc_full.split('/')[-1] if '/' in vpc_full else vpc_full
-subnet = subnet_full.split('/')[-1] if '/' in subnet_full else subnet_full
+
+# Fetch subnet using fallback function
+subnet = get_subnet_name()
 
 # ------------------------------------------------------------
 # LOAD QUOTES
