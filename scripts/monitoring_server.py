@@ -1,8 +1,34 @@
 #!/usr/bin/env python3
-"""
-Monitoring server for GCP VM metadata and health checks.
-Serves /healthz (plain text) and /metadata (JSON).
-"""
+
+# Monitoring server for GCP VM metadata and health checks.
+# Serves /healthz (plain text) and /metadata (JSON).
+
+
+# -------------------------------
+# IMPORTANT NOTES
+# -------------------------------
+
+# Service Account Permissions for Metadata Retrieval
+
+# The default Compute Engine service account used by the VM must have at least `roles/compute.viewer`
+# This allows the monitoring script to query instance details via `gcloud`.
+# The role enables reading instance metadata, including subnet names, when the standard metadata server endpoint returns 404.
+
+# Check current roles for the service account
+# ```bash
+# export PROJECT_ID=$(gcloud config get-value project)
+# gcloud projects get-iam-policy $PROJECT_ID \
+#   --flatten="bindings[].members" \
+#   --format='table(bindings.role)' \
+#   --filter="bindings.members:serviceAccount:YOUR_SA@developer.gserviceaccount.com"
+# ````
+
+# Grant the compute.viewer role if missing
+# ``` bash
+# gcloud projects add-iam-policy-binding $PROJECT_ID \
+#   --member="serviceAccount:YOUR_SA@developer.gserviceaccount.com" \
+#   --role="roles/compute.viewer"
+# ````
 
 import json
 import subprocess
@@ -46,10 +72,44 @@ def get_metadata(path, timeout=2):
         return "unknown"
 
 def safe_basename(full_path):
-    """Extract last component of a resource path (e.g., projects/123/networks/default -> default)."""
+    """
+    Extract last component of a resource path, stripping all whitespace and special chars.
+    """
     if not full_path or full_path == "unknown":
         return full_path
-    return full_path.split('/')[-1]
+    
+    # Step 1: Strip all whitespace (spaces, newlines, carriage returns, tabs)
+    cleaned = full_path.strip()
+    
+    # Step 2: If still empty, return "unknown"
+    if not cleaned:
+        return "unknown"
+    
+    # Step 3: Split on '/' and take the last part
+    if '/' in cleaned:
+        return cleaned.split('/')[-1].strip()
+    else:
+        return cleaned.strip()
+ 
+def get_subnet_from_gcloud():
+    """Fallback: use gcloud to get the subnet name from the instance description."""
+    try:
+        instance_name = get_metadata("instance/name")
+        zone = safe_basename(get_metadata("instance/zone"))
+        if instance_name == "unknown" or zone == "unknown":
+            return "unknown"
+        cmd = ["gcloud", "compute", "instances", "describe", instance_name,
+               "--zone", zone, "--format=json"]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            # The subnet full URL is in networkInterfaces[0].subnetwork
+            subnet_url = data["networkInterfaces"][0].get("subnetwork", "unknown")
+            if subnet_url != "unknown":
+                return safe_basename(subnet_url)
+    except Exception as e:
+        print(f"gcloud subnet lookup failed: {e}")
+    return "unknown"
 
 def get_uptime():
     """Return human-readable uptime (e.g., 'up 2 hours, 3 minutes')."""
@@ -76,7 +136,6 @@ def get_uptime():
                 return f"up {minutes} minute{'s' if minutes != 1 else ''}"
     except Exception:
         return "unknown"
-
 
 # -------------------------------
 # HTTP Request Handler
@@ -123,8 +182,13 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 # ----- Network -----
                 vpc_full   = get_metadata("instance/network-interfaces/0/network")
                 vpc        = safe_basename(vpc_full)
+
                 subnet_full = get_metadata("instance/network-interfaces/0/subnetwork")
-                subnet     = safe_basename(subnet_full)
+                if subnet_full == "unknown" or not subnet_full:
+                    subnet = get_subnet_from_gcloud()
+                else:
+                    subnet = safe_basename(subnet_full)
+
                 internal_ip   = get_metadata("instance/network-interfaces/0/ip")
                 external_ip   = get_metadata("instance/network-interfaces/0/access-configs/0/external-ip")
 
