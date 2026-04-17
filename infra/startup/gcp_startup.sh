@@ -75,22 +75,10 @@ else
     cd "$REPO_DIR" && timeout 60 git pull --depth 1
 fi
 
-# ------------------------------------------------------------
-# Run the main application bootstrap script
-# ------------------------------------------------------------
-MAIN_SCRIPT="/opt/deploy/scripts/bootstrap/app_bootstrap.sh"
-if [ ! -f "$MAIN_SCRIPT" ]; then
-    echo "ERROR: Main script not found at $MAIN_SCRIPT"
-    exit 1
-fi
-chmod +x "$MAIN_SCRIPT"
-echo "INFO: Running main application bootstrap..."
-timeout 1200 bash -x "$MAIN_SCRIPT"
-
-# ------------------------------------------------------------
-# Setup monitoring endpoints server (runs on port 8080)
-# ------------------------------------------------------------
-echo "INFO: Setting up monitoring endpoints server"
+# ---------------------------------------------------------------
+# Setup Dashboard API & Monitoring Endpoints Server (port 8080)
+# ---------------------------------------------------------------
+echo "INFO: Setting up dashboard API and monitoring endpoints server"
 
 # Install Python3 if missing
 if ! command -v python3 >/dev/null 2>&1; then
@@ -108,30 +96,31 @@ if ! command -v python3 >/dev/null 2>&1; then
     fi
 fi
 
-# The monitoring script is expected at this location (in the repo)
-MONITORING_SCRIPT="/opt/deploy/scripts/monitoring_server.py"
-if [ ! -f "$MONITORING_SCRIPT" ]; then
-    echo "ERROR: Monitoring script not found at $MONITORING_SCRIPT"
-    echo "INFO: Make sure the file exists in your repository at scripts/monitoring_server.py"
+# The dashboard API script is expected at this location (in the repo)
+API_SCRIPT="/opt/deploy/scripts/dashboard_api.py"
+if [ ! -f "$API_SCRIPT" ]; then
+    echo "ERROR: Dashboard API script not found at $API_SCRIPT"
+    echo "INFO: Make sure the file exists in your repository at scripts/dashboard_api.py"
     exit 1
 fi
 
-chmod +x "$MONITORING_SCRIPT"
-echo "SUCCESS: Monitoring script permissions set"
+chmod +x "$API_SCRIPT"
+echo "SUCCESS: Dashboard API script permissions set"
 
 # Create systemd service file
-SERVICE_FILE="/etc/systemd/system/monitoring.service"
+SERVICE_FILE="/etc/systemd/system/dashboard-api.service"
 cat > "$SERVICE_FILE" << 'EOF'
 [Unit]
-Description=Monitoring Endpoints Server
+Description=Dashboard API & Metadata Server
 After=network.target
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/opt/deploy/scripts
-ExecStart=/usr/bin/python3 /opt/deploy/scripts/monitoring_server.py
+ExecStart=/usr/bin/python3 /opt/deploy/scripts/dashboard_api.py
 Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
@@ -141,22 +130,33 @@ echo "SUCCESS: Systemd service file created at $SERVICE_FILE"
 
 # Reload systemd, enable and start the service
 systemctl daemon-reload
-systemctl enable monitoring.service
-systemctl start monitoring.service
+systemctl enable dashboard-api.service
+systemctl start dashboard-api.service
+sleep 2
 
 # Check status
-if systemctl is-active --quiet monitoring.service; then
-    echo "SUCCESS: Monitoring server is RUNNING on port 8080"
+if systemctl is-active --quiet dashboard-api.service; then
+    echo "SUCCESS: Dashboard API server is RUNNING on port 8080"
     echo "INFO: Test locally: curl http://localhost:8080/healthz"
     PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "unknown")
     if [ "$PUBLIC_IP" != "unknown" ]; then
         echo "INFO: From browser: http://$PUBLIC_IP:8080/healthz"
     fi
 else
-    echo "ERROR: Monitoring server failed to start. Check logs:"
-    systemctl status monitoring.service --no-pager
+    echo "ERROR: Dashboard API server failed to start. Check logs:"
+    systemctl status dashboard-api.service --no-pager
 fi
 
-echo "SUCCESS: Monitoring endpoints server setup complete"
+echo "SUCCESS: Dashboard API server setup complete"
 
-echo "SUCCESS: Bootstrap finished at $(date)"
+# ------------------------------------------------------------
+# Run the main application bootstrap script
+# ------------------------------------------------------------
+MAIN_SCRIPT="/opt/deploy/scripts/bootstrap/app_bootstrap.sh"
+if [ ! -f "$MAIN_SCRIPT" ]; then
+    echo "ERROR: Main script not found at $MAIN_SCRIPT"
+    exit 1
+fi
+chmod +x "$MAIN_SCRIPT"
+echo "INFO: Running main application bootstrap..."
+timeout 1200 bash -x "$MAIN_SCRIPT"

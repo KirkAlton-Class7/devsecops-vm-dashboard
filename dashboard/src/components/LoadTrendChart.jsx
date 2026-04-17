@@ -11,7 +11,7 @@ export default function LoadTrendChart() {
   // Fetch metrics to update historical data
   const fetchMetrics = async () => {
     try {
-      const response = await fetch("/data/dashboard-data.json", { cache: "no-store" });
+      const response = await fetch("/api/dashboard", { cache: "no-store" });
       if (response.ok) {
         const data = await response.json();
         const loadValue = parseFloat(data.systemLoad || "0");

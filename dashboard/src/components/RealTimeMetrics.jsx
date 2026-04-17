@@ -17,7 +17,7 @@ export default function RealTimeMetrics() {
   // Fetch metrics from the VM
   const fetchMetrics = async () => {
     try {
-      const response = await fetch("/data/dashboard-data.json", { cache: "no-store" });
+      const response = await fetch("/api/dashboard", { cache: "no-store" });
       if (response.ok) {
         const data = await response.json();
         

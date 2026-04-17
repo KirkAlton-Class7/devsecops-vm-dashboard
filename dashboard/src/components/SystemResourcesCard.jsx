@@ -12,7 +12,7 @@ export default function SystemResourcesCard({ resources }) {
   useEffect(() => {
     const fetchCpu = async () => {
       try {
-        const response = await fetch("/data/dashboard-data.json", { cache: "no-store" });
+        const response = await fetch("/api/dashboard", { cache: "no-store" });
         if (response.ok) {
           const data = await response.json();
           const cpuCard = data.summaryCards?.find(card => card.label === "CPU");

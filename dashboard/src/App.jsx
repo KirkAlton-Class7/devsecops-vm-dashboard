@@ -79,7 +79,7 @@ export default function App() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const res = await fetch("/data/dashboard-data.json", { cache: "no-store" });
+        const res = await fetch("/api/dashboard", { cache: "no-store" });
         if (!res.ok) throw new Error("dashboard fetch failed");
         const data = await res.json();
         data.monitoringEndpoints = getRealMonitoringEndpoints();
