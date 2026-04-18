@@ -7,10 +7,10 @@ export const mockDashboard = {
   ],
 
   identity: {
-    project: "devsecops-production",
+    project: "kirk-devsecops-sandbox",
     instanceId: "i-0a1b2c3d4e5f67890",
-    instanceName: "prod-worker-03",
-    hostname: "prod-worker-03.internal",
+    instanceName: "vm-dashboard",
+    hostname: "vm-dashboard-03.internal",
     machineType: "t3.medium",
   },
 
@@ -22,8 +22,8 @@ export const mockDashboard = {
   },
 
   location: {
-    region: "us-east-1",
-    zone: "us-east-1a",
+    region: "us-central1",
+    zone: "us-central-1a",
     loadAvg: "2.45",            // 5‑minute load average
     uptime: "6 days, 14 hours", // for LocationCard
   },

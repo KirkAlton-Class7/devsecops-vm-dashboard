@@ -10,25 +10,10 @@ const icons = {
   default: Zap
 };
 
-export default function StatCard({ label, value, status, instanceName, zone, projectId }) {
+export default function StatCard({ label, value, status }) {
   const Icon = icons[label] || icons.default;
   const isWarning = status === "warning";
-
-  const getClickUrl = () => {
-    if (label === "Cost") {
-      return `https://console.cloud.google.com/billing?project=${projectId}`;
-    }
-    if (label === "CPU" || label === "Memory" || label === "Disk") {
-      return `https://console.cloud.google.com/compute/instancesDetail/zones/${zone}/instances/${instanceName}?project=${projectId}`;
-    }
-    return null;
-  };
-
-  const handleClick = () => {
-    const url = getClickUrl();
-    if (url) window.open(url, "_blank");
-  };
-
+  
   const getGradient = () => {
     if (isWarning) return "from-orange-500/20 via-amber-500/20 to-yellow-500/20";
     return "from-emerald-500/20 via-teal-500/20 to-cyan-500/20";
@@ -49,38 +34,32 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
     return "text-emerald-400 bg-emerald-500/10";
   };
 
+  // Calculate percentage for progress bar - only for CPU, Memory, Disk
   let percentage = null;
   if (label === "CPU" || label === "Memory" || label === "Disk") {
-    if (value && value.includes('%')) percentage = parseInt(value);
+    if (value && value.includes('%')) {
+      percentage = parseInt(value);
+    }
   }
-
-  const glowColor = isWarning 
-    ? "rgba(251, 146, 60, 0.8)"   // neon orange
-    : "rgba(6, 182, 212, 0.8)";    // neon cyan
 
   return (
     <motion.div
-      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${getGradient()} backdrop-blur-xl border ${getBorderColor()} shadow-xl group w-full cursor-pointer`}
+      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${getGradient()} backdrop-blur-xl border ${getBorderColor()} shadow-xl group w-full`}
       whileHover={{ 
-        y: -5,                           // only lift, no scale
+        y: -5,
+        scale: 1.02,
         transition: { type: "spring", stiffness: 300, damping: 20 }
       }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 200, damping: 25 }}
-      onClick={handleClick}
     >
       <div className="relative p-6 z-10">
-        {/* Top row: icon (with its own hover glow) + status pill */}
         <div className="flex items-start justify-between mb-4">
           <motion.div 
             className={`p-3 rounded-xl bg-white/5 backdrop-blur-sm border ${getBorderColor()}`}
-            whileHover={{ 
-              scale: 1.05,
-              boxShadow: `0 0 12px ${glowColor}`,
-              transition: { duration: 0.2, ease: "easeOut" }
-            }}
-            transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
+            whileHover={{ rotate: 360, scale: 1.1 }}
+            transition={{ duration: 0.5, type: "spring" }}
           >
             <Icon className={`w-6 h-6 ${getIconColor()}`} />
           </motion.div>
@@ -91,20 +70,34 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
           >
-            {isWarning ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            <span className="text-xs font-medium uppercase">{status}</span>
+            {isWarning ? (
+              <TrendingUp className="w-3 h-3" />
+            ) : (
+              <TrendingDown className="w-3 h-3" />
+            )}
+            <span className="text-xs font-medium uppercase">
+              {status}
+            </span>
           </motion.div>
         </div>
         
-        {/* Value and label – no scaling on hover */}
-        <div className="space-y-2">
-          <p className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+        <motion.div 
+          className="space-y-2"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <motion.p 
+            className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent"
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
             {value}
-          </p>
+          </motion.p>
           <p className="text-sm text-slate-400 font-medium tracking-wide uppercase">{label}</p>
-        </div>
+        </motion.div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar - only for CPU, Memory, Disk */}
         {percentage !== null && (
           <div className="mt-4">
             <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
@@ -115,19 +108,18 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
                 transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
               />
             </div>
-            <motion.p
-              key={percentage}
+            <motion.p 
               className="text-xs text-slate-500 mt-2"
-              initial={{ opacity: 0, x: -5 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
             >
               {percentage}% utilized
             </motion.p>
           </div>
         )}
         
-        {/* Network/Cost indicator */}
+        {/* Network/Cost indicator - no progress bar */}
         {!percentage && (
           <div className="mt-4">
             <div className="flex items-center gap-2">

@@ -56,6 +56,9 @@ student_name = "Kirk Alton"
 # !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
 # ---------------------------------------------------------------------------------------------
 
+# Global cache for static values that never change
+_SUBNET_CACHE = None
+
 # -------------------------------
 # Helper Functions
 # -------------------------------
@@ -194,15 +197,23 @@ def get_machine_type():
     return full.split('/')[-1] if '/' in full else full
 
 def get_subnet_name():
-    """Get subnet name: try metadata, then gcloud fallback."""
+    """Get subnet name: try metadata, then gcloud fallback, then cache."""
+    global _SUBNET_CACHE
+    if _SUBNET_CACHE is not None:
+        return _SUBNET_CACHE
+
+    # First try metadata endpoint
     sub_full = get_metadata("instance/network-interfaces/0/subnetwork")
     if sub_full != "unknown":
-        return safe_basename(sub_full)
+        _SUBNET_CACHE = safe_basename(sub_full)
+        return _SUBNET_CACHE
+
     # Fallback: gcloud describe
     try:
         instance_name = get_metadata("instance/name")
         zone = safe_basename(get_metadata("instance/zone"))
         if instance_name == "unknown" or zone == "unknown":
+            _SUBNET_CACHE = "unknown"
             return "unknown"
         cmd = ["gcloud", "compute", "instances", "describe", instance_name,
                "--zone", zone, "--format=json"]
@@ -211,9 +222,12 @@ def get_subnet_name():
             data = json.loads(result.stdout)
             subnet_url = data["networkInterfaces"][0].get("subnetwork", "unknown")
             if subnet_url != "unknown":
-                return safe_basename(subnet_url)
+                _SUBNET_CACHE = safe_basename(subnet_url)
+                return _SUBNET_CACHE
     except Exception as e:
         print(f"gcloud subnet lookup failed: {e}")
+
+    _SUBNET_CACHE = "unknown"
     return "unknown"
 
 def get_cumulative_cost():

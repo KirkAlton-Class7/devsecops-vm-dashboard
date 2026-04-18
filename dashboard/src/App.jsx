@@ -120,6 +120,11 @@ export default function App() {
 
   const featuredQuote = useMemo(() => getRandomQuote(quotes), [quotes]);
 
+  // Extract VM details for stat card links
+  const instanceName = dashboard?.identity?.instanceName || "";
+  const zone = dashboard?.location?.zone || "";
+  const projectId = dashboard?.identity?.project || "";
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -217,6 +222,9 @@ export default function App() {
                     label={card.label}
                     value={card.value}
                     status={card.status}
+                    instanceName={instanceName}
+                    zone={zone}
+                    projectId={projectId}
                   />
                 </motion.div>
               </div>
