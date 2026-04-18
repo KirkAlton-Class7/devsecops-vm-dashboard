@@ -8,6 +8,12 @@ DASHBOARD_TAGLINE="Infrastructure health and activity"
 DASHBOARD_USER="Kirk Alton"
 DASHBOARD_NAME="DevSecOps Dashboard"
 
+# ---------------------------------
+# Env Variables for React build
+# ---------------------------------
+export VITE_GITHUB_URL="https://github.com/KirkAlton-Class7"
+export VITE_LINKEDIN_URL="https://www.linkedin.com/in/kirkcochranjr/"
+
 # ---------------------------------------------------------------------------------------------
 # !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
 # ---------------------------------------------------------------------------------------------
@@ -228,7 +234,7 @@ log "Building dashboard"
 cd "$REPO_DIR/dashboard" || { log "ERROR: dashboard dir missing"; exit 1; }
 chown -R ${APP_USER}:${APP_USER} "$REPO_DIR"
 
-sudo -u ${APP_USER} bash <<EOF
+sudo -E -u ${APP_USER} bash <<EOF
 cd "$REPO_DIR/dashboard"
 if ! npm ci 2>/dev/null; then
   npm install || exit 1

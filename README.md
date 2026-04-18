@@ -397,7 +397,13 @@ DASHBOARD_APP_NAME="GCP Deployment"
 DASHBOARD_TAGLINE="Infrastructure health and activity"
 DASHBOARD_USER="Kirk Alton"
 DASHBOARD_NAME="DevSecOps Dashboard"
-REPO_URL="https://github.com/your-fork/devsecops-vm-dashboard.git"
+VITE_GITHUB_URL="https://github.com/KirkAlton-Class7"
+VITE_LINKEDIN_URL="https://www.linkedin.com/in/kirkcochranjr/"
+
+> [!NOTE]
+
+DO NOT EDIT UNLESS YOU KNOW WHAT YOU ARE DOING
+
 GITHUB_QUOTES_URL="https://raw.githubusercontent.com/your-fork/main/quotes.json"
 ```
 
@@ -428,24 +434,6 @@ After modifying the API, restart the service:
 ```bash
 sudo systemctl restart dashboard-api
 ```
-
----
-
-## Environment Variables (React Build)
-
-The sidebar footer uses two environment variables, embedded at build time:
-
-- `VITE_GITHUB_URL`
-- `VITE_LINKEDIN_URL`
-
-Create a `.env` file in the `dashboard/` folder:
-
-```
-VITE_GITHUB_URL=https://github.com/your-username/your-repo
-VITE_LINKEDIN_URL=https://www.linkedin.com/in/your-username
-```
-
-Then rebuild the dashboard (`npm run build`). The variables are baked into the static files.
 
 ---
 
