@@ -16,10 +16,22 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
 
   const getClickUrl = () => {
     if (label === "Cost") {
-      return `https://console.cloud.google.com/billing?project=${projectId}`;
+      // Use specific billing project link if projectId exists, otherwise fallback to billing overview
+      if (projectId) {
+        return `https://console.cloud.google.com/billing?project=${projectId}`;
+      } else {
+        console.warn("StatCard: projectId missing for Cost card, using fallback billing URL");
+        return "https://console.cloud.google.com/billing/projects";
+      }
     }
     if (label === "CPU" || label === "Memory" || label === "Disk") {
-      return `https://console.cloud.google.com/compute/instancesDetail/zones/${zone}/instances/${instanceName}?project=${projectId}`;
+      // Use instance detail link if all details available, otherwise fallback to compute overview
+      if (instanceName && zone && projectId) {
+        return `https://console.cloud.google.com/compute/instancesDetail/zones/${zone}/instances/${instanceName}?project=${projectId}`;
+      } else {
+        console.warn(`StatCard: missing instance details for ${label}, using fallback compute URL`);
+        return "https://console.cloud.google.com/compute/";
+      }
     }
     return null;
   };

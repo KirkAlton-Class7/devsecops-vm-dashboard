@@ -24,16 +24,17 @@ export const mockDashboard = {
   location: {
     region: "us-central1",
     zone: "us-central-1a",
-    loadAvg: "2.45",            // 5‑minute load average
-    uptime: "6 days, 14 hours", // for LocationCard
+    loadAvg: "2.45",            // 5‑minute load average (matches real API)
+    uptime: "6 days, 14 hours",
   },
 
   systemResources: {
     cpu: {
       cores: 2,
       usage: 72,
-      loadAvg: "2.45",
-      history: [                // for LoadTrendChart
+      loadAvg: "2.45",          // 1‑minute load average (used in SystemResourcesCard)
+      frequency: "2200 MHz",
+      history: [                // for LoadTrendChart (optional)
         { time: "14:20", value: 68 },
         { time: "14:22", value: 71 },
         { time: "14:24", value: 73 },
@@ -56,10 +57,20 @@ export const mockDashboard = {
         { time: "14:58", value: 72 },
       ],
     },
-    memory: { total: 8192, used: 5570 },
+    memory: {
+      total: 8192,              // MB
+      used: 5570,               // MB → ~68% used
+      free: 2622,               // MB (8192 - 5570)
+      available: 2622,          // alias for free (used by SystemResourcesCard)
+    },
+    disk: {
+      total: 51200,             // MB (50 GB)
+      used: 23040,              // MB (~45% used)
+      available: 28160,         // MB (free space)
+    },
   },
 
-  systemLoad: 2.45,            // 1‑minute load average
+  systemLoad: 2.45,            // 1‑minute load average (used by LoadTrendChart)
 
   monitoringEndpoints: [
     { name: "Health Check", url: "https://api.devsecops.com/healthz", status: "up" },

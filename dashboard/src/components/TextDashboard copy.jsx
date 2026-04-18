@@ -1,15 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Helper: format bytes (MB → GB/MB)
-const formatBytes = (mb) => {
-  if (!mb && mb !== 0) return "N/A";
-  if (mb > 1024) {
-    return `${(mb / 1024).toFixed(1)} GB`;
-  }
-  return `${Math.round(mb)} MB`;
-};
-
 export default function TextDashboard({ dashboard, tagline = "", onExitTextDash, logLimit, serviceLimit, onLogLimitChange, onServiceLimitChange, dashboardName = "DevSecOps Dashboard" }) {
   const [copied, setCopied] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
@@ -32,13 +23,14 @@ export default function TextDashboard({ dashboard, tagline = "", onExitTextDash,
     return `${cleaned}%`;
   };
 
-  // Helper: format cost
+  // Helper: format cost – accepts either "Cost" or "Estimated Cost" labels
   const getCostValue = () => {
     const costCard = dashboard.summaryCards?.find(c => c.label === "Estimated Cost" || c.label === "Cost");
     let raw = costCard?.value;
     if (!raw && raw !== 0) return "N/A";
     if (typeof raw === "number") return `$${raw.toFixed(2)}`;
     if (typeof raw === "string") {
+      // Already formatted? e.g., "$0.05 total"
       if (raw.startsWith("$")) return raw;
       const numeric = parseFloat(raw.replace(/[^0-9.-]/g, ""));
       if (!isNaN(numeric)) return `$${numeric.toFixed(2)}`;
@@ -47,14 +39,8 @@ export default function TextDashboard({ dashboard, tagline = "", onExitTextDash,
     return "N/A";
   };
 
-  // Load average: first try location.loadAvg, then fallbacks
+  // Load average: first try location.loadAvg (written by Python), then fallbacks
   const loadAvg = dashboard.location?.loadAvg || dashboard.systemResources?.cpu?.loadAvg || dashboard.systemResources?.load5 || "0.00";
-
-  // Detailed system resources
-  const systemResources = dashboard.systemResources || {};
-  const memory = systemResources.memory || { total: 0, used: 0, free: 0, available: 0 };
-  const disk = systemResources.disk || { total: 0, used: 0, available: 0 };
-  const cpu = systemResources.cpu || { usage: 0, cores: null, frequency: null, loadAvg: null };
 
   // Logs cycle
   const cycleLogLimit = () => {
@@ -112,7 +98,7 @@ export default function TextDashboard({ dashboard, tagline = "", onExitTextDash,
     return () => clearInterval(interval);
   }, []);
 
-  // Extract basic metrics (percentages)
+  // Extract metric values (they already include % from script)
   const cpuRaw = dashboard.summaryCards?.find(c => c.label === "CPU")?.value;
   const memRaw = dashboard.summaryCards?.find(c => c.label === "Memory")?.value;
   const diskRaw = dashboard.summaryCards?.find(c => c.label === "Disk")?.value;
@@ -125,6 +111,7 @@ export default function TextDashboard({ dashboard, tagline = "", onExitTextDash,
           <div className="flex justify-between items-start flex-wrap gap-2">
             <div>
               <div className="text-xl font-bold tracking-tight">{dashboardName}</div>
+              {/* Tagline */}
               {tagline && <div className="text-xs text-white/40 mt-0.5">{tagline}</div>}
               <div className="text-xs text-white/40 mt-1">
                 {new Date().toLocaleDateString()} | {lastRefresh.toLocaleTimeString()} | auto-refresh: 60s
@@ -161,24 +148,24 @@ export default function TextDashboard({ dashboard, tagline = "", onExitTextDash,
           {hasIssues ? `ALERT: ${serviceStats.critical} critical, ${serviceStats.warning} warning` : "STATUS: All systems operational"}
         </div>
 
-        {/* IDENTITY + OVERVIEW (enhanced) */}
+        {/* IDENTITY + OVERVIEW */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Identity</div>
             <div className="space-y-1 text-sm">
-              <div><span className="text-cyan-400">Project:</span>      {dashboard.identity?.project || "N/A"}</div>
-              <div><span className="text-cyan-400">Instance ID:</span>  {dashboard.identity?.instanceId || "N/A"}</div>
-              <div><span className="text-cyan-400">Instance Name:</span> {dashboard.identity?.instanceName || "N/A"}</div>
-              <div><span className="text-cyan-400">Machine type:</span> {dashboard.identity?.machineType || "N/A"}</div>
+              <div>Project:      {dashboard.identity?.project || "N/A"}</div>
+              <div>Instance ID:  {dashboard.identity?.instanceId || "N/A"}</div>
+              <div>Instance Name:     {dashboard.identity?.instanceName || "N/A"}</div>
+              <div>Machine type: {dashboard.identity?.machineType || "N/A"}</div>
             </div>
           </div>
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Overview</div>
             <div className="space-y-1 text-sm">
-              <div><span className="text-cyan-400">CPU:</span> {formatMetric(cpuRaw)} | <span className="text-cyan-400">Cores:</span> {cpu.cores || "?"} | <span className="text-cyan-400">Load (1min):</span> {cpu.loadAvg || loadAvg || "?"}</div>
-              <div><span className="text-cyan-400">Memory:</span> {formatMetric(memRaw)} | <span className="text-cyan-400">Total:</span> {formatBytes(memory.total)} | <span className="text-cyan-400">Avail:</span> {formatBytes(memory.available || memory.free)} | <span className="text-cyan-400">Used:</span> {formatBytes(memory.used)}</div>
-              <div><span className="text-cyan-400">Disk:</span> {formatMetric(diskRaw)} | <span className="text-cyan-400">Total:</span> {formatBytes(disk.total)} | <span className="text-cyan-400">Avail:</span> {formatBytes(disk.available)} | <span className="text-cyan-400">Used:</span> {formatBytes(disk.used)}</div>
-              <div><span className="text-cyan-400">Estimated Cost:</span> {getCostValue()}/month</div>
+              <div>CPU:     {formatMetric(cpuRaw)}</div>
+              <div>Memory:  {formatMetric(memRaw)}</div>
+              <div>Disk:    {formatMetric(diskRaw)}</div>
+              <div>Estimated Cost:    {getCostValue()}/month</div>
             </div>
           </div>
         </div>
@@ -188,19 +175,19 @@ export default function TextDashboard({ dashboard, tagline = "", onExitTextDash,
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Network</div>
             <div className="space-y-1 text-sm">
-              <div><span className="text-cyan-400">VPC:</span>         {dashboard.network?.vpc || "N/A"}</div>
-              <div><span className="text-cyan-400">Subnet:</span>      {dashboard.network?.subnet || "N/A"}</div>
-              <div><span className="text-cyan-400">Internal IP:</span> {dashboard.network?.internalIp || "N/A"}</div>
-              <div><span className="text-cyan-400">External IP:</span> {dashboard.network?.externalIp || "N/A"}</div>
+              <div>VPC:         {dashboard.network?.vpc || "N/A"}</div>
+              <div>Subnet:      {dashboard.network?.subnet || "N/A"}</div>
+              <div>Internal IP: {dashboard.network?.internalIp || "N/A"}</div>
+              <div>External IP: {dashboard.network?.externalIp || "N/A"}</div>
             </div>
           </div>
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Location</div>
             <div className="space-y-1 text-sm">
-              <div><span className="text-cyan-400">Region:</span> {dashboard.location?.region || "N/A"}</div>
-              <div><span className="text-cyan-400">Zone:</span>   {dashboard.location?.zone || "N/A"}</div>
-              <div><span className="text-cyan-400">Uptime:</span> {dashboard.meta?.uptime || "N/A"}</div>
-              <div><span className="text-cyan-400">5-min load avg:</span> {loadAvg}</div>
+              <div>Region: {dashboard.location?.region || "N/A"}</div>
+              <div>Zone:   {dashboard.location?.zone || "N/A"}</div>
+              <div>Uptime: {dashboard.meta?.uptime || "N/A"}</div>
+              <div>5-min load avg: {loadAvg}</div>
             </div>
           </div>
         </div>
@@ -212,7 +199,7 @@ export default function TextDashboard({ dashboard, tagline = "", onExitTextDash,
             {dashboard.monitoringEndpoints?.length ? (
               dashboard.monitoringEndpoints.map((ep, idx) => (
                 <div key={idx} className="flex flex-wrap gap-x-4 gap-y-1">
-                  <span className="text-cyan-400">{ep.name}:</span>
+                  <span className="text-white/60">{ep.name}:</span>
                   <span className="text-white/40 text-xs">{ep.url}</span>
                   <span className={ep.status === "up" ? "text-green-400" : "text-red-400"}>[{ep.status}]</span>
                 </div>
@@ -277,8 +264,8 @@ export default function TextDashboard({ dashboard, tagline = "", onExitTextDash,
   );
 }
 
-// Helper: generate snapshot for copying (includes detailed overview)
-function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, dashboardName, tagline) {
+// Helper: generate snapshot for copying
+function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, dashboardName) {
   const serviceStats = {
     total: dashboard.services?.length || 0,
     healthy: dashboard.services?.filter(s => s.status === "healthy").length || 0,
@@ -288,11 +275,6 @@ function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, da
   const hasIssues = serviceStats.critical > 0 || serviceStats.warning > 0;
   const totalLogs = dashboard.logs?.length || 0;
   const loadAvg = dashboard.location?.loadAvg || dashboard.systemResources?.cpu?.loadAvg || dashboard.systemResources?.load5 || "0.00";
-
-  const systemResources = dashboard.systemResources || {};
-  const memory = systemResources.memory || { total: 0, used: 0, free: 0, available: 0 };
-  const disk = systemResources.disk || { total: 0, used: 0, available: 0 };
-  const cpu = systemResources.cpu || { usage: 0, cores: null, frequency: null, loadAvg: null };
 
   const formatMetric = (value) => {
     if (!value && value !== 0) return "N/A";
@@ -318,12 +300,6 @@ function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, da
   const memRaw = dashboard.summaryCards?.find(c => c.label === "Memory")?.value;
   const diskRaw = dashboard.summaryCards?.find(c => c.label === "Disk")?.value;
 
-  const formatBytes = (mb) => {
-    if (!mb && mb !== 0) return "N/A";
-    if (mb > 1024) return `${(mb / 1024).toFixed(1)} GB`;
-    return `${Math.round(mb)} MB`;
-  };
-
   return `
 ${dashboardName.toUpperCase()} SNAPSHOT
 ${tagline ? `${tagline}\n` : ''}
@@ -338,9 +314,9 @@ Hostname: ${dashboard.identity?.hostname || "N/A"}
 Machine type: ${dashboard.identity?.machineType || "N/A"}
 
 OVERVIEW
-CPU: ${formatMetric(cpuRaw)} | Cores: ${cpu.cores || "?"} | Load (1min): ${cpu.loadAvg || loadAvg || "?"}
-Memory: ${formatMetric(memRaw)} | Total: ${formatBytes(memory.total)} | Avail: ${formatBytes(memory.available || memory.free)} | Used: ${formatBytes(memory.used)}
-Disk: ${formatMetric(diskRaw)} | Total: ${formatBytes(disk.total)} | Avail: ${formatBytes(disk.available)} | Used: ${formatBytes(disk.used)}
+CPU: ${formatMetric(cpuRaw)}
+Memory: ${formatMetric(memRaw)}
+Disk: ${formatMetric(diskRaw)}
 Estimated Cost: ${getCostValue()}
 
 NETWORK
