@@ -87,8 +87,8 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
       onClick={handleClick}
     >
       <div className="relative p-6 z-10">
-        {/* Top row: icon + status pill */}
-        <div className="flex items-start justify-between mb-4">
+        {/* Top row: icon + status pill – reduced margin when optimize button is shown */}
+        <div className={`flex items-start justify-between ${showOptimize ? 'mb-2' : 'mb-4'}`}>
           <motion.div 
             className={`p-3 rounded-xl bg-white/5 backdrop-blur-sm border ${getBorderColor()}`}
             whileHover={{ scale: 1.05, boxShadow: `0 0 12px ${glowColor}`, transition: { duration: 0.2, ease: "easeOut" } }}
@@ -108,7 +108,7 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
           </motion.div>
         </div>
 
-        {/* Optimize button – directly under the status pill (right side) */}
+        {/* Optimize button – directly under the status pill */}
         {showOptimize && (
           <div className="flex justify-end mb-4">
             <button

@@ -85,25 +85,6 @@ log "  Dashboard Name: ${DASHBOARD_NAME}"
 # Helper Functions
 # -------------------------------
 
-md() {
-  curl -fsS -H "Metadata-Flavor: Google" \
-  --connect-timeout 2 \
-  --max-time 3 \
-  "http://metadata.google.internal/computeMetadata/v1/$1" 2>/dev/null || echo "unknown"
-}
-
-safe_basename() {
-  basename "$1" 2>/dev/null || echo "$1"
-}
-
-service_status() {
-  systemctl is-active --quiet "$1" 2>/dev/null && echo "Running" || echo "Stopped"
-}
-
-command_status() {
-  command -v "$1" >/dev/null 2>&1 && echo "Installed" || echo "Missing"
-}
-
 # ---------------------------------
 # Retry Helper (network resilience)
 # ---------------------------------
@@ -281,31 +262,6 @@ fi
 # Export for Python
 export DATA_DIR
 
-# Generate images.json dynamically from the actual files in DATA_DIR/images
-python3 << 'PYTHON_SCRIPT'
-import json, os
-
-data_dir = os.environ.get('DATA_DIR', '/var/www/vm-dashboard/data')
-img_dir = f"{data_dir}/images"
-images = []
-extensions = ('.jpg', '.jpeg', '.png', '.webp')
-for idx, fname in enumerate(sorted(os.listdir(img_dir)), start=1):
-    if fname.lower().endswith(extensions):
-        name_parts = fname.replace('_', ' ').split('.')[0].title()
-        location = name_parts.split()[0] if ' ' in name_parts else name_parts
-        images.append({
-            "id": idx,
-            "filename": fname,
-            "title": name_parts,
-            "location": location,
-            "photographer": "VM Gallery",
-            "tags": ["travel", "nature"]
-        })
-with open(f"{data_dir}/images.json", "w") as f:
-    json.dump(images, f, indent=2)
-print(f"Generated images.json with {len(images)} images")
-PYTHON_SCRIPT
-
 # Set proper permissions
 chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}/images" 2>/dev/null || true
 chmod -R 755 "${DATA_DIR}/images" 2>/dev/null || true
@@ -315,67 +271,6 @@ if [ -d "$REPO_DIR/images" ]; then
     mkdir -p "${APP_DIR}/data/images"
     cp -rf "$REPO_DIR/images/"* "${APP_DIR}/data/images/" 2>/dev/null || true
 fi
-
-# --------------------
-# Fetch GitHub Quotes
-# --------------------
-
-log "Fetching latest quotes from GitHub"
-
-# Force fetch - always overwrite
-retry curl -fsSL "${GITHUB_QUOTES_URL}" -o "${ACTIVE_QUOTES}.tmp"
-
-if [ $? -eq 0 ] && [ -s "${ACTIVE_QUOTES}.tmp" ]; then
-    # Validate JSON
-    if python3 -c "import json; json.load(open('${ACTIVE_QUOTES}.tmp'))" 2>/dev/null; then
-        mv "${ACTIVE_QUOTES}.tmp" "${ACTIVE_QUOTES}"
-        cp "${ACTIVE_QUOTES}" "${LOCAL_QUOTES}"
-        log "GitHub quotes fetched successfully"
-        
-        # Show first quote for verification
-        FIRST_QUOTE=$(python3 -c "import json; print(json.load(open('${ACTIVE_QUOTES}'))[0]['text'][:60])" 2>/dev/null || echo "Unknown")
-        log "First quote: ${FIRST_QUOTE}..."
-        
-        # Verify it's NOT a fallback quote (check for Nietzsche)
-        if grep -q "Nietzsche" "${ACTIVE_QUOTES}"; then
-            log "WARNING: Still seeing fallback quotes! GitHub fetch may have failed silently."
-        fi
-    else
-        log "Invalid JSON from GitHub, keeping existing quotes"
-        rm -f "${ACTIVE_QUOTES}.tmp"
-    fi
-else
-    log "Failed to fetch GitHub quotes, using existing file if available"
-fi
-
-# Count quotes and show sample
-if [ -f "${ACTIVE_QUOTES}" ]; then
-    QUOTE_COUNT=$(python3 -c "import json; print(len(json.load(open('${ACTIVE_QUOTES}'))))" 2>/dev/null || echo "0")
-    log "Quotes file has ${QUOTE_COUNT} quotes"
-    
-    # Show first author to verify it's GitHub
-    FIRST_AUTHOR=$(python3 -c "import json; print(json.load(open('${ACTIVE_QUOTES}'))[0].get('author', 'Unknown'))" 2>/dev/null)
-    log "First author: ${FIRST_AUTHOR}"
-fi
-
-# If quotes file still has fallback, force a second attempt with wget
-if [ -f "${ACTIVE_QUOTES}" ] && grep -q "Nietzsche" "${ACTIVE_QUOTES}"; then
-    log "Fallback quotes detected! Retrying with wget..."
-    wget -q -O "${ACTIVE_QUOTES}.tmp" "${GITHUB_QUOTES_URL}"
-    if [ $? -eq 0 ] && python3 -c "import json; json.load(open('${ACTIVE_QUOTES}.tmp'))" 2>/dev/null; then
-        mv "${ACTIVE_QUOTES}.tmp" "${ACTIVE_QUOTES}"
-        cp "${ACTIVE_QUOTES}" "${LOCAL_QUOTES}"
-        log "Second attempt successful!"
-    fi
-fi
-
-# Sets GITHUB_QUOTES_SYNC to failed if sync unsuccesful
-if [ -f "${ACTIVE_QUOTES}" ] && ! grep -q "Nietzsche" "${ACTIVE_QUOTES}"; then
-    GITHUB_QUOTES_SYNC="Successful"
-else
-    GITHUB_QUOTES_SYNC="Failed"
-fi
-export GITHUB_QUOTES_SYNC
 
 # -------------------------------
 # Build Dashboard
@@ -554,6 +449,11 @@ nginx -t || { log "ERROR: nginx config invalid"; exit 1; }
 
 systemctl start nginx
 systemctl enable nginx
+
+# -------------------------------
+# Get Public IP for final message
+# -------------------------------
+PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "unknown")
 
 # -------------------------------
 # Final Deployment Validation
