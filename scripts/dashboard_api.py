@@ -256,7 +256,7 @@ def get_billing_account_id():
             _BILLING_ACCOUNT_CACHE = ""
             return ""
 
-        cmd = ["gcloud", "beta", "billing", "projects", "describe", project_number,
+        cmd = ["gcloud", "billing", "projects", "describe", project_number,
                "--format=value(billingAccountName)"]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
         if result.returncode == 0 and result.stdout.strip():

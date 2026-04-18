@@ -1355,7 +1355,7 @@
     "id": 169,
     "text": "Learn to deal with imposter syndrome; it will show up.",
     "speaker": null,
-    "author": "Kevin Wilcox",
+    "author": "Kevin Willocks",
     "source": null,
     "tags": ["mindset", "self-awareness"]
   },
@@ -2031,28 +2031,132 @@
     "source": "Shantaram",
     "tags": ["money", "values", "family", "purpose"]
   },
-    {
+  {
     "id": 255,
     "text": "All things are ready if our mind be so",
     "speaker": "King Henry",
     "author": "William Shakespeare",
     "source": "Henry V - Act 4, scene 3",
-    "tags": ["money", "values", "family", "purpose"]
-  },
-    {
-    "id": 256,
-    "text": "If we can't respect the way we earn it, money has no value. If we can't use it to make life better for our families and loved ones, money has no purpose.",
-    "speaker": "Lin",
-    "author": "Gregory David Roberts",
-    "source": "Shantaram",
-    "tags": ["money", "values", "family", "purpose"]
+    "tags": ["mindset", "readiness", "focus", "determination"]
   },
   {
-  "id": 257,
-  "text": "In a mad world, only the mad are sane.",
-  "author": "Akira Kurosawa",
-  "speaker": "Hidetora Ichimonji",
-  "source": "Ran",
-  "tags": ["madness", "power", "chaos"]
+    "id": 256,
+    "text": "It is better to have less thunder in the mouth and more lightning in the hand.",
+    "speaker": null,
+    "author": null,
+    "source": "Apache proverb",
+    "tags": ["action", "humility", "strength", "discipline"]
+  },
+  {
+    "id": 257,
+    "text": "You will be known forever by the tracks you leave.",
+    "speaker": null,
+    "author": null,
+    "source": "Dakota proverb",
+    "tags": ["legacy", "impact", "character", "responsibility"]
+  },
+  {
+    "id": 258,
+    "text": "Tell me, and I'll forget. Show me, and I may remember. Involve me, and I'll understand.",
+    "speaker": null,
+    "author": null,
+    "source": "Proverb (origin uncertain)",
+    "tags": ["learning", "teaching", "experience", "understanding"]
+  },
+  {
+    "id": 259,
+    "text": "If we wonder often, the gift of knowledge will come.",
+    "speaker": null,
+    "author": null,
+    "source": "Arapaho proverb",
+    "tags": ["curiosity", "learning", "knowledge", "growth"]
+  },
+  {
+    "id": 260,
+    "text": "The weakness of the enemy makes our strength.",
+    "speaker": null,
+    "author": null,
+    "source": "Cherokee proverb",
+    "tags": ["strategy", "strength", "competition", "awareness"]
+  },
+  {
+    "id": 261,
+    "text": "One rain does not make a crop.",
+    "speaker": null,
+    "author": null,
+    "source": null,
+    "tags": ["patience", "consistency", "growth", "perseverance"]
+  },
+  {
+    "id": 262,
+    "text": "One finger cannot lift a pebble.",
+    "speaker": null,
+    "author": null,
+    "source": "Hopi proverb",
+    "tags": ["teamwork", "cooperation", "unity", "strength"]
+  },
+  {
+    "id": 263,
+    "text": "A starving man will eat with the wolf.",
+    "speaker": null,
+    "author": null,
+    "source": null,
+    "tags": ["survival", "desperation", "instinct", "adaptation"]
+  },
+  {
+    "id": 264,
+    "text": "A coward shoots with shut eyes.",
+    "speaker": null,
+    "author": null,
+    "source": null,
+    "tags": ["courage", "fear", "weakness", "awareness"]
+  },
+  {
+    "id": 265,
+    "text": "A man must make his own arrows.",
+    "speaker": null,
+    "author": null,
+    "source": "Winnebago proverb",
+    "tags": ["self-reliance", "independence", "responsibility", "preparation"]
+  },
+  {
+    "id": 266,
+    "text": "In a mad world, only the mad are sane.",
+    "speaker": "Hidetora Ichimonji",
+    "author": "Akira Kurosawa",
+    "source": "Ran",
+    "tags": ["madness", "chaos", "perception", "reality"]
+  },
+  {
+    "id": 267,
+    "text": "Indifference is the final form.",
+    "speaker": null,
+    "author": null,
+    "source": null,
+    "tags": ["indifference", "apathy", "detachment", "finality"]
+  },
+  {
+    "id": 268,
+    "text": "Listen to all, follow none.",
+    "speaker": null,
+    "author": "@manospherehighlightsdaily",
+    "source": null,
+    "tags": ["self-reliance", "discernment", "skepticism", "critical-thinking"]
+  },
+  {
+  "id": 269,
+  "text": "Remember, all things change if given time; so give it time.",
+  "speaker": null,
+  "author": "Dr. T Hasan Johnson",
+  "source": "Canceled, Erased, and Broken: How Allegations Destroyed Justin Fairfax (43:49)",
+  "tags": ["patience", "change", "time", "resilience"]
+},
+{
+  "id": 270,
+  "text": "Nothing stays the same indefinitely.",
+  "speaker": null,
+  "author": "Dr. T Hasan Johnson",
+  "source": "Canceled, Erased, and Broken: How Allegations Destroyed Justin Fairfax (44:20)",
+  "tags": ["impermanence", "change", "time"]
 }
 ]

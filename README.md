@@ -4,7 +4,7 @@
 
 ## Version v1.2-dev
 
-A real-time infrastructure monitoring dashboard that deploys automatically on **GCP, AWS, Azure**, or any Linux VM. It provides live system metrics, cost estimates, a particle screensaver, an international photo gallery, inspirational quotes, and a terminal-style text mode – all without external monitoring services.
+A real‑time infrastructure monitoring dashboard that deploys automatically on **GCP, AWS, Azure**, or any Linux VM. It provides live system metrics, cost estimates, a particle screensaver, an international photo gallery, inspirational quotes, and a terminal‑style text mode – all without external monitoring services.
 
 ---
 
@@ -14,11 +14,17 @@ A real-time infrastructure monitoring dashboard that deploys automatically on **
 
 * Four interactive summary cards:
 
-  * **CPU Usage** – current percentage with color-coded health status
-  * **Memory Usage** – real-time memory consumption
-  * **Disk Usage** – root partition utilization
-  * **Estimated Cost** – heuristic, cloud-specific running cost (approximate)
+  * **CPU Usage** – current percentage with color‑coded health status
+  * **Memory Usage** – real‑time memory consumption
+  * **Disk Usage** – root partition utilisation
+  * **Estimated Cost** – heuristic, cloud‑specific running cost (approximate)
+
 * Each card updates every 10 seconds via the live API.
+
+* **Cards are clickable**:
+  * **CPU / Memory / Disk** → GCP Compute Engine instance details page
+  * **Estimated Cost** → GCP Billing overview for the project
+  * **Optimize button** (appears on the Cost card when a billing account ID is available) → opens the FinOps Hub for cost zation
 
 ---
 
@@ -30,7 +36,7 @@ A real-time infrastructure monitoring dashboard that deploys automatically on **
 
   * Peak load over the last 10 readings
   * Average load
-  * Color-coded status (Normal, Elevated, High, Critical)
+  * Color‑coded status (Normal, Elevated, High, Critical)
 * The chart automatically rescales to the peak load (capped at 5.0).
 
 ---
@@ -39,12 +45,12 @@ A real-time infrastructure monitoring dashboard that deploys automatically on **
 
 Aesthetic and atmospheric widgets that add character to the dashboard:
 
-* **Featured Quote** – view inspirational quotes (refreshes every 10 seconds, sourced from `quotes.json`; GitHub-synced every 10 minutes)
+* **Featured Quote** – view inspirational quotes (refreshes every 10 seconds, sourced from `quotes.json`; GitHub‑synced every 10 minutes)
 * **Screensaver** – interactive particle background. Click to cycle through three modes:
 
   * *Drift*: drifting cyan particles with connecting lines
   * *Haze*: kinetic purple particles that randomly settle into one of three geometric quilt patterns
-  * *State*: white static particles that glow and snap to new positions
+  * *State*: white static particles that glow and snap to new positions every 8 seconds, with an imploding glow and subtle settle wiggle
 * **International Photo Gallery** – images from around the world, dynamically generated from the `/images` folder. Each image includes a title, location, and photographer credit.
 
 ---
@@ -72,7 +78,7 @@ Grouped into three compact cards:
 
   * Region
   * Zone
-  * Uptime (human-readable)
+  * Uptime (human‑readable)
   * Load average (5m)
 
 All fields are fetched from the cloud metadata service (with fallbacks) and update live.
@@ -103,7 +109,7 @@ A detailed widget split into three sections:
 
 ### Monitoring Endpoints
 
-Quick access to the built-in HTTP endpoints:
+Quick access to the built‑in HTTP endpoints:
 
 * **`/healthz`** – plain text health check (served by NGINX)
 * **`/metadata`** – JSON with instance metadata + health object (uptime, load average, RAM, disk)
@@ -116,8 +122,8 @@ Each endpoint is displayed as a clickable link (relative URL) that opens in a ne
 ### Featured Quote
 
 * Random quote displayed in the Ambience section.
-* **Bookmark quotes** – click the star icon to add a quote to your favorites list.
-* **Favorites list** – view and manage your saved quotes (stored in browser `localStorage`).
+* **Bookmark quotes** – click the star icon to add a quote to your favourites list.
+* **Favourites list** – view and manage your saved quotes (stored in browser `localStorage`).
 * Quotes are refreshed every 10 seconds from the live API.
 
 ---
@@ -132,9 +138,9 @@ Each endpoint is displayed as a clickable link (relative URL) that opens in a ne
   * Image title
   * Location (city / country)
 
-* **Save favorites** – mark images you like (stored locally).
+* **Save favourites** – mark images you like (stored locally).
 
-* **Book flights** – the ✈️ button opens a new tab in Google Flights with a location pre-filled (uses the image’s location metadata).
+* **Book flights** – the ✈️ button opens a new tab in Google Flights with a location pre‑filled (uses the image’s location metadata).
 
 * **Living info** – the 🏠 button triggers a Google search for “What is it really like to live in [location]?”
 
@@ -152,13 +158,13 @@ Each endpoint is displayed as a clickable link (relative URL) that opens in a ne
   * **GitHub Quotes Sync** – successful / failed
   * **Bootstrap Packages** – list of installed packages
 
-* **Cycle services** – use button or keyboard shortcut to show a custom number of services (3 - 30).
+* **Cycle services** – use button or keyboard shortcut to show a custom number of services (3 → 30).
 
 ---
 
 ### Cycle Application Logs
 
-* Displays the last **X** log entries (default 5, user-configurable up to 30).
+* Displays the last **X** log entries (default 5, user‑configurable up to 30).
 
 * Each log entry shows:
 
@@ -167,17 +173,17 @@ Each endpoint is displayed as a clickable link (relative URL) that opens in a ne
   * Scope (system, metrics, quotes, nginx, security)
   * Message
 
-* **Cycle logs** – adjust the number of displayed logs (5 - 30) via the button or keyboard shortcut.
+* **Cycle logs** – adjust the number of displayed logs (5 → 30) via the button or keyboard shortcut.
 
 ---
 
 ### Text Mode
 
-A minimalist, terminal-style view of all the same information, optimized for keyboard navigation and quick copy-paste.
+A minimalist, terminal‑style view of all the same information, optimized for keyboard navigation and quick copy‑paste.
 
 #### How to Use
 
-1. Click the **TEXT MODE** button in the top-right corner.
+1. Click the **TEXT MODE** button in the top‑right corner.
 
 2. The dashboard switches to a monospace layout showing:
 
@@ -200,7 +206,7 @@ A minimalist, terminal-style view of all the same information, optimized for key
 | `S`   | Cycle the service limit (3 → 5 → 10 → 20 → 30)  |
 
 > [!TIP]
-> All preferences (service limit, log limit, favorite quotes, favorite images) are saved in your browser’s `localStorage`. This data persists across modes and sessions.
+> All preferences (service limit, log limit, favourite quotes, favourite images) are saved in your browser’s `localStorage`. This data persists across modes and sessions.
 
 ---
 
@@ -245,24 +251,6 @@ A minimalist, terminal-style view of all the same information, optimized for key
 
 ---
 
-Your list is actually **strong as-is**—it just needs one structural tweak so it fits cleanly into a professional README without looking like a mixed section.
-
-Right now you’ve got:
-
-* Limitation ✅
-* Explanation ✅
-* Fix ✅
-* Workaround ✅
-* Roadmap ✅ (this is the only thing that should be separated slightly)
-
----
-
-## ✅ Optimized Version (minimal change, your style preserved)
-
-Here’s your content cleaned up **without changing your voice**, just improving structure and section clarity:
-
----
-
 ## Known Limitation — Clipboard (HTTP vs HTTPS)
 
 The copy feature **will not work over plain HTTP**.
@@ -285,19 +273,15 @@ then:
 
 > [!IMPORTANT]
 > This is **not a bug in the dashboard**.
-> It is a **browser-enforced security restriction** and cannot be bypassed with modern APIs.
+> It is a **browser‑enforced security restriction** and cannot be bypassed with modern APIs.
 
----
+### Impact
 
-## Impact
-
-* Text Mode → **Copy (`C`) is unreliable or non-functional on HTTP**
+* Text Mode → **Copy (`C`) is unreliable or non‑functional on HTTP**
 * The rest of the dashboard works normally
-* This is a **transport-layer constraint (HTTP vs HTTPS)**, not an application issue
+* This is a **transport‑layer constraint (HTTP vs HTTPS)**, not an application issue
 
----
-
-## Required Fix
+### Required Fix
 
 To guarantee copy functionality:
 
@@ -310,9 +294,7 @@ sudo apt install certbot python3-certbot-nginx
 sudo certbot --nginx -d your-domain.com
 ```
 
----
-
-## Current Workaround
+### Current Workaround
 
 Fallback to legacy method:
 
@@ -325,15 +307,17 @@ document.execCommand('copy')
 * Deprecated, but still supported across major browsers
 
 > [!NOTE]
-> This provides partial functionality and should not be considered a long-term solution.
+> This provides partial functionality and should not be considered a long‑term solution.
 
 ---
 
-## GCP – Required IAM Role for Subnet Retrieval
+## GCP – Required IAM Roles for Metadata & Billing
 
 > [!IMPORTANT]
-> For the `/metadata` endpoint to return the correct subnet name, the VM’s default Compute Engine service account must have the `roles/compute.viewer` role.
-> Grant it once from your **local machine** (not inside the VM):
+> For the `/metadata` endpoint to return the correct **subnet name**, the VM’s default Compute Engine service account must have the `roles/compute.viewer` role.
+> For the **Optimize button** (Cost card) to appear, the same service account also needs `roles/billing.viewer`.
+
+Grant both roles from your **local machine** (not inside the VM):
 
 ```bash
 PROJECT_NUMBER=$(gcloud projects describe YOUR_PROJECT_ID --format="value(projectNumber)")
@@ -342,38 +326,54 @@ DEFAULT_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
   --member="serviceAccount:${DEFAULT_SA}" \
   --role="roles/compute.viewer"
+
+# Grant billing.viewer on the *billing account*, not the project
+BILLING_ACCOUNT_ID=$(gcloud billing projects describe YOUR_PROJECT_ID --format="value(billingAccountName)" | cut -d/ -f2)
+gcloud beta billing accounts add-iam-policy-binding $BILLING_ACCOUNT_ID \
+  --member="serviceAccount:${DEFAULT_SA}" \
+  --role="roles/billing.viewer"
 ```
 
-If you use a custom service account, grant the role to that account instead.
+If you use a custom service account, replace the email accordingly.
+
+> [!NOTE]
+> The API inside the VM uses the standard `gcloud billing` command (no `beta`). The `beta` component is only needed on your local machine for modifying billing account IAM.
+
+### Verify the roles
+
+```bash
+gcloud projects get-iam-policy YOUR_PROJECT_ID \
+  --flatten="bindings[].members" \
+  --format='table(bindings.role)' \
+  --filter="bindings.members:serviceAccount:${DEFAULT_SA}"
+
+gcloud beta billing accounts get-iam-policy $BILLING_ACCOUNT_ID \
+  --flatten="bindings[].members" \
+  --format='table(bindings.role)' \
+  --filter="bindings.members:serviceAccount:${DEFAULT_SA}"
+```
 
 ---
 
 ## Quick Start
 
 > [!IMPORTANT]
-> Deployment is fully automated using a startup script (user-data / startup script).
+> Deployment is fully automated using a startup script (user‑data / startup script).
 
-1. **Copy the appropriate bootstrap script** into your VM’s user-data / startup script field.
+1. **Copy the appropriate bootstrap script** into your VM’s user‑data / startup script field.
 
-   * Use `infra/startup/startup.sh` as the wrapper – it installs dependencies, clones the repo, starts the Flask API, and then runs `app_bootstrap.sh`.
-
----
-
-## Dashboard Customization (Bootstrap Script)
-
-> See: **`docs/CONFIGURATION.md`** *(placeholder – app_bootstrap.sh customization guide)*
-
----
+   * Use `infra/startup/startup.sh` as the **wrapper** – it installs dependencies, clones the repo, and then runs the main bootstrap.
 
 2. **Launch a VM** (Ubuntu 20.04 / 22.04 recommended).
 
 3. **Wait 5–10 minutes** while the scripts:
 
-   * Install basic tools (nginx, Python, Node.js, git)
-   * Clone the repository
+   * Install basic tools (nginx, Python, Node.js, git, **Google Cloud SDK**)
+   * Clone the repository to `/opt/deploy`
    * Create a systemd service for the Flask API (`dashboard-api.service`) on port 8080
    * Build the React frontend
    * Configure NGINX to serve the dashboard and proxy `/api/` to Flask
+   * Set up cron jobs for quotes (every 10 min), pricing (monthly), and auto‑deploy (every 15 min)
    * Start everything
 
 4. **Open the VM’s public IP** in your browser – the dashboard appears.
@@ -386,9 +386,66 @@ If you use a custom service account, grant the role to that account instead.
 
 ---
 
+## Dashboard Customisation (Bootstrap Script)
+
+> See: **`docs/CONFIGURATION.md`** *(placeholder – full customisation guide)*
+
+**Quick variables** (edit at the top of `app_bootstrap.sh`):
+
+```bash
+DASHBOARD_APP_NAME="GCP Deployment"
+DASHBOARD_TAGLINE="Infrastructure health and activity"
+DASHBOARD_USER="Kirk Alton"
+DASHBOARD_NAME="DevSecOps Dashboard"
+REPO_URL="https://github.com/your-fork/devsecops-vm-dashboard.git"
+GITHUB_QUOTES_URL="https://raw.githubusercontent.com/your-fork/main/quotes.json"
+```
+
+> [!NOTE]
+> After editing, push to your repository; the auto‑deploy cron will rebuild the dashboard within 15 minutes.
+
+---
+
 ## Dashboard API Configuration
 
-> See: **`docs/API_CONFIGURATION.md`** *(placeholder – dashboard_api.py configuration guide)*
+> See: **`docs/API_CONFIGURATION.md`** *(placeholder – full API guide)*
+
+**User‑configurable variable** (`dashboard_api.py`):
+
+```python
+student_name = "Kirk Alton"   # appears in /metadata
+```
+
+**Important notes**:
+
+- The API caches static values (subnet name, billing account ID) – first request may be slower, subsequent requests are fast (<0.2s).
+- `get_ssh_status()` is cached for 60 seconds; `get_update_status()` for 5 minutes.
+- Cost data is written to `/var/tmp/vm-cost.json` (persists across reboots).
+- Quotes are read from `/var/www/vm-dashboard/data/quotes.json` (updated by cron).
+
+After modifying the API, restart the service:
+
+```bash
+sudo systemctl restart dashboard-api
+```
+
+---
+
+## Environment Variables (React Build)
+
+The sidebar footer uses two environment variables, embedded at build time:
+
+- `VITE_GITHUB_URL`
+- `VITE_LINKEDIN_URL`
+
+Create a `.env` file in the `dashboard/` folder:
+
+```
+VITE_GITHUB_URL=https://github.com/your-username/your-repo
+VITE_LINKEDIN_URL=https://www.linkedin.com/in/your-username
+```
+
+Then rebuild the dashboard (`npm run build`). The variables are baked into the static files.
 
 ---
 
@@ -427,7 +484,7 @@ The API will listen on `http://localhost:8080`.
 devsecops-vm-dashboard/
 ├── dashboard/               # React frontend (Vite + Tailwind)
 ├── images/                  # Gallery images
-├── images.json              # Image metadata (auto-generated)
+├── images.json              # Image metadata (auto‑generated)
 ├── quotes.json              # Featured quotes
 ├── scripts/
 │   ├── bootstrap/
@@ -442,7 +499,7 @@ devsecops-vm-dashboard/
 
 ## Cloud Provider Support
 
-| Provider     | Metadata           | Metrics               | Auto-deploy  | Subnet (full)                |
+| Provider     | Metadata           | Metrics               | Auto‑deploy  | Subnet (full)                |
 | ------------ | ------------------ | --------------------- | ------------ | ---------------------------- |
 | **GCP**      | Metadata server    | `/proc`, `free`, `df` | cron         | Requires `compute.viewer`    |
 | **Azure**    | 169.254.169.254    | same                  | cron         | Inconsistent                 |
@@ -450,78 +507,31 @@ devsecops-vm-dashboard/
 | **Local VM** | fallback detection | same                  | if available | N/A                          |
 
 > [!NOTE]
-> No cloud-specific code is required; the dashboard automatically adapts to the available metadata.
+> No cloud‑specific code is required; the dashboard automatically adapts to the available metadata.
 
 ---
 
-## License
+## Troubleshooting Quick Commands
 
-MIT license – free to use, modify, and distribute.
+| Check | Command |
+|-------|---------|
+| API service status | `sudo systemctl status dashboard-api` |
+| API response | `curl -s http://localhost:8080/api/dashboard | head -c 200` |
+| Nginx status | `sudo systemctl status nginx` |
+| Frontend through nginx | `curl -s http://localhost/ | grep -o "<title>"` |
+| Bootstrap logs | `sudo tail -100 /var/log/bootstrap.log` |
+| Startup script logs | `sudo tail -100 /var/log/startup-script.log` |
+| API logs | `sudo journalctl -u dashboard-api -n 50` |
+| Billing account ID test | `curl -s http://localhost:8080/api/dashboard | jq '.identity.billingAccountId'` |
 
 ---
 
-# Dashboard API – Configuration & Important Notes
+## Known Limitations
 
-The Flask‑based API server (`dashboard_api.py`) provides the live data for the dashboard (`/api/dashboard`), the metadata endpoint (`/metadata`), and the health check (`/healthz`). It runs as a systemd service on the VM (port `8080`).
-
-## User‑Configurable Variable
-
-At the top of the file, you will find:
-
-```python
-# -------------------------------
-# Metadata Customization
-# -------------------------------
-student_name = "Kirk Alton"
-```
-
-- **`student_name`** – This value appears in the `/metadata` JSON under the `student_name` field.  
-  Change it to your own name (or any identifier) – it does not affect any other part of the dashboard.
-
-## Important – Service Account Permissions for Subnet Retrieval
-
-> [!IMPORTANT]
-> For the `/metadata` endpoint to return the correct **subnet name**, the VM’s service account must have the `roles/compute.viewer` role.  
-> Without this role, the fallback mechanism that calls `gcloud` will fail, and the subnet field will show `unknown` (or a placeholder).
-
-### Grant the role from your local machine (not inside the VM)
-
-```bash
-PROJECT_NUMBER=$(gcloud projects describe YOUR_PROJECT_ID --format="value(projectNumber)")
-DEFAULT_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
-
-gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
-  --member="serviceAccount:${DEFAULT_SA}" \
-  --role="roles/compute.viewer"
-```
-
-If you attach a custom service account to the VM, grant the same role to that account instead.
-
-### Verify the role
-
-```bash
-gcloud projects get-iam-policy YOUR_PROJECT_ID \
-  --flatten="bindings[].members" \
-  --format='table(bindings.role)' \
-  --filter="bindings.members:serviceAccount:${DEFAULT_SA}"
-```
-
-## Other Important Notes
-
-- **Cost file location** – The API writes cost data to `/var/tmp/vm-cost.json`. This file persists across reboots.
-- **Quotes directory** – The API reads quotes from `/var/www/vm-dashboard/data/quotes.json`. The cron job updates this file every 10 minutes.
-- **Caching** – `get_ssh_status()` is cached for 60 seconds; `get_update_status()` for 5 minutes. This reduces repeated calls to `systemctl` and `apt`.
-- **No further configuration needed** – All other values (CPU, memory, disk, uptime, etc.) are automatically detected from `/proc` and system commands.
-
-## Applying Changes
-
-If you modify `dashboard_api.py` (e.g., change `student_name` or adjust any logic), you must restart the systemd service on the VM:
-
-```bash
-sudo systemctl restart dashboard-api   # or monitoring.service
-```
-
-The API will then serve the updated data.
+- **Cost estimation** is heuristic (static price × uptime). It is **not** a real billing API call.
+- **External IP fallback** uses `ifconfig.me`; if the VM has no internet, external IP will show `unknown`.
+- **Azure / AWS** support is partial; the dashboard is primarily tested on GCP.
+- **Clipboard** requires HTTPS (see the dedicated section above).
 
 ---
 
@@ -529,24 +539,32 @@ The API will then serve the updated data.
 
 ### Security
 
-* [ ] Enable HTTPS via Let's Encrypt + NGINX
-* [ ] Add optional self-signed certificate mode for lab deployments
-* [ ] Expose `secureContext` flag in `/api/dashboard`
-
----
+- [ ] Enable HTTPS via Let's Encrypt + NGINX
+- [ ] Add optional self‑signed certificate mode for lab deployments
+- [ ] Expose `secureContext` flag in `/api/dashboard`
 
 ### Clipboard & UX Enhancements
 
-* [ ] Improve fallback handling for HTTP environments
-* [ ] Add “Copy Snapshot” button (mouse users)
-* [ ] Add “View Snapshot” modal (manual copy option)
-* [ ] Add toast: *“Copy requires HTTPS — fallback used”*
-* [ ] Add visual indicator when running in degraded (HTTP) mode
-
----
+- [ ] Improve fallback handling for HTTP environments
+- [ ] Add “Copy Snapshot” button (mouse users)
+- [ ] Add “View Snapshot” modal (manual copy option)
+- [ ] Add toast: *“Copy requires HTTPS — fallback used”*
+- [ ] Add visual indicator when running in degraded (HTTP) mode
 
 ### Export Features
 
-* [ ] Download snapshot as `.txt`
-* [ ] Download snapshot as `.json`
-* [ ] Add `/api/snapshot` endpoint for remote retrieval
+- [ ] Download snapshot as `.txt`
+- [ ] Download snapshot as `.json`
+- [ ] Add `/api/snapshot` endpoint for remote retrieval
+
+### Future Improvements (Planned)
+
+- Add persistent storage for historical metrics.
+- Integrate real cloud billing APIs (AWS Cost Explorer, Azure Consumption).
+- Make the dashboard fully cloud‑agnostic with provider adapters.
+
+---
+
+## License
+
+MIT license – free to use, modify, and distribute.

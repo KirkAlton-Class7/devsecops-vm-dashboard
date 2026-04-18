@@ -75,6 +75,19 @@ retry apt-get install -y \
   build-essential
 
 # ---------------------------------
+# Install Google Cloud SDK
+# ---------------------------------
+if ! command -v gcloud >/dev/null 2>&1; then
+    log "Installing Google Cloud SDK"
+    # Add the Cloud SDK repository
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee /etc/apt/sources.list.d/google-cloud-sdk.list
+    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    wait_for_apt
+    apt-get update -y
+    apt-get install -y google-cloud-sdk
+fi
+
+# ---------------------------------
 # Install Node.js
 # ---------------------------------
 if ! command -v node >/dev/null 2>&1; then
