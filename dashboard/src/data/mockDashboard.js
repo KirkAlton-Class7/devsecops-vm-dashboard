@@ -12,6 +12,7 @@ export const mockDashboard = {
     instanceName: "vm-dashboard",
     hostname: "vm-dashboard-03.internal",
     machineType: "t3.medium",
+    billingAccountId: "01BB2F-8195CD-645BC0" 
   },
 
   network: {

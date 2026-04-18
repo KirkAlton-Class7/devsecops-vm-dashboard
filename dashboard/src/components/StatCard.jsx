@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Activity, Cpu, HardDrive, Network, TrendingUp, TrendingDown, Zap, DollarSign } from "lucide-react";
+import { Activity, Cpu, HardDrive, Network, TrendingUp, TrendingDown, Zap, DollarSign, Sparkles } from "lucide-react";
 
 const icons = {
   CPU: Cpu,
@@ -10,26 +10,22 @@ const icons = {
   default: Zap
 };
 
-export default function StatCard({ label, value, status, instanceName, zone, projectId }) {
+export default function StatCard({ label, value, status, instanceName, zone, projectId, billingAccountId }) {
   const Icon = icons[label] || icons.default;
   const isWarning = status === "warning";
 
   const getClickUrl = () => {
-    if (label === "Cost") {
-      // Use specific billing project link if projectId exists, otherwise fallback to billing overview
+    if (label === "Cost" || label === "Estimated Cost") {
       if (projectId) {
         return `https://console.cloud.google.com/billing?project=${projectId}`;
       } else {
-        console.warn("StatCard: projectId missing for Cost card, using fallback billing URL");
         return "https://console.cloud.google.com/billing/projects";
       }
     }
     if (label === "CPU" || label === "Memory" || label === "Disk") {
-      // Use instance detail link if all details available, otherwise fallback to compute overview
       if (instanceName && zone && projectId) {
         return `https://console.cloud.google.com/compute/instancesDetail/zones/${zone}/instances/${instanceName}?project=${projectId}`;
       } else {
-        console.warn(`StatCard: missing instance details for ${label}, using fallback compute URL`);
         return "https://console.cloud.google.com/compute/";
       }
     }
@@ -39,6 +35,15 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
   const handleClick = () => {
     const url = getClickUrl();
     if (url) window.open(url, "_blank");
+  };
+
+  const handleOptimizeClick = (e) => {
+    e.stopPropagation();
+    if (billingAccountId && projectId) {
+      window.open(`https://console.cloud.google.com/billing/${billingAccountId}/optimize?project=${projectId}`, "_blank");
+    } else if (projectId) {
+      window.open("https://console.cloud.google.com/billing/projects", "_blank");
+    }
   };
 
   const getGradient = () => {
@@ -67,31 +72,26 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
   }
 
   const glowColor = isWarning 
-    ? "rgba(251, 146, 60, 0.8)"   // neon orange
-    : "rgba(6, 182, 212, 0.8)";    // neon cyan
+    ? "rgba(251, 146, 60, 0.8)"
+    : "rgba(6, 182, 212, 0.8)";
+
+  const showOptimize = (label === "Cost" || label === "Estimated Cost") && billingAccountId;
 
   return (
     <motion.div
       className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${getGradient()} backdrop-blur-xl border ${getBorderColor()} shadow-xl group w-full cursor-pointer`}
-      whileHover={{ 
-        y: -5,                           // only lift, no scale
-        transition: { type: "spring", stiffness: 300, damping: 20 }
-      }}
+      whileHover={{ y: -5, transition: { type: "spring", stiffness: 300, damping: 20 } }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 200, damping: 25 }}
       onClick={handleClick}
     >
       <div className="relative p-6 z-10">
-        {/* Top row: icon (with its own hover glow) + status pill */}
+        {/* Top row: icon + status pill */}
         <div className="flex items-start justify-between mb-4">
           <motion.div 
             className={`p-3 rounded-xl bg-white/5 backdrop-blur-sm border ${getBorderColor()}`}
-            whileHover={{ 
-              scale: 1.05,
-              boxShadow: `0 0 12px ${glowColor}`,
-              transition: { duration: 0.2, ease: "easeOut" }
-            }}
+            whileHover={{ scale: 1.05, boxShadow: `0 0 12px ${glowColor}`, transition: { duration: 0.2, ease: "easeOut" } }}
             transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
           >
             <Icon className={`w-6 h-6 ${getIconColor()}`} />
@@ -107,8 +107,21 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
             <span className="text-xs font-medium uppercase">{status}</span>
           </motion.div>
         </div>
+
+        {/* Optimize button – directly under the status pill (right side) */}
+        {showOptimize && (
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={handleOptimizeClick}
+              className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors bg-white/5 hover:bg-white/10 px-2 py-1 rounded-full border border-cyan-500/30"
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>Optimize</span>
+            </button>
+          </div>
+        )}
         
-        {/* Value and label – no scaling on hover */}
+        {/* Value and label */}
         <div className="space-y-2">
           <p className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
             {value}

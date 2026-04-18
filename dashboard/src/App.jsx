@@ -124,6 +124,11 @@ export default function App() {
   const instanceName = dashboard?.identity?.instanceName || "";
   const zone = dashboard?.location?.zone || "";
   const projectId = dashboard?.identity?.project || "";
+  const billingAccountId = dashboard?.identity?.billingAccountId || "";
+
+  // GitHub and LinkedIn URLs – set via environment variables or replace with your actual URLs
+  const githubUrl = import.meta.env.VITE_GITHUB_URL || "https://github.com";
+  const linkedinUrl = import.meta.env.VITE_LINKEDIN_URL || "https://www.linkedin.com";
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -181,6 +186,8 @@ export default function App() {
       <Sidebar
         dashboardUser={dashboard.meta?.dashboardUser || "Kirk Alton"}
         dashboardName={dashboard.meta?.dashboardName || "DevSecOps Dashboard"}
+        githubUrl={githubUrl}
+        linkedinUrl={linkedinUrl}
       />
 
       <motion.div 
@@ -225,6 +232,7 @@ export default function App() {
                     instanceName={instanceName}
                     zone={zone}
                     projectId={projectId}
+                    billingAccountId={billingAccountId}
                   />
                 </motion.div>
               </div>

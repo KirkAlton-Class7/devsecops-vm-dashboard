@@ -8,29 +8,29 @@ const navItems = [
   { id: "ambience", label: "Ambience", icon: Heart },
   { id: "vm-information", label: "VM Information", icon: Server },
   { id: "system-resources", label: "System Resources", icon: Cpu },
-  { id: "monitoring-endpoints", label: "Monitoring Endpoints", icon: Link2 },  // NEW
+  { id: "monitoring-endpoints", label: "Monitoring Endpoints", icon: Link2 },
   { id: "services", label: "Services", icon: Activity },
   { id: "logs", label: "Logs", icon: Logs },
 ];
 
-export default function Sidebar({ dashboardUser = "Kirk Alton", dashboardName = "DevSecOps Dashboard" }) {
+export default function Sidebar({ 
+  dashboardUser = "Kirk Alton", 
+  dashboardName = "DevSecOps Dashboard",
+  githubUrl = "https://github.com/KirkAlton-Class7",   // ← default placeholder
+  linkedinUrl = "https://www.linkedin.com/in/kirkcochranjr/"    // ← default placeholder
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
   const scrollLockRef = useRef(false);
 
-  // ---------- SCROLL OFFSET CONFIGURATION ----------
   const ENABLE_CUSTOM_OFFSET = true;
-  const CUSTOM_OFFSET_PX = 70;   // adjust to match your header height
-  // -------------------------------------------------
+  const CUSTOM_OFFSET_PX = 70;
 
   useEffect(() => {
     const handleScroll = () => {
-      // Ignore scroll events triggered by manual scrolling (button clicks)
       if (scrollLockRef.current) return;
-
       const sections = navItems.map(item => item.id);
       const scrollPosition = window.scrollY + 100;
-      
       for (const section of sections.reverse()) {
         const element = document.getElementById(section);
         if (element && element.offsetTop <= scrollPosition) {
@@ -39,7 +39,6 @@ export default function Sidebar({ dashboardUser = "Kirk Alton", dashboardName = 
         }
       }
     };
-    
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -47,12 +46,8 @@ export default function Sidebar({ dashboardUser = "Kirk Alton", dashboardName = 
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
     if (!element) return;
-
-    // Immediately update the active section (so the highlight changes instantly)
     setActiveSection(id);
     setIsOpen(false);
-
-    // Calculate target scroll position
     let targetTop;
     if (ENABLE_CUSTOM_OFFSET) {
       const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
@@ -60,23 +55,14 @@ export default function Sidebar({ dashboardUser = "Kirk Alton", dashboardName = 
     } else {
       targetTop = element.offsetTop;
     }
-
-    // Lock scroll event handler to prevent interference
     scrollLockRef.current = true;
-
-    // Perform smooth scroll
     window.scrollTo({ top: targetTop, behavior: "smooth" });
-
-    // Unlock after the scroll animation finishes (using scrollend event)
     const onScrollEnd = () => {
       scrollLockRef.current = false;
-      // Ensure the clicked section remains active (in case scroll handler tried to change it)
       setActiveSection(id);
       window.removeEventListener("scrollend", onScrollEnd);
     };
     window.addEventListener("scrollend", onScrollEnd, { once: true });
-
-    // Fallback timeout in case scrollend is not supported (older browsers)
     setTimeout(() => {
       if (scrollLockRef.current) {
         scrollLockRef.current = false;
@@ -132,7 +118,6 @@ export default function Sidebar({ dashboardUser = "Kirk Alton", dashboardName = 
                   {navItems.map((item, idx) => {
                     const Icon = item.icon;
                     const isActive = activeSection === item.id;
-                    
                     return (
                       <motion.li
                         key={item.id}
@@ -171,11 +156,13 @@ export default function Sidebar({ dashboardUser = "Kirk Alton", dashboardName = 
                 </ul>
               </nav>
 
-              {/* Footer */}
+              {/* Footer – now using props for URLs */}
               <div className="p-6 border-t border-white/10">
                 <div className="space-y-3">
                   <motion.a
-                    href="#"
+                    href={githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
                     whileHover={{ x: 5 }}
                   >
@@ -184,15 +171,18 @@ export default function Sidebar({ dashboardUser = "Kirk Alton", dashboardName = 
                     </svg>
                     <span>GitHub Repository</span>
                   </motion.a>
+
                   <motion.a
-                    href="#"
+                    href={linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
                     whileHover={{ x: 5 }}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 0021.967-12.11c0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451c.979 0 1.771-.773 1.771-1.729V1.729C24 .774 23.203 0 22.225 0z" />
                     </svg>
-                    <span>Twitter</span>
+                    <span>LinkedIn</span>
                   </motion.a>
                 </div>
                 <div className="mt-4 pt-4 border-t border-white/10">

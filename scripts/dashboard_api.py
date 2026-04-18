@@ -14,6 +14,8 @@
 # This allows the monitoring script to query instance details via `gcloud`.
 # The role enables reading instance metadata, including subnet names, when the standard metadata server endpoint returns 404.
 
+# For billing account ID, the service account needs `roles/billing.viewer` to run `gcloud billing accounts list`.
+
 # Check current roles for the service account
 # ```bash
 # export PROJECT_ID=$(gcloud config get-value project)
@@ -28,6 +30,13 @@
 # gcloud projects add-iam-policy-binding $PROJECT_ID \
 #   --member="serviceAccount:YOUR_SA@developer.gserviceaccount.com" \
 #   --role="roles/compute.viewer"
+# ```
+
+# Grant billing.viewer role if missing (for billing account ID)
+# ``` bash
+# gcloud projects add-iam-policy-binding $PROJECT_ID \
+#   --member="serviceAccount:YOUR_SA@developer.gserviceaccount.com" \
+#   --role="roles/billing.viewer"
 # ```
 
 import json
@@ -56,8 +65,9 @@ student_name = "Kirk Alton"
 # !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
 # ---------------------------------------------------------------------------------------------
 
-# Global cache for static values that never change
+# Global caches for static values that never change
 _SUBNET_CACHE = None
+_BILLING_ACCOUNT_CACHE = None
 
 # -------------------------------
 # Helper Functions
@@ -230,6 +240,38 @@ def get_subnet_name():
     _SUBNET_CACHE = "unknown"
     return "unknown"
 
+def get_billing_account_id():
+    """Get the billing account ID for the project, cached indefinitely."""
+    global _BILLING_ACCOUNT_CACHE
+    if _BILLING_ACCOUNT_CACHE is not None:
+        return _BILLING_ACCOUNT_CACHE
+
+    # Try to get via gcloud (requires billing.viewer)
+    try:
+        # Get project number (more reliable than project id for billing)
+        project_number = get_metadata("project/numeric-project-id")
+        if project_number == "unknown":
+            project_number = get_metadata("project/project-id")
+        if project_number == "unknown":
+            _BILLING_ACCOUNT_CACHE = ""
+            return ""
+
+        cmd = ["gcloud", "beta", "billing", "projects", "describe", project_number,
+               "--format=value(billingAccountName)"]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        if result.returncode == 0 and result.stdout.strip():
+            # Output format: "billingAccounts/XXXXXX-XXXXXX-XXXXXX"
+            billing_path = result.stdout.strip()
+            billing_id = billing_path.split('/')[-1] if '/' in billing_path else billing_path
+            if billing_id:
+                _BILLING_ACCOUNT_CACHE = billing_id
+                return billing_id
+    except Exception as e:
+        print(f"gcloud billing lookup failed: {e}")
+
+    _BILLING_ACCOUNT_CACHE = ""
+    return ""
+
 def get_cumulative_cost():
     machine_type = get_machine_type()
     rates = {"e2-micro": 0.0076, "e2-small": 0.0150, "e2-medium": 0.0301,
@@ -345,6 +387,7 @@ def build_dashboard_data():
     zone_full     = get_metadata("instance/zone")
     machine_full  = get_metadata("instance/machine-type")
     project_id    = get_metadata("project/project-id")
+    billing_account_id = get_billing_account_id()   # cached fetch
     internal_ip   = get_metadata("instance/network-interfaces/0/ip")
     external_ip   = get_metadata("instance/network-interfaces/0/access-configs/0/external-ip")
 
@@ -432,6 +475,7 @@ def build_dashboard_data():
         "systemLoad": load_1min,
         "identity": {
             "project": project_id,
+            "billingAccountId": billing_account_id,
             "instanceId": instance_id,
             "hostname": hostname,
             "instanceName": instance_name,
