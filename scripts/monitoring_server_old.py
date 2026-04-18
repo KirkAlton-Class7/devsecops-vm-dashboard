@@ -35,6 +35,40 @@ def get_metadata(path, timeout=2):
         return "unknown"
 
 
+def build_finops_data():
+    """Return mock FinOps data (cost trends, idle resources, recommendations)."""
+    return {
+        "summaryCards": [
+            {"label": "Total Cost (MTD)", "value": "$124.50", "status": "info"},
+            {"label": "Forecast (EOM)", "value": "$158.20", "status": "warning"},
+            {"label": "Potential Savings", "value": "$23.70", "status": "healthy"},
+            {"label": "CUD Coverage", "value": "68%", "status": "healthy"},
+        ],
+        "costTrend": [
+            {"date": "Mar 20", "value": 12.3},
+            {"date": "Mar 21", "value": 11.8},
+            {"date": "Mar 22", "value": 13.1},
+            {"date": "Mar 23", "value": 10.5},
+            {"date": "Mar 24", "value": 12.9},
+            # ... add more days as needed
+        ],
+        "topServices": [
+            {"name": "Compute Engine", "value": "$87.20", "status": "info"},
+            {"name": "Cloud Storage", "value": "$23.50", "status": "info"},
+            {"name": "BigQuery", "value": "$8.90", "status": "info"},
+            {"name": "Cloud Run", "value": "$4.20", "status": "info"},
+        ],
+        "idleResources": [
+            {"name": "dev-vm-01", "type": "n1-standard-1", "cpu": "2%", "recommendation": "Stop or resize"},
+            {"name": "unused-ip-1", "type": "External IP", "cpu": "N/A", "recommendation": "Release"},
+            {"name": "old-snapshot-2024", "type": "Snapshot", "cpu": "N/A", "recommendation": "Delete"},
+        ],
+        "recommendations": [
+            {"instance": "db-server", "current": "n2-standard-4", "suggested": "n2-standard-2", "savings": "$45/mo"},
+            {"instance": "web-server-01", "current": "e2-standard-2", "suggested": "e2-standard-1", "savings": "$22/mo"},
+        ]
+    }
+
 class MonitoringHandler(BaseHTTPRequestHandler):
     """
     Handles HTTP GET requests for /healthz and /metadata.
@@ -95,6 +129,15 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(f"Error fetching metadata: {e}".encode())
 
+        # Inside MonitoringHandler.do_GET
+        if self.path == '/api/finops':
+            data = build_finops_data()
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(data).encode())
+            return
+        
         # -------------------------------------------------
         # 3) 404 for any other path
         # -------------------------------------------------
