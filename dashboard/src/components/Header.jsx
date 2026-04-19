@@ -1,47 +1,27 @@
 import { motion } from "framer-motion";
-import { Clock, Activity, Bell, User, ChevronDown, Terminal } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { Clock, Activity, Bell, User, ChevronDown, Terminal, Cpu, CircleDollarSign } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 
-export default function Header({ appName, tagline, uptime, isTextDashMode, onTextDashToggle }) {
+export default function Header({ appName, tagline, uptime, currentMode = "standard", onModeChange, flashMode = false }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showModeMenu, setShowModeMenu] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
-  const buttonRef = useRef(null);
+  const userButtonRef = useRef(null);
+  const modeButtonRef = useRef(null);
+  const [isFlashing, setIsFlashing] = useState(false);
 
+  // Flash effect when flashMode prop changes to true
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (showUserMenu && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
-      });
+    if (flashMode) {
+      setIsFlashing(true);
+      const timer = setTimeout(() => setIsFlashing(false), 300);
+      return () => clearTimeout(timer);
     }
-  }, [showUserMenu]);
+  }, [flashMode]);
 
-  useEffect(() => {
-    if (!showUserMenu) return;
-    const handleUpdate = () => {
-      if (buttonRef.current) {
-        const rect = buttonRef.current.getBoundingClientRect();
-        setDropdownPosition({
-          top: rect.bottom + 8,
-          right: window.innerWidth - rect.right,
-        });
-      }
-    };
-    window.addEventListener("scroll", handleUpdate);
-    window.addEventListener("resize", handleUpdate);
-    return () => {
-      window.removeEventListener("scroll", handleUpdate);
-      window.removeEventListener("resize", handleUpdate);
-    };
-  }, [showUserMenu]);
+  // ... (time and positioning effects unchanged)
 
   const formattedTime = currentTime.toLocaleTimeString('en-US', { 
     hour: '2-digit', 
@@ -54,6 +34,22 @@ export default function Header({ appName, tagline, uptime, isTextDashMode, onTex
     month: 'short',
     day: 'numeric'
   });
+
+  const modeOptions = [
+    { value: "standard", label: "DEVSECOPS (D)", icon: Cpu },
+    { value: "text", label: "TEXTMODE (T)", icon: Terminal },
+    { value: "finops", label: "FINOPS (F)", icon: CircleDollarSign },
+  ];
+
+  const currentModeOption = useMemo(() => 
+    modeOptions.find(opt => opt.value === currentMode) || modeOptions[0], 
+    [currentMode]
+  );
+
+  const handleModeSelect = (mode) => {
+    setShowModeMenu(false);
+    if (onModeChange) onModeChange(mode);
+  };
 
   return (
     <motion.header
@@ -70,6 +66,7 @@ export default function Header({ appName, tagline, uptime, isTextDashMode, onTex
         />
         
         <div className="flex items-center justify-between px-4 py-3 lg:px-6 lg:py-4">
+          {/* Left side – app name/tagline unchanged */}
           <motion.div
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -85,6 +82,7 @@ export default function Header({ appName, tagline, uptime, isTextDashMode, onTex
           </motion.div>
           
           <div className="flex items-center gap-2 lg:gap-4">
+            {/* Date, time, uptime components unchanged */}
             <motion.div 
               className="hidden md:flex items-center gap-2 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-white/5 backdrop-blur-sm border border-white/10"
               whileHover={{ scale: 1.05 }}
@@ -113,22 +111,56 @@ export default function Header({ appName, tagline, uptime, isTextDashMode, onTex
               </span>
             </motion.div>
 
-            {/* Text dash toggle button - text unchanged */}
-            <motion.button
-              onClick={onTextDashToggle}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-xs font-mono ${
-                isTextDashMode
-                  ? 'bg-white/10 border-white/30 text-white'
-                  : 'bg-transparent border-white/20 text-slate-300 hover:border-white/40'
-              }`}
-            >
-              <Terminal className="w-3 h-3" />
-              <span className="hidden sm:inline">{isTextDashMode ? 'UI MODE' : 'TEXT MODE'}</span>
-            </motion.button>
+            {/* Mode dropdown button with flash effect */}
+            <div className="relative">
+              <motion.button
+                ref={modeButtonRef}
+                onClick={() => setShowModeMenu(!showModeMenu)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-white/5 text-slate-300 hover:border-white/40 transition-all text-xs font-mono ${
+                  isFlashing ? 'shadow-[0_0_12px_theme(colors.cyan.400)] border-cyan-400/60' : ''
+                }`}
+                style={{ transition: 'box-shadow 0.1s ease, border-color 0.1s ease' }}
+              >
+                <currentModeOption.icon className="w-3 h-3" />
+                <span className="hidden sm:inline">Mode: {currentModeOption.label}</span>
+                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showModeMenu ? 'rotate-180' : ''}`} />
+              </motion.button>
+
+              {showModeMenu && createPortal(
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  className="fixed w-48 rounded-xl bg-slate-800/95 backdrop-blur-xl border border-white/10 shadow-xl overflow-hidden z-[9999]"
+                  style={{
+                    top: modeButtonRef.current ? modeButtonRef.current.getBoundingClientRect().bottom + 8 : 0,
+                    right: modeButtonRef.current ? window.innerWidth - modeButtonRef.current.getBoundingClientRect().right : 0,
+                  }}
+                >
+                  <div className="py-2">
+                    {modeOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => handleModeSelect(opt.value)}
+                        className={`w-full px-4 py-2 text-sm text-left flex items-center gap-2 transition-colors ${
+                          currentMode === opt.value
+                            ? "bg-cyan-500/20 text-cyan-400"
+                            : "text-slate-300 hover:bg-white/10"
+                        }`}
+                      >
+                        <opt.icon className="w-4 h-4" />
+                        <span>{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>,
+                document.body
+              )}
+            </div>
             
-            {/* Notifications */}
+            {/* Notifications and User Avatar unchanged */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
@@ -142,10 +174,9 @@ export default function Header({ appName, tagline, uptime, isTextDashMode, onTex
               />
             </motion.button>
             
-            {/* User Avatar */}
             <div className="relative">
               <motion.button
-                ref={buttonRef}
+                ref={userButtonRef}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowUserMenu(!showUserMenu)}

@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { Menu, X, Activity, Server, LayoutDashboard, Cpu, Gauge, Heart, Logs, Link2 } from "lucide-react";
 
-const navItems = [
+const defaultNavItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "load", label: "Load", icon: Gauge },
   { id: "ambience", label: "Ambience", icon: Heart },
@@ -16,11 +16,12 @@ const navItems = [
 export default function Sidebar({ 
   dashboardUser = "Kirk Alton", 
   dashboardName = "DevSecOps Dashboard",
-  githubUrl = "https://github.com/KirkAlton-Class7",   // ← default placeholder
-  linkedinUrl = "https://www.linkedin.com/in/kirkcochranjr/"    // ← default placeholder
+  githubUrl = "https://github.com/KirkAlton-Class7",
+  linkedinUrl = "https://www.linkedin.com/in/kirkcochranjr/",
+  navItems = defaultNavItems   // new prop
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("overview");
+  const [activeSection, setActiveSection] = useState(navItems[0]?.id || "overview");
   const scrollLockRef = useRef(false);
 
   const ENABLE_CUSTOM_OFFSET = true;
@@ -41,7 +42,7 @@ export default function Sidebar({
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [navItems]); // depend on navItems
 
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
@@ -156,7 +157,7 @@ export default function Sidebar({
                 </ul>
               </nav>
 
-              {/* Footer – now using props for URLs */}
+              {/* Footer – using props for URLs */}
               <div className="p-6 border-t border-white/10">
                 <div className="space-y-3">
                   <motion.a

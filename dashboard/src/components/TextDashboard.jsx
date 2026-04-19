@@ -1,367 +1,328 @@
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { motion } from "framer-motion";
+import Header from "./components/Header";
+import QuoteCard from "./components/QuoteCard";
+import ImageGallery from "./components/ImageGallery";
+import ResourceTable from "./components/ResourceTable";
+import SectionList from "./components/SectionList";
+import Sidebar from "./components/Sidebar";
+import StatCard from "./components/StatCard";
+import IdentityCard from "./components/IdentityCard";
+import NetworkCard from "./components/NetworkCard";
+import LocationCard from "./components/LocationCard";
+import SystemResourcesCard from "./components/SystemResourcesCard";
+import MonitoringEndpointsCard from "./components/MonitoringEndpointsCard";
+import LoadTrendChart from "./components/LoadTrendChart";
+import NetworkParticles from "./components/NetworkParticles";
+import TextDashboard from "./components/TextDashboard";
+import FinOpsDashboard from "./components/FinOpsDashboard";
+import { mockDashboard, mockQuotes } from "./data/mockDashboard";
 
-// Helper: format bytes (MB → GB/MB)
-const formatBytes = (mb) => {
-  if (!mb && mb !== 0) return "N/A";
-  if (mb > 1024) {
-    return `${(mb / 1024).toFixed(1)} GB`;
-  }
-  return `${Math.round(mb)} MB`;
-};
+function getRandomQuote(quotes) {
+  if (!quotes?.length) return mockQuotes[0];
+  return quotes[Math.floor(Math.random() * quotes.length)];
+}
 
-export default function TextDashboard({ dashboard, tagline = "", onExitTextDash, logLimit, serviceLimit, onLogLimitChange, onServiceLimitChange, dashboardName = "DevSecOps Dashboard" }) {
-  const [copied, setCopied] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(new Date());
-  const [showHelp, setShowHelp] = useState(false);
+function getRealMonitoringEndpoints() {
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol;
+  return [
+    {
+      name: "Health Check",
+      url: `${protocol}//${hostname}:80/healthz`,
+      status: "up",
+    },
+    {
+      name: "Metadata API",
+      url: `${protocol}//${hostname}:8080/metadata`,
+      status: "up",
+    },
+  ];
+}
 
-  // Service stats
-  const serviceStats = {
-    total: dashboard.services?.length || 0,
-    healthy: dashboard.services?.filter(s => s.status === "healthy").length || 0,
-    warning: dashboard.services?.filter(s => s.status === "warning").length || 0,
-    critical: dashboard.services?.filter(s => s.status === "critical").length || 0
-  };
+export default function App() {
+  const [dashboard, setDashboard] = useState(mockDashboard);
+  const [quotes, setQuotes] = useState(mockQuotes);
+  const [isLoading, setIsLoading] = useState(true);
+  const [mode, setMode] = useState("standard");
+  const [previousMode, setPreviousMode] = useState("standard");
+  const [flashMode, setFlashMode] = useState(false);
+  const [flashTextMode, setFlashTextMode] = useState(false);
+  const flashTimeoutRef = useRef(null);
+  const textFlashTimeoutRef = useRef(null);
 
-  const hasIssues = serviceStats.critical > 0 || serviceStats.warning > 0;
+  const triggerFlash = useCallback(() => {
+    if (flashTimeoutRef.current) return; // already flashing
+    setFlashMode(true);
+    flashTimeoutRef.current = setTimeout(() => {
+      setFlashMode(false);
+      flashTimeoutRef.current = null;
+    }, 300);
+  }, []);
 
-  // Helper: format metric values (strip existing %)
-  const formatMetric = (value) => {
-    if (!value && value !== 0) return "N/A";
-    const cleaned = value.toString().replace(/%$/, "");
-    return `${cleaned}%`;
-  };
+  const triggerTextFlash = useCallback(() => {
+    if (textFlashTimeoutRef.current) return; // already flashing
+    setFlashTextMode(true);
+    textFlashTimeoutRef.current = setTimeout(() => {
+      setFlashTextMode(false);
+      textFlashTimeoutRef.current = null;
+    }, 300);
+  }, []);
 
-  // Helper: format cost
-  const getCostValue = () => {
-    const costCard = dashboard.summaryCards?.find(c => c.label === "Estimated Cost" || c.label === "Cost");
-    let raw = costCard?.value;
-    if (!raw && raw !== 0) return "N/A";
-    if (typeof raw === "number") return `$${raw.toFixed(2)}`;
-    if (typeof raw === "string") {
-      if (raw.startsWith("$")) return raw;
-      const numeric = parseFloat(raw.replace(/[^0-9.-]/g, ""));
-      if (!isNaN(numeric)) return `$${numeric.toFixed(2)}`;
-      return raw;
+  const handleModeChange = useCallback((newMode) => {
+    if (newMode === "text") {
+      setPreviousMode(mode);
     }
-    return "N/A";
-  };
-
-  // Load average: first try location.loadAvg, then fallbacks
-  const loadAvg = dashboard.location?.loadAvg || dashboard.systemResources?.cpu?.loadAvg || dashboard.systemResources?.load5 || "0.00";
-
-  // Detailed system resources
-  const systemResources = dashboard.systemResources || {};
-  const memory = systemResources.memory || { total: 0, used: 0, free: 0, available: 0 };
-  const disk = systemResources.disk || { total: 0, used: 0, available: 0 };
-  const cpu = systemResources.cpu || { usage: 0, cores: null, frequency: null, loadAvg: null };
-
-  // Logs cycle
-  const cycleLogLimit = () => {
-    const totalLogs = dashboard.logs?.length || 0;
-    if (logLimit >= totalLogs) {
-      onLogLimitChange(5);
-      return;
-    }
-    const increments = [5, 10, 15, 20, 25, 30];
-    const currentIndex = increments.indexOf(logLimit);
-    const nextIndex = (currentIndex + 1) % increments.length;
-    onLogLimitChange(increments[nextIndex]);
-  };
-
-  // Services cycle
-  const cycleServiceLimit = () => {
-    if (serviceLimit >= serviceStats.total) {
-      onServiceLimitChange(3);
-      return;
-    }
-    const increments = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30];
-    const currentIndex = increments.indexOf(serviceLimit);
-    const nextIndex = (currentIndex + 1) % increments.length;
-    onServiceLimitChange(increments[nextIndex]);
-  };
-
-  const copySnapshot = useCallback(() => {
-    const snapshot = generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, dashboardName, tagline);
-    navigator.clipboard.writeText(snapshot);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [dashboard, lastRefresh, logLimit, serviceLimit, dashboardName, tagline]);
+    setMode(newMode);
+  }, [mode]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.key === "r" || e.key === "R" || e.key === "h" || e.key === "H") && e.repeat) {
+      const target = e.target;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         return;
       }
-
-      if (e.key === "Escape") onExitTextDash();
-      else if (e.key === "c" || e.key === "C") copySnapshot();
-      else if (e.key === "r" || e.key === "R") window.location.reload();
-      else if (e.key === "h" || e.key === "H") setShowHelp(prev => !prev);
-      else if (e.key === "l" || e.key === "L") cycleLogLimit();
-      else if (e.key === "s" || e.key === "S") cycleServiceLimit();
+      const key = e.key.toLowerCase();
+      if (key === 'd') {
+        if (mode !== 'standard') handleModeChange('standard');
+        else triggerFlash();
+      } else if (key === 't') {
+        if (mode !== 'text') handleModeChange('text');
+        else triggerTextFlash();
+      } else if (key === 'f') {
+        if (mode !== 'finops') handleModeChange('finops');
+        else triggerFlash();
+      }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [copySnapshot, onExitTextDash, logLimit, serviceLimit]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mode, handleModeChange, triggerFlash, triggerTextFlash]);
 
-  // Auto-refresh every 60s
+  const [logLimit, setLogLimit] = useState(() => {
+    const saved = localStorage.getItem("dashboard_log_limit");
+    return saved ? parseInt(saved, 10) : 5;
+  });
+  const [serviceLimit, setServiceLimit] = useState(() => {
+    const saved = localStorage.getItem("dashboard_service_limit");
+    return saved ? parseInt(saved, 10) : 30;
+  });
+
   useEffect(() => {
-    const interval = setInterval(() => setLastRefresh(new Date()), 60000);
+    localStorage.setItem("dashboard_log_limit", logLimit);
+  }, [logLimit]);
+  useEffect(() => {
+    localStorage.setItem("dashboard_service_limit", serviceLimit);
+  }, [serviceLimit]);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const res = await fetch("/api/dashboard", { cache: "no-store" });
+        if (!res.ok) throw new Error("dashboard fetch failed");
+        const data = await res.json();
+        data.monitoringEndpoints = getRealMonitoringEndpoints();
+        setDashboard(data);
+      } catch {
+        const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
+        setDashboard(mockWithRealEndpoints);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadDashboard();
+    const interval = setInterval(loadDashboard, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  // Extract basic metrics (percentages)
-  const cpuRaw = dashboard.summaryCards?.find(c => c.label === "CPU")?.value;
-  const memRaw = dashboard.summaryCards?.find(c => c.label === "Memory")?.value;
-  const diskRaw = dashboard.summaryCards?.find(c => c.label === "Disk")?.value;
+  useEffect(() => {
+    async function loadQuotes() {
+      try {
+        const res = await fetch("/data/quotes.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("quotes fetch failed");
+        const data = await res.json();
+        setQuotes(Array.isArray(data) ? data : mockQuotes);
+      } catch {
+        setQuotes(mockQuotes);
+      }
+    }
+    loadQuotes();
+  }, []);
 
-  return (
-    <div className="min-h-screen bg-black text-white font-mono p-4 md:p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="border-b border-white/20 pb-2 mb-4">
-          <div className="flex justify-between items-start flex-wrap gap-2">
-            <div>
-              <div className="text-xl font-bold tracking-tight">{dashboardName}</div>
-              {tagline && <div className="text-xs text-white/40 mt-0.5">{tagline}</div>}
-              <div className="text-xs text-white/40 mt-1">
-                {new Date().toLocaleDateString()} | {lastRefresh.toLocaleTimeString()} | auto-refresh: 60s
-              </div>
-            </div>
-            <div className="flex gap-2 text-xs">
-              <button onClick={onExitTextDash} className="px-2 py-1 border border-white/20 rounded hover:bg-white/10">[Esc] EXIT</button>
-              <button onClick={copySnapshot} className="px-2 py-1 border border-white/20 rounded hover:bg-white/10">[C] {copied ? "COPIED" : "COPY"}</button>
-              <button onClick={() => setShowHelp(!showHelp)} className="px-2 py-1 border border-white/20 rounded hover:bg-white/10">[H] HELP</button>
-            </div>
-          </div>
-        </div>
+  const featuredQuote = useMemo(() => getRandomQuote(quotes), [quotes]);
 
-        {/* Help Panel */}
-        <AnimatePresence>
-          {showHelp && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-              className="mb-4 p-3 border border-white/20 rounded bg-white/5 text-xs">
-              <div className="font-bold mb-1">KEYBOARD SHORTCUTS</div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                <div>Esc - Exit text mode</div>
-                <div>C - Copy snapshot</div>
-                <div>R - Refresh page</div>
-                <div>H - Toggle help</div>
-                <div>L - Cycle logs (5‑30, step 5)</div>
-                <div>S - Cycle services (3‑30, step 3)</div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+  const instanceName = dashboard?.identity?.instanceName || "";
+  const zone = dashboard?.location?.zone || "";
+  const projectId = dashboard?.identity?.project || "";
+  const billingAccountId = dashboard?.identity?.billingAccountId || "";
 
-        {/* Status line */}
-        <div className={`mb-4 p-2 border-l-4 ${hasIssues ? 'border-red-500 bg-red-500/5' : 'border-white/40'}`}>
-          {hasIssues ? `ALERT: ${serviceStats.critical} critical, ${serviceStats.warning} warning` : "STATUS: All systems operational"}
-        </div>
+  const githubUrl = import.meta.env.VITE_GITHUB_URL || "https://github.com";
+  const linkedinUrl = import.meta.env.VITE_LINKEDIN_URL || "https://www.linkedin.com";
 
-        {/* IDENTITY + OVERVIEW (enhanced) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="p-3 border border-white/10 rounded">
-            <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Identity</div>
-            <div className="space-y-1 text-sm">
-              <div><span className="text-cyan-400">Project:</span>      {dashboard.identity?.project || "N/A"}</div>
-              <div><span className="text-cyan-400">Instance ID:</span>  {dashboard.identity?.instanceId || "N/A"}</div>
-              <div><span className="text-cyan-400">Instance Name:</span> {dashboard.identity?.instanceName || "N/A"}</div>
-              <div><span className="text-cyan-400">Machine type:</span> {dashboard.identity?.machineType || "N/A"}</div>
-            </div>
-          </div>
-          <div className="p-3 border border-white/10 rounded">
-            <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Overview</div>
-            <div className="space-y-1 text-sm">
-              <div><span className="text-cyan-400">CPU:</span> {formatMetric(cpuRaw)} | <span className="text-cyan-400">Cores:</span> {cpu.cores || "?"} | <span className="text-cyan-400">Load (1min):</span> {cpu.loadAvg || loadAvg || "?"}</div>
-              <div><span className="text-cyan-400">Memory:</span> {formatMetric(memRaw)} | <span className="text-cyan-400">Total:</span> {formatBytes(memory.total)} | <span className="text-cyan-400">Avail:</span> {formatBytes(memory.available || memory.free)} | <span className="text-cyan-400">Used:</span> {formatBytes(memory.used)}</div>
-              <div><span className="text-cyan-400">Disk:</span> {formatMetric(diskRaw)} | <span className="text-cyan-400">Total:</span> {formatBytes(disk.total)} | <span className="text-cyan-400">Avail:</span> {formatBytes(disk.available)} | <span className="text-cyan-400">Used:</span> {formatBytes(disk.used)}</div>
-              <div><span className="text-cyan-400">Estimated Cost:</span> {getCostValue()}/month</div>
-            </div>
-          </div>
-        </div>
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
 
-        {/* NETWORK + LOCATION */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="p-3 border border-white/10 rounded">
-            <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Network</div>
-            <div className="space-y-1 text-sm">
-              <div><span className="text-cyan-400">VPC:</span>         {dashboard.network?.vpc || "N/A"}</div>
-              <div><span className="text-cyan-400">Subnet:</span>      {dashboard.network?.subnet || "N/A"}</div>
-              <div><span className="text-cyan-400">Internal IP:</span> {dashboard.network?.internalIp || "N/A"}</div>
-              <div><span className="text-cyan-400">External IP:</span> {dashboard.network?.externalIp || "N/A"}</div>
-            </div>
-          </div>
-          <div className="p-3 border border-white/10 rounded">
-            <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Location</div>
-            <div className="space-y-1 text-sm">
-              <div><span className="text-cyan-400">Region:</span> {dashboard.location?.region || "N/A"}</div>
-              <div><span className="text-cyan-400">Zone:</span>   {dashboard.location?.zone || "N/A"}</div>
-              <div><span className="text-cyan-400">Uptime:</span> {dashboard.meta?.uptime || "N/A"}</div>
-              <div><span className="text-cyan-400">5-min load avg:</span> {loadAvg}</div>
-            </div>
-          </div>
-        </div>
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 12
+      }
+    }
+  };
 
-        {/* MONITORING ENDPOINTS */}
-        <div className="p-3 border border-white/10 rounded mb-4">
-          <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">Monitoring Endpoints</div>
-          <div className="space-y-1 text-sm">
-            {dashboard.monitoringEndpoints?.length ? (
-              dashboard.monitoringEndpoints.map((ep, idx) => (
-                <div key={idx} className="flex flex-wrap gap-x-4 gap-y-1">
-                  <span className="text-cyan-400">{ep.name}:</span>
-                  <span className="text-white/40 text-xs">{ep.url}</span>
-                  <span className={ep.status === "up" ? "text-green-400" : "text-red-400"}>[{ep.status}]</span>
-                </div>
-              ))
-            ) : (
-              <div className="text-white/30">No endpoints configured</div>
-            )}
-          </div>
-        </div>
-
-        {/* SERVICES CARD */}
-        <div className="p-3 border border-white/10 rounded mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <div className="text-white/40 text-xs uppercase tracking-wide">
-              SERVICES {serviceLimit >= serviceStats.total 
-                ? `(all ${serviceStats.total})` 
-                : `(${serviceLimit} of ${serviceStats.total})`} 
-              | {serviceStats.healthy} healthy | {serviceStats.warning} warning | {serviceStats.critical} critical
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-            {dashboard.services?.slice(0, serviceLimit).map((service) => (
-              <div key={service.label} className="flex items-center gap-2">
-                <span className={service.status === "critical" ? "text-red-400" : service.status === "warning" ? "text-yellow-400" : "text-white"}>
-                  {service.label}
-                </span>
-                <span className="text-white/30 text-xs">[{service.status}]</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* LOGS CARD */}
-        <div className="p-3 border border-white/10 rounded">
-          <div className="flex justify-between items-center mb-2">
-            <div className="text-white/40 text-xs uppercase tracking-wide">
-              LOGS {logLimit >= (dashboard.logs?.length || 0) 
-                ? `(all ${dashboard.logs?.length || 0})` 
-                : `(last ${logLimit})`}
-            </div>
-          </div>
-          <div className="space-y-1 text-xs">
-            {dashboard.logs?.slice(0, logLimit).map((log, idx) => (
-              <div key={idx} className="font-mono">
-                <span className="text-white/30">[{log.time}]</span>{" "}
-                <span className={log.level === "ERROR" ? "text-red-400" : log.level === "WARN" ? "text-yellow-400" : "text-white/60"}>
-                  {log.level}
-                </span>{" "}
-                <span className="text-white/60">{log.message}</span>
-              </div>
-            ))}
-            {(!dashboard.logs || dashboard.logs.length === 0) && <div className="text-white/30">No logs available</div>}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-white/10 pt-2 mt-4 text-center text-xs text-white/30">
-          {dashboardName}
-        </div>
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+        <div className="relative animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-cyan-400"></div>
       </div>
+    );
+  }
+
+  if (mode === "text") {
+    return (
+      <TextDashboard 
+        dashboard={dashboard} 
+        tagline={dashboard.meta?.tagline || "Real-time infrastructure monitoring"}
+        onExitTextDash={() => setMode(previousMode)}
+        logLimit={logLimit}
+        serviceLimit={serviceLimit}
+        onLogLimitChange={setLogLimit}
+        onServiceLimitChange={setServiceLimit}
+        dashboardName={dashboard.meta?.dashboardName || "DevSecOps Dashboard"}
+        flashTitle={flashTextMode}
+      />
+    );
+  }
+
+  if (mode === "finops") {
+    return (
+      <FinOpsDashboard
+        onExit={() => setMode("standard")}
+        githubUrl={githubUrl}
+        linkedinUrl={linkedinUrl}
+        currentMode={mode}
+        onModeChange={handleModeChange}
+        flashMode={flashMode}
+      />
+    );
+  }
+
+  // Standard dashboard
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
+      <Sidebar
+        dashboardUser={dashboard.meta?.dashboardUser || "Kirk Alton"}
+        dashboardName={dashboard.meta?.dashboardName || "DevSecOps Dashboard"}
+        githubUrl={githubUrl}
+        linkedinUrl={linkedinUrl}
+      />
+      <motion.div className="lg:ml-72" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+        <Header
+          appName={dashboard.meta?.appName || "Custom Application"}
+          tagline={dashboard.meta?.tagline || "Real-time infrastructure monitoring"}
+          uptime={dashboard.meta?.uptime || "Unknown"}
+          currentMode={mode}
+          onModeChange={handleModeChange}
+          flashMode={flashMode}
+        />
+        <motion.main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6" variants={containerVariants} initial="hidden" animate="visible">
+          {/* Stats Cards */}
+          <motion.section id="overview" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full" variants={itemVariants}>
+            {dashboard.summaryCards?.map((card, idx) => (
+              <div key={card.label} className="w-full">
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: idx * 0.1, type: "spring", stiffness: 200 }}
+                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                  className="h-full"
+                >
+                  <StatCard
+                    label={card.label}
+                    value={card.value}
+                    status={card.status}
+                    instanceName={instanceName}
+                    zone={zone}
+                    projectId={projectId}
+                    billingAccountId={billingAccountId}
+                  />
+                </motion.div>
+              </div>
+            ))}
+          </motion.section>
+
+          {/* Load Trend Chart */}
+          <motion.section id="load" className="grid grid-cols-1 gap-6" variants={itemVariants}>
+            <LoadTrendChart />
+          </motion.section>
+
+          {/* Ambience */}
+          <motion.section id="ambience" className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={itemVariants}>
+            <div className="space-y-6">
+              <QuoteCard quote={featuredQuote} />
+              <NetworkParticles />
+            </div>
+            <ImageGallery />
+          </motion.section>
+
+          {/* VM Information */}
+          <motion.section id="vm-information" className="grid grid-cols-1 gap-6 lg:grid-cols-3" variants={itemVariants}>
+            <IdentityCard identity={dashboard.identity || {}} />
+            <NetworkCard network={dashboard.network || {}} />
+            <LocationCard location={dashboard.location || {}} />
+          </motion.section>
+
+          {/* System Resources */}
+          <motion.section id="system-resources" className="grid grid-cols-1 gap-6" variants={itemVariants}>
+            <SystemResourcesCard resources={dashboard.systemResources || {}} />
+          </motion.section>
+
+          {/* Monitoring Endpoints */}
+          <motion.section id="monitoring-endpoints" className="grid grid-cols-1 gap-6" variants={itemVariants}>
+            <MonitoringEndpointsCard endpoints={dashboard.monitoringEndpoints || []} />
+          </motion.section>
+
+          {/* Services */}
+          <motion.section id="services" className="grid grid-cols-1 gap-6" variants={itemVariants}>
+            <SectionList
+              title="Services"
+              subtitle="Service health, status, and performance"
+              items={dashboard.services || []}
+              limit={serviceLimit}
+              onLimitChange={setServiceLimit}
+            />
+          </motion.section>
+
+          {/* Logs */}
+          <motion.section id="logs" className="grid grid-cols-1 gap-6" variants={itemVariants}>
+            <ResourceTable
+              rows={dashboard.logs?.map((log) => ({
+                name: log.time,
+                type: log.level,
+                scope: log.scope || "app",
+                status: log.message,
+              })) || []}
+              title="Application Logs"
+              isLogs={true}
+              limit={logLimit}
+              onLimitChange={setLogLimit}
+            />
+          </motion.section>
+        </motion.main>
+      </motion.div>
     </div>
   );
-}
-
-// Helper: generate snapshot for copying (includes detailed overview)
-function generateTextSnapshot(dashboard, lastRefresh, logLimit, serviceLimit, dashboardName, tagline) {
-  const serviceStats = {
-    total: dashboard.services?.length || 0,
-    healthy: dashboard.services?.filter(s => s.status === "healthy").length || 0,
-    warning: dashboard.services?.filter(s => s.status === "warning").length || 0,
-    critical: dashboard.services?.filter(s => s.status === "critical").length || 0
-  };
-  const hasIssues = serviceStats.critical > 0 || serviceStats.warning > 0;
-  const totalLogs = dashboard.logs?.length || 0;
-  const loadAvg = dashboard.location?.loadAvg || dashboard.systemResources?.cpu?.loadAvg || dashboard.systemResources?.load5 || "0.00";
-
-  const systemResources = dashboard.systemResources || {};
-  const memory = systemResources.memory || { total: 0, used: 0, free: 0, available: 0 };
-  const disk = systemResources.disk || { total: 0, used: 0, available: 0 };
-  const cpu = systemResources.cpu || { usage: 0, cores: null, frequency: null, loadAvg: null };
-
-  const formatMetric = (value) => {
-    if (!value && value !== 0) return "N/A";
-    const cleaned = value.toString().replace(/%$/, "");
-    return `${cleaned}%`;
-  };
-
-  const getCostValue = () => {
-    const costCard = dashboard.summaryCards?.find(c => c.label === "Estimated Cost" || c.label === "Cost");
-    let raw = costCard?.value;
-    if (!raw && raw !== 0) return "N/A";
-    if (typeof raw === "number") return `$${raw.toFixed(2)}`;
-    if (typeof raw === "string") {
-      if (raw.startsWith("$")) return raw;
-      const numeric = parseFloat(raw.replace(/[^0-9.-]/g, ""));
-      if (!isNaN(numeric)) return `$${numeric.toFixed(2)}`;
-      return raw;
-    }
-    return "N/A";
-  };
-
-  const cpuRaw = dashboard.summaryCards?.find(c => c.label === "CPU")?.value;
-  const memRaw = dashboard.summaryCards?.find(c => c.label === "Memory")?.value;
-  const diskRaw = dashboard.summaryCards?.find(c => c.label === "Disk")?.value;
-
-  const formatBytes = (mb) => {
-    if (!mb && mb !== 0) return "N/A";
-    if (mb > 1024) return `${(mb / 1024).toFixed(1)} GB`;
-    return `${Math.round(mb)} MB`;
-  };
-
-  return `
-${dashboardName.toUpperCase()} SNAPSHOT
-${tagline ? `${tagline}\n` : ''}
-Taken: ${lastRefresh.toLocaleString()}
-
-STATUS: ${hasIssues ? `${serviceStats.critical} critical, ${serviceStats.warning} warning` : "All systems operational"}
-
-IDENTITY
-Project: ${dashboard.identity?.project || "N/A"}
-Instance ID: ${dashboard.identity?.instanceId || "N/A"}
-Hostname: ${dashboard.identity?.hostname || "N/A"}
-Machine type: ${dashboard.identity?.machineType || "N/A"}
-
-OVERVIEW
-CPU: ${formatMetric(cpuRaw)} | Cores: ${cpu.cores || "?"} | Load (1min): ${cpu.loadAvg || loadAvg || "?"}
-Memory: ${formatMetric(memRaw)} | Total: ${formatBytes(memory.total)} | Avail: ${formatBytes(memory.available || memory.free)} | Used: ${formatBytes(memory.used)}
-Disk: ${formatMetric(diskRaw)} | Total: ${formatBytes(disk.total)} | Avail: ${formatBytes(disk.available)} | Used: ${formatBytes(disk.used)}
-Estimated Cost: ${getCostValue()}
-
-NETWORK
-VPC: ${dashboard.network?.vpc || "N/A"}
-Subnet: ${dashboard.network?.subnet || "N/A"}
-Internal IP: ${dashboard.network?.internalIp || "N/A"}
-External IP: ${dashboard.network?.externalIp || "N/A"}
-
-LOCATION
-Region: ${dashboard.location?.region || "N/A"}
-Zone: ${dashboard.location?.zone || "N/A"}
-Uptime: ${dashboard.meta?.uptime || "N/A"}
-5-min load avg: ${loadAvg}
-
-MONITORING ENDPOINTS
-${dashboard.monitoringEndpoints?.map(ep => `${ep.name}: ${ep.url} [${ep.status}]`).join("\n") || "None"}
-
-SERVICES (${serviceLimit >= serviceStats.total ? `all ${serviceStats.total}` : `${serviceLimit} of ${serviceStats.total}`})
-${dashboard.services?.slice(0, serviceLimit).map(s => `${s.label} [${s.status}]`).join("\n")}
-
-LOGS ${logLimit >= totalLogs ? `(all ${totalLogs})` : `(last ${logLimit})`}
-${dashboard.logs?.slice(0, logLimit).map(log => `[${log.time}] ${log.level}: ${log.message}`).join("\n")}
-`;
 }

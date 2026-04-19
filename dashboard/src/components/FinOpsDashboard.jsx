@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { LayoutDashboard, BarChart3, Server, Cpu, DollarSign } from "lucide-react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import StatCard from "./StatCard";
@@ -8,7 +9,53 @@ import ResourceTable from "./ResourceTable";
 import SectionList from "./SectionList";
 import CostTrendChart from "./CostTrendChart";
 
-export default function FinOpsDashboard({ onExit }) {
+// FinOps specific navigation items
+const finopsNavItems = [
+  { id: "finops-overview", label: "Overview", icon: LayoutDashboard },
+  { id: "cost-trends", label: "Cost Trends", icon: BarChart3 },
+  { id: "idle-resources", label: "Idle Resources", icon: Server },
+  { id: "rightsizing", label: "Rightsizing", icon: Cpu },
+  { id: "savings", label: "Savings", icon: DollarSign },
+];
+
+// Mock data for when API is unavailable
+const mockFinOpsData = {
+  summaryCards: [
+    { label: "Total Cost (MTD)", value: "$124.50", status: "info" },
+    { label: "Forecast (EOM)", value: "$158.20", status: "warning" },
+    { label: "Potential Savings", value: "$23.70", status: "healthy" },
+    { label: "CUD Coverage", value: "68%", status: "healthy" },
+  ],
+  costTrend: [
+    { date: "Apr 9", value: 12.3 },
+    { date: "Apr 10", value: 11.8 },
+    { date: "Apr 11", value: 13.1 },
+    { date: "Apr 12", value: 10.5 },
+    { date: "Apr 13", value: 12.9 },
+    { date: "Apr 14", value: 11.2 },
+    { date: "Apr 15", value: 13.4 },
+    { date: "Apr 16", value: 12.1 },
+    { date: "Apr 17", value: 11.5 },
+    { date: "Apr 18", value: 12.7 },
+  ],
+  topServices: [
+    { name: "Compute Engine", value: "$87.20", status: "info" },
+    { name: "Cloud Storage", value: "$23.50", status: "info" },
+    { name: "BigQuery", value: "$8.90", status: "info" },
+    { name: "Cloud Run", value: "$4.20", status: "info" },
+  ],
+  idleResources: [
+    { name: "dev-vm-01", type: "n1-standard-1", cpu: "2%", recommendation: "Stop or resize" },
+    { name: "unused-ip-1", type: "External IP", cpu: "N/A", recommendation: "Release" },
+    { name: "old-snapshot-2024", type: "Snapshot", cpu: "N/A", recommendation: "Delete" },
+  ],
+  recommendations: [
+    { instance: "db-server", current: "n2-standard-4", suggested: "n2-standard-2", savings: "$45/mo" },
+    { instance: "web-server-01", current: "e2-standard-2", suggested: "e2-standard-1", savings: "$22/mo" },
+  ],
+};
+
+export default function FinOpsDashboard({ onExit, githubUrl, linkedinUrl, currentMode, onModeChange, flashMode }) {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -16,17 +63,17 @@ export default function FinOpsDashboard({ onExit }) {
     async function fetchFinOpsData() {
       try {
         const res = await fetch("/api/finops");
-        if (!res.ok) throw new Error("FinOps API failed");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         setData(json);
       } catch (err) {
-        console.error("FinOps data error:", err);
+        console.error("FinOps API error, using mock data:", err);
+        setData(mockFinOpsData);
       } finally {
         setIsLoading(false);
       }
     }
     fetchFinOpsData();
-    // Refresh every 60 seconds
     const interval = setInterval(fetchFinOpsData, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -41,33 +88,31 @@ export default function FinOpsDashboard({ onExit }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
-      <Sidebar dashboardUser="FinOps" dashboardName="Cost Optimization" />
+      <Sidebar
+        dashboardUser="Kirk Alton"
+        dashboardName="FinOps Dashboard"
+        githubUrl={githubUrl}
+        linkedinUrl={linkedinUrl}
+        navItems={finopsNavItems}
+      />
       <div className="lg:ml-72">
         <Header
           appName="FinOps Dashboard"
-          tagline="Optimize cloud spending"
+          tagline="Optimize resources and cost"
           uptime=""
-          isTextDashMode={false}
-          onTextDashToggle={() => {}}
-          extraButtons={
-            <button
-              onClick={onExit}
-              className="px-3 py-1.5 text-sm bg-white/5 hover:bg-white/10 rounded-lg border border-white/20 transition"
-            >
-              ← Exit FinOps
-            </button>
-          }
+          currentMode={currentMode}
+          onModeChange={onModeChange}
+          flashMode={flashMode}
         />
         <main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6">
-          {/* Summary Cards */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Overview section – summary cards */}
+          <section id="finops-overview" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {data.summaryCards.map((card, idx) => (
               <StatCard
                 key={idx}
                 label={card.label}
                 value={card.value}
                 status={card.status}
-                // no clickable links needed for FinOps cards
                 instanceName=""
                 zone=""
                 projectId=""
@@ -75,9 +120,9 @@ export default function FinOpsDashboard({ onExit }) {
             ))}
           </section>
 
-          {/* Cost Trend Chart */}
-          <section>
-            <Card title="Daily Cost Trend" subtitle="Last 30 days">
+          {/* Cost Trends */}
+          <section id="cost-trends">
+            <Card title="Daily Cost Trend" subtitle="Last 10 days">
               <CostTrendChart
                 data={data.costTrend}
                 dataKey="value"
@@ -87,15 +132,8 @@ export default function FinOpsDashboard({ onExit }) {
             </Card>
           </section>
 
-          {/* Top Services by Cost */}
-          <section>
-            <Card title="Top Services by Cost">
-              <SectionList items={data.topServices} limit={10} />
-            </Card>
-          </section>
-
           {/* Idle Resources */}
-          <section>
+          <section id="idle-resources">
             <ResourceTable
               rows={data.idleResources}
               title="Idle Resources"
@@ -104,14 +142,21 @@ export default function FinOpsDashboard({ onExit }) {
             />
           </section>
 
-          {/* Rightsizing Recommendations */}
-          <section>
+          {/* Rightsizing Opportunities */}
+          <section id="rightsizing">
             <ResourceTable
               rows={data.recommendations}
               title="Rightsizing Opportunities"
               isLogs={false}
               limit={10}
             />
+          </section>
+
+          {/* Savings (Top Services by Cost) */}
+          <section id="savings">
+            <Card title="Top Services by Cost">
+              <SectionList items={data.topServices} limit={10} />
+            </Card>
           </section>
         </main>
       </div>
