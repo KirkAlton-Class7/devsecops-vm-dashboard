@@ -1,69 +1,135 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { LayoutDashboard, BarChart3, Server, Cpu, DollarSign } from "lucide-react";
+import {
+  BarChart3,
+  ChartNoAxesGantt,
+  Cpu,
+  Gauge,
+  RefreshCw,
+  Server,
+  Sparkles,
+} from "lucide-react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import StatCard from "./StatCard";
 import Card from "./Card";
 import ResourceTable from "./ResourceTable";
-import SectionList from "./SectionList";
 import CostTrendChart from "./CostTrendChart";
+import BudgetCard from "./BudgetCard";
+import RecommendationItem from "./RecommendationItem";
+import UtilizationChart from "./UtilizationChart";
+import CostBreakdownChart from "./CostBreakdownChart";
+import SavingsSummary from "./SavingsSummary";
+import QuoteCard from "./QuoteCard";
+import NetworkParticles from "./NetworkParticles";
+import ImageGallery from "./ImageGallery";
+import { finopsNavItems, mockFinOpsData } from "../data/mockFinOpsDashboard";
 
-// FinOps specific navigation items
-const finopsNavItems = [
-  { id: "finops-overview", label: "Overview", icon: LayoutDashboard },
-  { id: "cost-trends", label: "Cost Trends", icon: BarChart3 },
-  { id: "idle-resources", label: "Idle Resources", icon: Server },
-  { id: "rightsizing", label: "Rightsizing", icon: Cpu },
-  { id: "savings", label: "Savings", icon: DollarSign },
-];
+const cycleSteps = [3, 6, 9, 12];
 
-// Mock data for when API is unavailable
-const mockFinOpsData = {
-  summaryCards: [
-    { label: "Total Cost (MTD)", value: "$124.50", status: "info" },
-    { label: "Forecast (EOM)", value: "$158.20", status: "warning" },
-    { label: "Potential Savings", value: "$23.70", status: "healthy" },
-    { label: "CUD Coverage", value: "68%", status: "healthy" },
-  ],
-  costTrend: [
-    { date: "Apr 9", value: 12.3 },
-    { date: "Apr 10", value: 11.8 },
-    { date: "Apr 11", value: 13.1 },
-    { date: "Apr 12", value: 10.5 },
-    { date: "Apr 13", value: 12.9 },
-    { date: "Apr 14", value: 11.2 },
-    { date: "Apr 15", value: 13.4 },
-    { date: "Apr 16", value: 12.1 },
-    { date: "Apr 17", value: 11.5 },
-    { date: "Apr 18", value: 12.7 },
-  ],
-  topServices: [
-    { name: "Compute Engine", value: "$87.20", status: "info" },
-    { name: "Cloud Storage", value: "$23.50", status: "info" },
-    { name: "BigQuery", value: "$8.90", status: "info" },
-    { name: "Cloud Run", value: "$4.20", status: "info" },
-  ],
-  idleResources: [
-    { name: "dev-vm-01", type: "n1-standard-1", cpu: "2%", recommendation: "Stop or resize" },
-    { name: "unused-ip-1", type: "External IP", cpu: "N/A", recommendation: "Release" },
-    { name: "old-snapshot-2024", type: "Snapshot", cpu: "N/A", recommendation: "Delete" },
-  ],
-  recommendations: [
-    { instance: "db-server", current: "n2-standard-4", suggested: "n2-standard-2", savings: "$45/mo" },
-    { instance: "web-server-01", current: "e2-standard-2", suggested: "e2-standard-1", savings: "$22/mo" },
-  ],
-};
+function getStoredLimit(key, fallback) {
+  const saved = localStorage.getItem(key);
+  return saved ? parseInt(saved, 10) : fallback;
+}
 
-export default function FinOpsDashboard({ onExit, githubUrl, linkedinUrl, currentMode, onModeChange, flashMode }) {
+function getNextLimit(currentLimit, totalItems) {
+  const maxItems = Math.min(totalItems, 12);
+  const availableSteps = cycleSteps.filter((step) => step <= maxItems);
+
+  if (availableSteps.length === 0) {
+    return maxItems;
+  }
+
+  if (currentLimit >= maxItems) {
+    return availableSteps[0];
+  }
+
+  const nextStep = availableSteps.find((step) => step > currentLimit);
+
+  return nextStep || maxItems;
+}
+
+function getDisplayText(limit, totalItems) {
+  const maxItems = Math.min(totalItems, 12);
+  const shownItems = Math.min(limit, maxItems);
+
+  return shownItems >= maxItems ? `all ${maxItems}` : `${shownItems} of ${maxItems}`;
+}
+
+function WidgetTitle({ icon: Icon, children, tone = "cyan" }) {
+  const tones = {
+    cyan: "from-cyan-500/20 to-sky-500/10 text-cyan-400",
+    emerald: "from-emerald-500/20 to-lime-500/10 text-emerald-400",
+    amber: "from-amber-500/20 to-orange-500/10 text-amber-400",
+    violet: "from-violet-500/20 to-fuchsia-500/10 text-violet-400",
+  };
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span
+        className={`inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br ${tones[tone]}`}
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <span>{children}</span>
+    </span>
+  );
+}
+
+function CycleButton({ label, title, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 rounded border border-slate-700 px-2 py-1 text-xs text-slate-400 transition-colors hover:border-cyan-500/50 hover:text-cyan-400"
+      title={title}
+    >
+      <RefreshCw className="h-3 w-3" />
+      <span className="hidden sm:inline">{label}</span>
+    </button>
+  );
+}
+
+export default function FinOpsDashboard({
+  onExit,
+  githubUrl,
+  linkedinUrl,
+  currentMode,
+  onModeChange,
+  flashMode,
+}) {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [cpuLimit, setCpuLimit] = useState(() =>
+    getStoredLimit("finops_cpu_limit", 3)
+  );
+  const [rightsizingLimit, setRightsizingLimit] = useState(() =>
+    getStoredLimit("finops_rightsizing_limit", 3)
+  );
+  const [idleResourceLimit, setIdleResourceLimit] = useState(() =>
+    getStoredLimit("finops_idle_resource_limit", 3)
+  );
+
+  useEffect(() => {
+    localStorage.setItem("finops_cpu_limit", cpuLimit);
+  }, [cpuLimit]);
+
+  useEffect(() => {
+    localStorage.setItem("finops_rightsizing_limit", rightsizingLimit);
+  }, [rightsizingLimit]);
+
+  useEffect(() => {
+    localStorage.setItem("finops_idle_resource_limit", idleResourceLimit);
+  }, [idleResourceLimit]);
 
   useEffect(() => {
     async function fetchFinOpsData() {
       try {
         const res = await fetch("/api/finops");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
         const json = await res.json();
         setData(json);
       } catch (err) {
@@ -73,18 +139,44 @@ export default function FinOpsDashboard({ onExit, githubUrl, linkedinUrl, curren
         setIsLoading(false);
       }
     }
+
     fetchFinOpsData();
+
     const interval = setInterval(fetchFinOpsData, 60000);
+
     return () => clearInterval(interval);
   }, []);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
-        <div className="relative animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-cyan-400"></div>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div className="relative h-16 w-16 animate-spin rounded-full border-b-2 border-t-2 border-cyan-400"></div>
       </div>
     );
   }
+
+  const sortedServices = [...(data.topServices || [])].sort(
+    (a, b) => b.value - a.value
+  );
+
+  const top10Services = sortedServices.slice(0, 10);
+
+  const utilizationRows = (data.utilization || []).slice(
+    0,
+    Math.min(cpuLimit, 12)
+  );
+
+  const recommendationRows = (data.recommendations || []).slice(
+    0,
+    Math.min(rightsizingLimit, 12)
+  );
+
+  const idleResourceRows = (data.idleResources || []).slice(0, 12);
+
+  const featuredQuote = data.quote || {
+    text: "Optimize cloud costs with FinOps",
+    author: "FinOps Team",
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
@@ -95,24 +187,26 @@ export default function FinOpsDashboard({ onExit, githubUrl, linkedinUrl, curren
         linkedinUrl={linkedinUrl}
         navItems={finopsNavItems}
       />
+
       <div className="lg:ml-72">
         <Header
-          appName="FinOps Dashboard"
+          appName="FinOps"
           tagline="Optimize resources and cost"
           uptime=""
           currentMode={currentMode}
           onModeChange={onModeChange}
           flashMode={flashMode}
         />
+
         <main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6">
-          {/* Overview section – summary cards */}
-          <section id="finops-overview" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {data.summaryCards.map((card, idx) => (
+          <section
+            id="finops-overview"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            {(data.summaryCards || []).map((card, idx) => (
               <StatCard
-                key={idx}
-                label={card.label}
-                value={card.value}
-                status={card.status}
+                key={`${card.label}-${idx}`}
+                {...card}
                 instanceName=""
                 zone=""
                 projectId=""
@@ -120,43 +214,207 @@ export default function FinOpsDashboard({ onExit, githubUrl, linkedinUrl, curren
             ))}
           </section>
 
-          {/* Cost Trends */}
-          <section id="cost-trends">
-            <Card title="Daily Cost Trend" subtitle="Last 10 days">
-              <CostTrendChart
-                data={data.costTrend}
-                dataKey="value"
-                labelKey="date"
-                unit="$"
-              />
+          <section id="savings" className="grid grid-cols-1 gap-4">
+            <SavingsSummary
+              realized={data.realizedSavings || 0}
+              potential={data.potentialSavings || 0}
+            />
+          </section>
+
+          <section
+            id="cost-trends"
+            className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+          >
+            <CostTrendChart
+              title={
+                <WidgetTitle icon={BarChart3} tone="cyan">
+                  Daily Cost Trend
+                </WidgetTitle>
+              }
+            />
+
+            <CostBreakdownChart
+              data={top10Services}
+              title={
+                <WidgetTitle icon={ChartNoAxesGantt} tone="violet">
+                  Top Services by Cost
+                </WidgetTitle>
+              }
+              dataKey="value"
+              nameKey="name"
+            />
+          </section>
+
+          <section
+            id="ambience"
+            className="grid grid-cols-1 gap-6 md:grid-cols-2"
+          >
+            <div className="space-y-6">
+              <QuoteCard quote={featuredQuote} />
+              <NetworkParticles />
+            </div>
+
+            <ImageGallery />
+          </section>
+
+          {data.budgets && data.budgets.length > 0 && (
+            <section
+              id="budgets"
+              className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+            >
+              {data.budgets.map((budget, idx) => (
+                <BudgetCard key={`${budget.name}-${idx}`} {...budget} />
+              ))}
+            </section>
+          )}
+
+          <section
+            id="utilization"
+            className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+          >
+            {data.utilization && data.utilization.length > 0 && (
+              <Card
+                title={
+                  <WidgetTitle icon={Gauge} tone="cyan">
+                    CPU Utilization
+                  </WidgetTitle>
+                }
+                subtitle="Top VMs • Last hour, P95"
+              >
+                <div className="mb-3 flex items-center justify-between px-1">
+                  <div className="text-xs text-slate-500">
+                    Showing {getDisplayText(cpuLimit, data.utilization.length)} VMs
+                  </div>
+
+                  <CycleButton
+                    label="Cycle VMs"
+                    title="Cycle CPU utilization"
+                    onClick={() =>
+                      setCpuLimit((current) =>
+                        getNextLimit(current, data.utilization.length)
+                      )
+                    }
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  {utilizationRows.map((vm, idx) => (
+                    <div
+                      key={`${vm.instance}-${idx}`}
+                      className="flex items-center justify-between gap-2 rounded-lg bg-white/5 p-2"
+                    >
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 text-cyan-400">
+                          <Cpu className="h-4 w-4" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-white">
+                            {vm.instance}
+                          </p>
+
+                          <div className="mt-0.5 flex items-center gap-2">
+                            <span className="text-xs text-slate-400">
+                              P95 CPU:
+                            </span>
+
+                            <span className="font-mono text-xs text-cyan-400">
+                              {vm.cpuP95}%
+                            </span>
+
+                            {vm.recommendationMatch && (
+                              <span className="whitespace-nowrap rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-400">
+                                Rightsizing candidate
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="w-24 flex-shrink-0">
+                        <UtilizationChart
+                          data={[
+                            vm.cpuP95 * 0.8,
+                            vm.cpuP95 * 0.9,
+                            vm.cpuP95,
+                            vm.cpuP95 * 1.1,
+                            vm.cpuP95,
+                          ]}
+                          unit="%"
+                          height={32}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            <Card
+              title={
+                <WidgetTitle icon={Sparkles} tone="emerald">
+                  Rightsizing Opportunities
+                </WidgetTitle>
+              }
+              subtitle="Estimated monthly savings"
+            >
+              <div className="mb-3 flex items-center justify-between px-1">
+                <div className="text-xs text-slate-500">
+                  Showing{" "}
+                  {getDisplayText(
+                    rightsizingLimit,
+                    data.recommendations?.length || 0
+                  )}{" "}
+                  recommendations
+                </div>
+
+                <CycleButton
+                  label="Cycle Rightsizing"
+                  title="Cycle rightsizing recommendations"
+                  onClick={() =>
+                    setRightsizingLimit((current) =>
+                      getNextLimit(current, data.recommendations?.length || 0)
+                    )
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                {recommendationRows.map((rec, idx) => (
+                  <RecommendationItem
+                    key={`${rec.resource}-${idx}`}
+                    {...rec}
+                  />
+                ))}
+
+                {(!data.recommendations ||
+                  data.recommendations.length === 0) && (
+                  <div className="py-8 text-center text-slate-400">
+                    No recommendations available
+                  </div>
+                )}
+              </div>
             </Card>
           </section>
 
-          {/* Idle Resources */}
           <section id="idle-resources">
             <ResourceTable
-              rows={data.idleResources}
-              title="Idle Resources"
+              rows={idleResourceRows}
+              title={
+                <WidgetTitle icon={Server} tone="amber">
+                  Idle Resources
+                </WidgetTitle>
+              }
+              subtitle="Resources with low usage or cleanup opportunities"
               isLogs={false}
-              limit={10}
+              limit={idleResourceLimit}
+              cycleLabel="resources"
+              onLimitChange={() =>
+                setIdleResourceLimit((current) =>
+                  getNextLimit(current, data.idleResources?.length || 0)
+                )
+              }
             />
-          </section>
-
-          {/* Rightsizing Opportunities */}
-          <section id="rightsizing">
-            <ResourceTable
-              rows={data.recommendations}
-              title="Rightsizing Opportunities"
-              isLogs={false}
-              limit={10}
-            />
-          </section>
-
-          {/* Savings (Top Services by Cost) */}
-          <section id="savings">
-            <Card title="Top Services by Cost">
-              <SectionList items={data.topServices} limit={10} />
-            </Card>
           </section>
         </main>
       </div>

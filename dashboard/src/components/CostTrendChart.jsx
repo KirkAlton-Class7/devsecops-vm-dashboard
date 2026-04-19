@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { DollarSign, TrendingUp, BarChart } from "lucide-react";
 import Card from "./Card";
 
-export default function CostTrendChart() {
+export default function CostTrendChart({ title = "Daily Cost Trend" }) {
   const [historicalCost, setHistoricalCost] = useState([12.3, 11.8, 13.1, 10.5, 12.9, 11.2, 13.4, 12.1, 11.5, 12.7]);
   const [currentCost, setCurrentCost] = useState("0.00");
   const [maxCost, setMaxCost] = useState(20.0); // Scale up to 20 for the chart
@@ -68,7 +68,7 @@ export default function CostTrendChart() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card title="Daily Cost Trend" subtitle="Last 10 days • Cost in USD">
+      <Card title={title} subtitle="Last 10 days • Cost in USD">
         <div className="space-y-4">
           {/* Current Cost Indicator */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">

@@ -126,7 +126,7 @@ export const mockDashboard = {
 
   meta: {
     appName: "DevSecOps",
-    tagline: "Mock Dashboard • Dev/Test | Prod Fallback • Degraded: NGINX serving, backend unavailable",
+    tagline: "Dev/Test • Mock Fallback • Degraded: NGINX serving, backend unavailable",
     dashboardUser: "Kirk Alton",
     dashboardName: "DevSecOps Dashboard",
     uptime: "6 days, 14 hours",
