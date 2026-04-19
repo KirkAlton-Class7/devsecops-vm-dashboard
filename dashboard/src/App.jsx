@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import Header from "./components/Header";
 import QuoteCard from "./components/QuoteCard";
@@ -48,15 +48,27 @@ export default function App() {
   const [previousMode, setPreviousMode] = useState("standard");
   const [flashMode, setFlashMode] = useState(false);
   const [flashTextMode, setFlashTextMode] = useState(false);
+  const flashTimeoutRef = useRef(null);
+  const textFlashTimeoutRef = useRef(null);
 
+  // Brief flash for standard/finops mode (D and F)
   const triggerFlash = useCallback(() => {
+    if (flashTimeoutRef.current) return;
     setFlashMode(true);
-    setTimeout(() => setFlashMode(false), 300);
+    flashTimeoutRef.current = setTimeout(() => {
+      setFlashMode(false);
+      flashTimeoutRef.current = null;
+    }, 300);
   }, []);
 
+  // Brief flash for text mode (T)
   const triggerTextFlash = useCallback(() => {
+    if (textFlashTimeoutRef.current) return;
     setFlashTextMode(true);
-    setTimeout(() => setFlashTextMode(false), 300);
+    textFlashTimeoutRef.current = setTimeout(() => {
+      setFlashTextMode(false);
+      textFlashTimeoutRef.current = null;
+    }, 300);
   }, []);
 
   const handleModeChange = useCallback((newMode) => {
@@ -82,7 +94,7 @@ export default function App() {
         else triggerTextFlash();
       } else if (key === 'f') {
         if (mode !== 'finops') handleModeChange('finops');
-        else triggerFlash(); // FinOps mode will use the header flash (passed via prop)
+        else triggerFlash();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -193,6 +205,18 @@ export default function App() {
         onServiceLimitChange={setServiceLimit}
         dashboardName={dashboard.meta?.dashboardName || "DevSecOps Dashboard"}
         flashTitle={flashTextMode}
+        onRefresh={async () => {
+          try {
+            const res = await fetch("/api/dashboard", { cache: "no-store" });
+            if (!res.ok) throw new Error("dashboard fetch failed");
+            const data = await res.json();
+            data.monitoringEndpoints = getRealMonitoringEndpoints();
+            setDashboard(data);
+          } catch {
+            const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
+            setDashboard(mockWithRealEndpoints);
+          }
+        }}
       />
     );
   }
@@ -205,7 +229,7 @@ export default function App() {
         linkedinUrl={linkedinUrl}
         currentMode={mode}
         onModeChange={handleModeChange}
-        flashMode={flashMode}        // <-- pass flashMode to FinOpsDashboard
+        flashMode={flashMode}
       />
     );
   }

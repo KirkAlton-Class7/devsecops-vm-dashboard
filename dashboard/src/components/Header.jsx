@@ -11,15 +11,21 @@ export default function Header({ appName, tagline, uptime, currentMode = "standa
   const userButtonRef = useRef(null);
   const modeButtonRef = useRef(null);
   const [isFlashing, setIsFlashing] = useState(false);
+const flashTimeoutRef = useRef(null);
+const isFlashingRef = useRef(false);
 
-  // Flash effect when flashMode prop changes to true
-  useEffect(() => {
-    if (flashMode) {
-      setIsFlashing(true);
-      const timer = setTimeout(() => setIsFlashing(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [flashMode]);
+useEffect(() => {
+  if (flashMode && !isFlashingRef.current) {
+    if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+    isFlashingRef.current = true;
+    setIsFlashing(true);
+    flashTimeoutRef.current = setTimeout(() => {
+      setIsFlashing(false);
+      isFlashingRef.current = false;
+      flashTimeoutRef.current = null;
+    }, 300);
+  }
+}, [flashMode]);
 
   // ... (time and positioning effects unchanged)
 
