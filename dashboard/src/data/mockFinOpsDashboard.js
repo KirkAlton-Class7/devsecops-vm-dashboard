@@ -84,6 +84,48 @@ export const mockFinOpsData = {
       forecast: 520,
       thresholds: [0.5, 0.8, 0.9],
     },
+    {
+      name: "Networking budget",
+      amount: 250,
+      spent: 120,
+      forecast: 200,
+      thresholds: [0.5, 0.8, 0.9],
+    },
+    {
+      name: "Storage budget",
+      amount: 300,
+      spent: 210,
+      forecast: 290,
+      thresholds: [0.5, 0.8, 0.9],
+    },
+    {
+      name: "AI/ML budget",
+      amount: 800,
+      spent: 350,
+      forecast: 500,
+      thresholds: [0.5, 0.8, 0.9],
+    },
+    {
+      name: "Security & Compliance budget",
+      amount: 200,
+      spent: 110,
+      forecast: 180,
+      thresholds: [0.5, 0.8, 0.9],
+    },
+    {
+      name: "Development sandbox budget",
+      amount: 150,
+      spent: 90,
+      forecast: 140,
+      thresholds: [0.5, 0.8, 0.9],
+    },
+    {
+      name: "Customer support infrastructure",
+      amount: 450,
+      spent: 320,
+      forecast: 430,
+      thresholds: [0.5, 0.8, 0.9],
+    },
   ],
 
   idleResources: [

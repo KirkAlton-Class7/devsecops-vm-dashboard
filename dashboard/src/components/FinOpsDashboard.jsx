@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3,
   ChartNoAxesGantt,
@@ -108,6 +109,16 @@ export default function FinOpsDashboard({
   const [idleResourceLimit, setIdleResourceLimit] = useState(() =>
     getStoredLimit("finops_idle_resource_limit", 3)
   );
+
+  const [budgetPage, setBudgetPage] = useState(0);
+  const BUDGETS_PER_PAGE = 3;
+  const [direction, setDirection] = useState(0); // -1 = left, 1 = right
+
+  const goToPage = (newPage) => {
+    if (newPage === budgetPage) return;
+    setDirection(newPage > budgetPage ? 1 : -1);
+    setBudgetPage(newPage);
+  };
 
   useEffect(() => {
     localStorage.setItem("finops_cpu_limit", cpuLimit);
@@ -258,16 +269,65 @@ export default function FinOpsDashboard({
           </section>
 
           {data.budgets && data.budgets.length > 0 && (
-            <section
-              id="budgets"
-              className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
-            >
-              {data.budgets.map((budget, idx) => (
-                <BudgetCard key={`${budget.name}-${idx}`} {...budget} />
-              ))}
+            <section id="budgets">
+              <div className="relative overflow-hidden">
+                <motion.div
+                  className="flex"
+                  animate={{ x: `-${budgetPage * 100}%` }}
+                  transition={{ type: "spring", stiffness: 400, damping: 60, mass: 2.5 }}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.2}
+                  onDragEnd={(e, { offset, velocity }) => {
+                    const pageCount = Math.ceil(data.budgets.length / BUDGETS_PER_PAGE);
+                    if (Math.abs(offset.x) > 100 || Math.abs(velocity.x) > 500) {
+                      if (offset.x > 0 && budgetPage > 0) setBudgetPage(budgetPage - 1);
+                      else if (offset.x < 0 && budgetPage < pageCount - 1) setBudgetPage(budgetPage + 1);
+                    }
+                  }}
+                >
+                  {Array.from({ length: Math.ceil(data.budgets.length / BUDGETS_PER_PAGE) }).map((_, pageIdx) => (
+                    <div
+                      key={pageIdx}
+                      className="flex-shrink-0 w-full grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+                      style={{ width: "100%" }}
+                    >
+                      {data.budgets
+                        .slice(pageIdx * BUDGETS_PER_PAGE, (pageIdx + 1) * BUDGETS_PER_PAGE)
+                        .map((budget, idx) => (
+                          <BudgetCard key={`${budget.name}-${idx}`} {...budget} />
+                        ))}
+                    </div>
+                  ))}
+                </motion.div>
+              </div>
+
+              {/* Pagination buttons – same as before */}
+              {data.budgets.length > BUDGETS_PER_PAGE && (
+                <div className="flex justify-center gap-4 mt-6">
+                  <button
+                    onClick={() => setBudgetPage(p => Math.max(0, p - 1))}
+                    disabled={budgetPage === 0}
+                    className="px-3 py-1 text-sm rounded border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-cyan-500/50 transition-colors"
+                  >
+                    ← Previous
+                  </button>
+                  <span className="text-sm text-slate-400">
+                    Page {budgetPage + 1} of {Math.ceil(data.budgets.length / BUDGETS_PER_PAGE)}
+                  </span>
+                  <button
+                    onClick={() => setBudgetPage(p => 
+                      p + 1 < Math.ceil(data.budgets.length / BUDGETS_PER_PAGE) ? p + 1 : p
+                    )}
+                    disabled={budgetPage >= Math.ceil(data.budgets.length / BUDGETS_PER_PAGE) - 1}
+                    className="px-3 py-1 text-sm rounded border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-cyan-500/50 transition-colors"
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
             </section>
           )}
-
           <section
             id="utilization"
             className="grid grid-cols-1 gap-6 lg:grid-cols-2"

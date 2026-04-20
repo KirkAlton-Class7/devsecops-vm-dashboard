@@ -39,6 +39,7 @@
 #   --role="roles/billing.viewer"
 # ```
 
+import sys
 import json
 import os
 import random
@@ -52,13 +53,24 @@ import time
 from google.cloud import bigquery
 
 # -------------------------------
+# API Customization
+# -------------------------------
+
+STUDENT_NAME = "Kirk Alton"
+
+# Your billing account ID (hardcoded for reliability)
+BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"
+
+# ---------------------------------------------------------------------------------------------
+# !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
+# ---------------------------------------------------------------------------------------------
+
+# -------------------------------
 # Constants
 # -------------------------------
 DATA_DIR = "/var/www/vm-dashboard/data"
 COST_FILE = "/var/tmp/vm-cost.json"
 WARN_THRESHOLD = 70
-
-student_name = "Kirk Alton"
 
 # Global caches
 _SUBNET_CACHE = None
@@ -219,7 +231,7 @@ def get_subnet_name():
                 _SUBNET_CACHE = safe_basename(subnet_url)
                 return _SUBNET_CACHE
     except Exception as e:
-        print(f"gcloud subnet lookup failed: {e}")
+        print(f"gcloud subnet lookup failed: {e}", file=sys.stderr)
     _SUBNET_CACHE = "unknown"
     return "unknown"
 
@@ -244,7 +256,7 @@ def get_billing_account_id():
                 _BILLING_ACCOUNT_CACHE = billing_id
                 return billing_id
     except Exception as e:
-        print(f"gcloud billing lookup failed: {e}")
+        print(f"gcloud billing lookup failed: {e}", file=sys.stderr)
     _BILLING_ACCOUNT_CACHE = ""
     return ""
 
@@ -402,7 +414,7 @@ def get_top_services_by_cost(limit=15):
             services.append({"name": row.name, "value": round(row.total_cost, 2), "status": "info"})
         return services
     except Exception as e:
-        print(f"Error fetching top services: {e}")
+        print(f"Error fetching top services: {e}", file=sys.stderr)
         return []
 
 # -------------------------------
@@ -441,7 +453,7 @@ def get_cpu_utilization_all_vms():
                 })
         return sorted(utilization, key=lambda x: x["cpuP95"], reverse=True)[:12]
     except Exception as e:
-        print(f"Error fetching CPU utilization: {e}")
+        print(f"Error fetching CPU utilization: {e}", file=sys.stderr)
         return []
 
 @ttl_cache(seconds=300)
@@ -474,7 +486,7 @@ def get_idle_resources():
             })
         return idle[:12]
     except Exception as e:
-        print(f"Error getting idle resources: {e}")
+        print(f"Error getting idle resources: {e}", file=sys.stderr)
         return []
 
 @ttl_cache(seconds=300)
@@ -510,13 +522,13 @@ def get_rightsizing_recommendations():
             })
         return recommendations[:12]
     except Exception as e:
-        print(f"Error getting rightsizing recommendations: {e}")
+        print(f"Error getting rightsizing recommendations: {e}", file=sys.stderr)
         return []
 
 @ttl_cache(seconds=300)
 def get_budgets():
     """Return budgets in the shape expected by the frontend."""
-    billing_id = get_billing_account_id()
+    billing_id = BILLING_ACCOUNT_ID
     if not billing_id:
         return []
     cmd = ["gcloud", "billing", "budgets", "list", f"--billing-account={billing_id}", "--format=json"]
@@ -541,7 +553,7 @@ def get_budgets():
             })
         return budget_list[:5]
     except Exception as e:
-        print(f"Error getting budgets: {e}")
+        print(f"Error getting budgets: {e}", file=sys.stderr)
         return []
 
 def get_realized_savings():
@@ -708,10 +720,13 @@ class MonitoringHandler(BaseHTTPRequestHandler):
             return
 
         # Metadata endpoint
-        if self.path == '/metadata':
+        if self.path == '/metadata':    
             try:
-                meta_student = get_metadata("instance/attributes/student_name")
-                final_student = meta_student if meta_student != "unknown" and meta_student else student_name
+                student_name = get_metadata("instance/attributes/STUDENT_NAME")
+                if student_name in ("unknown", ""):
+                    print(f"WARNING: STUDENT_NAME metadata not found (got '{student_name}'), using hardcoded fallback '{STUDENT_NAME}'", file=sys.stderr)
+                    student_name = STUDENT_NAME
+                # else keep student_name as retrieved
 
                 project_id    = get_metadata("project/project-id")
                 instance_id   = get_metadata("instance/id")
@@ -755,7 +770,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 
                 # Metadata dictionary
                 metadata = {
-                    "student_name": final_student,
+                    "STUDENT_NAME": final_student,
                     "project_id": project_id,
                     "instance_id": instance_id,
                     "instance_name": instance_name,
@@ -815,7 +830,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                     cost_trend = get_cost_trend()
                     top_services = get_top_services_by_cost()
                 except Exception as bq_err:
-                    print(f"BigQuery error (will use empty data): {bq_err}")
+                    print(f"BigQuery error (will use empty data): {bq_err}", file=sys.stderr)
                     # Continue with empty lists
                 
                 # Calculate MTD total and forecast (safe even if empty)

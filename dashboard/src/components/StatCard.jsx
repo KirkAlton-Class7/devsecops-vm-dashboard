@@ -1,5 +1,18 @@
 import { motion } from "framer-motion";
-import { Activity, Cpu, HardDrive, Network, TrendingUp, TrendingDown, Zap, DollarSign, Sparkles } from "lucide-react";
+import {
+  Activity,
+  Cpu,
+  HardDrive,
+  Network,
+  TrendingUp,
+  TrendingDown,
+  Zap,
+  DollarSign,
+  Sparkles,
+  Calendar,        // optional for Forecast
+  PiggyBank,       // for Potential Savings
+  Shield           // for CUD Coverage
+} from "lucide-react";
 
 const icons = {
   CPU: Cpu,
@@ -7,6 +20,10 @@ const icons = {
   Disk: HardDrive,
   Network: Network,
   Cost: DollarSign,
+  "Total Cost (MTD)": DollarSign,
+  "Forecast (EOM)": TrendingUp,   // or Calendar
+  "Potential Savings": PiggyBank,
+  "CUD Coverage": Shield,
   default: Zap
 };
 
