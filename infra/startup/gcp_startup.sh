@@ -83,3 +83,8 @@ fi
 chmod +x "$MAIN_SCRIPT"
 echo "INFO: Running main application bootstrap..."
 timeout 1200 bash -x "$MAIN_SCRIPT"
+
+# ------------------------------------------------------------
+# All done
+# ------------------------------------------------------------
+echo "Bootstrap completed successfully at $(date)"

@@ -65,7 +65,7 @@ wait_for_apt() {
 mkdir -p /opt
 
 # ---------------------------------
-# Install packages
+# Install packages (including python3-pip)
 # ---------------------------------
 wait_for_apt
 retry apt-get update -y
@@ -74,6 +74,7 @@ wait_for_apt
 retry apt-get install -y \
   nginx \
   python3 \
+  python3-pip \
   curl \
   jq \
   ca-certificates \
@@ -85,7 +86,6 @@ retry apt-get install -y \
 # ---------------------------------
 if ! command -v gcloud >/dev/null 2>&1; then
     log "Installing Google Cloud SDK"
-    # Add the Cloud SDK repository
     echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee /etc/apt/sources.list.d/google-cloud-sdk.list
     curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
     wait_for_apt
@@ -101,6 +101,12 @@ if ! command -v node >/dev/null 2>&1; then
   retry curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt-get install -y nodejs
 fi
+
+# ---------------------------------
+# Install BigQuery Python library (required for FinOps)
+# ---------------------------------
+log "Installing google-cloud-bigquery"
+pip3 install --upgrade google-cloud-bigquery
 
 # ---------------------------------
 # Create app user & directories
@@ -187,7 +193,7 @@ chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}/images" 2>/dev/null || true
 chmod -R 755 "${DATA_DIR}/images" 2>/dev/null || true
 
 # ---------------------------------
-# Start Flask API service (moved from wrapper)
+# Start Flask API service (using dashboard_api.py from repo)
 # ---------------------------------
 log "Setting up Flask API service"
 API_SCRIPT="/opt/deploy/scripts/dashboard_api.py"
@@ -209,6 +215,8 @@ WorkingDirectory=/opt/deploy/scripts
 ExecStart=/usr/bin/python3 $API_SCRIPT
 Restart=always
 RestartSec=5
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="HOME=/root"
 
 [Install]
 WantedBy=multi-user.target
@@ -228,14 +236,19 @@ else
 fi
 
 # ---------------------------------
-# Build & deploy React dashboard
+# Build & deploy React dashboard (fix npm permissions)
 # ---------------------------------
 log "Building dashboard"
 cd "$REPO_DIR/dashboard" || { log "ERROR: dashboard dir missing"; exit 1; }
 chown -R ${APP_USER}:${APP_USER} "$REPO_DIR"
 
-sudo -E -u ${APP_USER} bash <<EOF
+# Ensure npm cache is writable by appuser
+mkdir -p /home/${APP_USER}/.npm
+chown -R ${APP_USER}:${APP_USER} /home/${APP_USER}/.npm
+
+sudo -u ${APP_USER} bash <<EOF
 cd "$REPO_DIR/dashboard"
+export HOME=/home/${APP_USER}
 if ! npm ci 2>/dev/null; then
   npm install || exit 1
 fi
@@ -251,6 +264,7 @@ log "Build successful"
 log "Deploying dashboard"
 rm -rf ${APP_DIR}/*
 cp -r "$REPO_DIR/dashboard/dist/"* ${APP_DIR}/
+chown -R ${APP_USER}:${APP_USER} ${APP_DIR}
 
 # ---------------------------------
 # Fetch quotes (final refresh)
@@ -421,6 +435,9 @@ INNER_PY
     chown -R appuser:appuser "$DATA_DIR/images" 2>/dev/null || true
     chmod -R 755 "$DATA_DIR/images" 2>/dev/null || true
 
+    # Ensure npm cache is writable for auto-deploy
+    mkdir -p /home/appuser/.npm
+    chown -R appuser:appuser /home/appuser/.npm
     if ! npm ci 2>/dev/null; then npm install || exit 1; fi
     npm run build || exit 1
 
