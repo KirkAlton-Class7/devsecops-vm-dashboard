@@ -103,6 +103,22 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 # ---------------------------------
+# Upgrade Python to 3.10 and fix SSL/urllib3 issues
+# ---------------------------------
+log "Upgrading Python to 3.10"
+apt-get install -y software-properties-common
+add-apt-repository ppa:deadsnakes/ppa -y
+apt-get update -y
+apt-get install -y python3.10 python3.10-venv python3.10-dev
+update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+update-alternatives --set python3 /usr/bin/python3.10
+
+# Upgrade pip and critical networking libraries
+log "Upgrading pip, urllib3, and requests"
+python3 -m pip install --upgrade pip
+pip3 install --upgrade urllib3 requests
+
+# ---------------------------------
 # Install BigQuery Python library (required for FinOps)
 # ---------------------------------
 log "Installing google-cloud-bigquery"

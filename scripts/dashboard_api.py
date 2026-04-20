@@ -608,10 +608,8 @@ def get_budgets():
         return []
 
 def get_realized_savings():
-    """Return a placeholder for realized savings (could be improved later)."""
-    # For a real implementation, track applied recommendations.
-    # Here we return a random-looking but plausible number.
-    return round(random.uniform(50, 500), 2)
+    """Return 0 until we implement real tracking of applied recommendations."""
+    return 0.0
 
 def get_potential_savings():
     """Sum savings from all active recommendations."""
@@ -871,14 +869,20 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f"Error building dashboard data: {e}".encode())
             return
 
-        # UPDATED: FinOps API endpoint with real BigQuery cost data
+        # FinOps API endpoint with graceful fallback for BigQuery errors
         if self.path == '/api/finops':
             try:
-                # Real cost data from BigQuery
-                cost_trend = get_cost_trend()
-                top_services = get_top_services_by_cost()
+                # Attempt to get real cost data from BigQuery (may fail)
+                cost_trend = []
+                top_services = []
+                try:
+                    cost_trend = get_cost_trend()
+                    top_services = get_top_services_by_cost()
+                except Exception as bq_err:
+                    print(f"BigQuery error (will use empty data): {bq_err}")
+                    # Continue with empty lists
                 
-                # Calculate MTD total and forecast
+                # Calculate MTD total and forecast (safe even if empty)
                 mtd_total = sum(day["value"] for day in cost_trend) if cost_trend else 0.0
                 forecast = 0.0
                 if len(cost_trend) >= 7:
@@ -893,7 +897,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                     {"label": "CUD Coverage", "value": "N/A", "status": "info"}
                 ]
                 
-                # Other real data
+                # These functions do not use BigQuery and should work
                 recommendations = get_rightsizing_recommendations()
                 idle_resources = get_idle_resources()
                 budgets = get_budgets()
@@ -919,6 +923,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps(finops_data).encode())
             except Exception as e:
+                # Catch-all for any other errors
                 self.send_response(500)
                 self.send_header('Content-type', 'text/plain')
                 self.end_headers()

@@ -1,14 +1,14 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { DollarSign, TrendingUp, BarChart } from "lucide-react";
+import { DollarSign } from "lucide-react";
 import Card from "./Card";
 
 export default function CostTrendChart({ title = "Daily Cost Trend" }) {
-  const [historicalCost, setHistoricalCost] = useState([12.3, 11.8, 13.1, 10.5, 12.9, 11.2, 13.4, 12.1, 11.5, 12.7]);
+  const [historicalCost, setHistoricalCost] = useState([]); // Start empty
   const [currentCost, setCurrentCost] = useState("0.00");
-  const [maxCost, setMaxCost] = useState(20.0); // Scale up to 20 for the chart
+  const [maxCost, setMaxCost] = useState(10.0);
+  const [hasData, setHasData] = useState(false);
 
-  // Fetch cost data from the FinOps API
   const fetchCostData = async () => {
     try {
       const response = await fetch("/api/finops");
@@ -16,31 +16,49 @@ export default function CostTrendChart({ title = "Daily Cost Trend" }) {
         const data = await response.json();
         // Expect data.costTrend to be an array of objects like { date, value }
         const costValues = data.costTrend.map(item => item.value);
-        const latestCost = costValues[costValues.length - 1] || 0;
-        
-        setCurrentCost(latestCost.toFixed(2));
-        
-        // Update historical cost data (keep last 10 readings)
-        setHistoricalCost(prev => {
-          const newData = [...prev.slice(1), latestCost];
-          // Dynamically adjust max scale based on peak cost
-          const peak = Math.max(...newData, 1.0);
-          setMaxCost(Math.min(Math.ceil(peak * 1.2), 50.0)); // Cap at 50, scale to 120% of peak
-          return newData;
-        });
+        if (costValues.length > 0) {
+          setHasData(true);
+          const latestCost = costValues[costValues.length - 1];
+          setCurrentCost(latestCost.toFixed(2));
+          setHistoricalCost(prev => {
+            // Keep last 10 values
+            const newData = [...prev, latestCost].slice(-10);
+            const peak = Math.max(...newData, 1.0);
+            setMaxCost(Math.min(Math.ceil(peak * 1.2), 50.0));
+            return newData;
+          });
+        } else {
+          // No cost data from API – show empty state
+          setHasData(false);
+          setHistoricalCost([]);
+          setCurrentCost("0.00");
+        }
       }
     } catch (error) {
       console.error("Failed to fetch cost data:", error);
     }
   };
 
-  // Fetch immediately and then every 60 seconds (cost data changes slowly)
   useEffect(() => {
     fetchCostData();
     const interval = setInterval(fetchCostData, 60000);
     return () => clearInterval(interval);
   }, []);
 
+  // If no real data, show a placeholder message
+  if (!hasData) {
+    return (
+      <Card title={title} subtitle="Cost data will appear once BigQuery export runs">
+        <div className="p-8 text-center text-slate-400">
+          <DollarSign className="w-12 h-12 mx-auto mb-2 opacity-40" />
+          <p>No cost data available yet</p>
+          <p className="text-xs mt-1">Billing export is initializing – please wait up to 24h</p>
+        </div>
+      </Card>
+    );
+  }
+
+  // Helper functions
   const getCostStatus = (cost) => {
     if (cost < 5) return "healthy";
     if (cost < 10) return "moderate";
