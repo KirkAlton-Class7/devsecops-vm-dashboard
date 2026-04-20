@@ -14,11 +14,7 @@
 # This allows the monitoring script to query instance details via `gcloud`.
 # The role enables reading instance metadata, including subnet names, when the standard metadata server endpoint returns 404.
 
-# For FinOps endpoints, the following roles are also needed:
-# - roles/bigquery.dataViewer (to read billing export)
-# - roles/recommender.computeViewer (for VM rightsizing)
-# - roles/monitoring.viewer (for utilization metrics)
-# - roles/billing.viewer (for budgets)
+# For billing account ID, the service account needs `roles/billing.viewer` to run `gcloud billing accounts list`.
 
 # Check current roles for the service account
 # ```bash
@@ -53,12 +49,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from functools import wraps
 import time
 
-# Google Cloud libraries for FinOps
+# New import for BigQuery
 from google.cloud import bigquery
-from google.cloud import recommender
-from google.cloud import monitoring_v3
-from google.cloud import billing_budgets_v1
-from google.cloud.billing_v1 import CloudCatalogClient
 
 # -------------------------------
 # Constants
@@ -66,17 +58,6 @@ from google.cloud.billing_v1 import CloudCatalogClient
 DATA_DIR = "/var/www/vm-dashboard/data"
 COST_FILE = "/var/tmp/vm-cost.json"
 WARN_THRESHOLD = 70
-
-# FinOps cache TTLs (seconds)
-COST_TREND_TTL = 6 * 3600      # 6 hours
-RECOMMENDATIONS_TTL = 12 * 3600  # 12 hours
-BUDGETS_TTL = 3600             # 1 hour
-UTILIZATION_TTL = 3600         # 1 hour
-PRICING_TTL = 24 * 3600        # 24 hours
-
-# BigQuery billing export dataset and table (adjust to your setup)
-BQ_BILLING_DATASET = "your_billing_dataset"
-BQ_BILLING_TABLE = "gcp_billing_export_v1_XXXXXX"
 
 # -------------------------------
 # Metadata Customization
@@ -389,252 +370,257 @@ def load_quotes():
         pass
     return [{"text": "Welcome to DevSecOps!", "author": "System"}]
 
-# ----------------------------------------------------------------------
-# FINOPS FUNCTIONS (Real data from Google Cloud APIs)
-# ----------------------------------------------------------------------
+# -------------------------------
+# Real cost data from BigQuery
+# -------------------------------
 
-@ttl_cache(seconds=COST_TREND_TTL)
+def get_billing_table():
+    """Return the full BigQuery table ID of the billing export."""
+    project_id = get_metadata("project/project-id")
+    dataset_name = "billing_export"
+    if project_id == "unknown":
+        return None
+    client = bigquery.Client()
+    dataset_ref = client.dataset(dataset_name, project=project_id)
+    tables = list(client.list_tables(dataset_ref))
+    for table in tables:
+        if "gcp_billing_export" in table.table_id:
+            return f"{project_id}.{dataset_name}.{table.table_id}"
+    return None
+
 def get_cost_trend(days=30):
-    """
-    Fetch daily cost trend from BigQuery billing export.
-    Returns list of {'date': 'YYYY-MM-DD', 'value': cost}
-    """
-    try:
-        client = bigquery.Client()
-        query = f"""
-        SELECT DATE(usage_start_time) as date, SUM(cost) as cost
-        FROM `{BQ_BILLING_DATASET}.{BQ_BILLING_TABLE}`
-        WHERE DATE(usage_start_time) >= DATE_SUB(CURRENT_DATE(), INTERVAL {days} DAY)
+    """Return daily cost for the last `days` days."""
+    table = get_billing_table()
+    if not table:
+        return []
+    client = bigquery.Client()
+    query = f"""
+        SELECT
+          DATE(usage_start_time) AS date,
+          SUM(cost) AS total_cost
+        FROM `{table}`
+        WHERE usage_start_time >= DATE_SUB(CURRENT_DATE(), INTERVAL {days} DAY)
         GROUP BY date
-        ORDER BY date
-        """
-        df = client.query(query).to_dataframe()
-        result = []
-        for _, row in df.iterrows():
-            result.append({
-                "date": row['date'].strftime("%Y-%m-%d"),
-                "value": float(row['cost'])
-            })
-        return result
-    except Exception as e:
-        print(f"BigQuery cost trend failed: {e}")
-        # Return mock fallback
-        return [{"date": f"2025-04-{i}", "value": 10 + i * 0.5} for i in range(1, 31)]
-
-@ttl_cache(seconds=RECOMMENDATIONS_TTL)
-def get_vm_recommendations():
-    """
-    Get Compute Engine machine type recommendations from Recommender API.
-    Returns list of recommendations.
+        ORDER BY date ASC
     """
     try:
-        client = recommender.RecommenderClient()
-        project_id = get_metadata("project/project-id")
-        parent = f"projects/{project_id}/locations/us-central1/recommenders/google.compute.instance.MachineTypeRecommender"
-        recommendations = []
-        for rec in client.list_recommendations(parent=parent):
-            # Extract useful fields
-            content = rec.content
-            overview = rec.description
-            primary_impact = rec.primary_impact
-            # Parse savings if available
-            savings = 0.0
-            if primary_impact and primary_impact.cost_projection:
-                savings = primary_impact.cost_projection.nanoseconds / 1e9 / 3600  # rough hourly
-            recommendations.append({
-                "resource": rec.name.split('/')[-1],
-                "description": overview,
-                "monthlySavings": round(savings * 730, 2),  # monthly
-                "impact": "HIGH" if savings > 0.1 else "MEDIUM",
-                "actionUrl": f"https://console.cloud.google.com/compute/instances"
+        result = client.query(query).result()
+        trend = []
+        for row in result:
+            trend.append({
+                "date": row.date.strftime("%b %d"),
+                "value": round(row.total_cost, 2)
             })
-        return recommendations[:20]  # limit to 20
+        return trend
     except Exception as e:
-        print(f"Recommender API failed: {e}")
-        # Fallback mock
-        return [
-            {"resource": "instance-1", "description": "Resize n2-standard-4 to n2-standard-2", "monthlySavings": 45.0, "impact": "HIGH"},
-            {"resource": "instance-2", "description": "Resize e2-standard-2 to e2-standard-1", "monthlySavings": 22.0, "impact": "MEDIUM"}
-        ]
+        print(f"Error fetching cost trend: {e}")
+        return []
 
-@ttl_cache(seconds=RECOMMENDATIONS_TTL)
-def get_idle_resources():
-    """
-    Get idle resource recommendations (disks, IPs, images) from Recommender.
+def get_top_services_by_cost(limit=15):
+    """Return top GCP services by cost (month‑to‑date)."""
+    table = get_billing_table()
+    if not table:
+        return []
+    client = bigquery.Client()
+    query = f"""
+        SELECT
+          service.description AS name,
+          SUM(cost) AS total_cost
+        FROM `{table}`
+        WHERE DATE(usage_start_time) >= DATE_TRUNC(CURRENT_DATE(), MONTH)
+        GROUP BY name
+        ORDER BY total_cost DESC
+        LIMIT {limit}
     """
     try:
-        client = recommender.RecommenderClient()
-        project_id = get_metadata("project/project-id")
-        idle_resources = []
-        # Idle disk recommender
-        parent = f"projects/{project_id}/locations/global/recommenders/google.compute.disk.IdleResourceRecommender"
-        for rec in client.list_recommendations(parent=parent):
-            idle_resources.append({
-                "name": rec.name.split('/')[-1],
-                "type": "Persistent Disk",
-                "savings": 2.5,
-                "recommendation": "Delete idle disk"
+        result = client.query(query).result()
+        services = []
+        for row in result:
+            services.append({
+                "name": row.name,
+                "value": round(row.total_cost, 2),
+                "status": "info"
             })
-        # Idle IP recommender (not available in all regions)
-        return idle_resources[:10]
+        return services
     except Exception as e:
-        print(f"Idle resources Recommender failed: {e}")
-        return [
-            {"name": "unused-disk-1", "type": "Persistent Disk", "savings": 2.5, "recommendation": "Delete"},
-            {"name": "unused-ip-1", "type": "External IP", "savings": 3.0, "recommendation": "Release"}
-        ]
+        print(f"Error fetching top services: {e}")
+        return []
 
-@ttl_cache(seconds=BUDGETS_TTL)
-def get_budgets():
-    """
-    Get budgets from Cloud Billing Budget API.
-    """
+# -------------------------------
+# FinOps Helper Functions (existing)
+# -------------------------------
+
+def get_all_vm_costs():
+    """Return list of all VMs in project with estimated monthly cost."""
+    project_id = get_metadata("project/project-id")
+    if project_id == "unknown":
+        return []
+    cmd = ["gcloud", "compute", "instances", "list", "--project", project_id,
+           "--format=json", "--filter=status=RUNNING"]
     try:
-        client = billing_budgets_v1.BudgetServiceClient()
-        billing_account_id = get_billing_account_id()
-        if not billing_account_id:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        if result.returncode != 0:
             return []
-        parent = f"billingAccounts/{billing_account_id}"
-        budgets = []
-        for budget in client.list_budgets(parent=parent):
-            spent = 0.0
-            # You would need to compute actual spent from BigQuery
-            budgets.append({
-                "name": budget.display_name,
-                "amount": float(budget.amount.specified_amount.units) + float(budget.amount.specified_amount.nanos) / 1e9,
-                "spent": spent,
-                "forecast": spent * 1.2,  # placeholder
-                "thresholds": [t.threshold_percent for t in budget.threshold_rules],
-                "alerts": []
+        instances = json.loads(result.stdout)
+        # Rough hourly rates (example)
+        rates = {
+            "e2-micro": 0.0076, "e2-small": 0.0150, "e2-medium": 0.0301,
+            "n1-standard-1": 0.0475, "n2-standard-2": 0.0972,
+            "e2-standard-2": 0.0676, "e2-standard-4": 0.1352,
+            "g1-small": 0.0250, "f1-micro": 0.0060
+        }
+        vm_costs = []
+        for inst in instances:
+            machine = inst.get("machineType", "").split("/")[-1]
+            hourly = rates.get(machine, 0.03)  # default guess
+            monthly = hourly * 730  # hours per month
+            vm_costs.append({
+                "name": inst.get("name", "unknown"),
+                "value": round(monthly, 2)
             })
-        return budgets
+        return sorted(vm_costs, key=lambda x: x["value"], reverse=True)[:10]
     except Exception as e:
-        print(f"Budgets API failed: {e}")
-        return [
-            {"name": "Monthly compute budget", "amount": 500.0, "spent": 320.0, "forecast": 480.0, "thresholds": [0.5,0.8,0.9], "alerts": []}
-        ]
+        print(f"Error listing VMs for costs: {e}")
+        return []
 
-@ttl_cache(seconds=UTILIZATION_TTL)
-def get_top_vms_utilization():
-    """
-    Get CPU utilization for top expensive VMs (by cost).
-    For simplicity, we'll get the first few VMs and fetch their metrics.
-    """
+def get_cpu_utilization_all_vms():
+    """Fetch P95 CPU usage for all VMs using Cloud Monitoring."""
+    project_id = get_metadata("project/project-id")
+    if project_id == "unknown":
+        return []
+    # Time range: last hour
+    now = datetime.utcnow()
+    end_time = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    start_time = (now - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Query Monitoring API (beta)
+    cmd = [
+        "gcloud", "beta", "monitoring", "time-series", "list",
+        f"--filter=metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.labels.project_id=\"{project_id}\"",
+        f"--interval=start={start_time},end={end_time}",
+        "--format=json", "--aggregation.alignment-period=3600s", "--aggregation.per-series-aligner=ALIGN_PERCENTILE_95"
+    ]
     try:
-        client = monitoring_v3.MetricServiceClient()
-        project_id = get_metadata("project/project-id")
-        project_name = f"projects/{project_id}"
-        # List VM instances (could be from Compute API)
-        # For demonstration, we'll hardcode or use a simple list
-        # In practice, you'd get the list from Compute Engine API.
-        vms = ["instance-1", "instance-2"]  # placeholder
-        utilizations = []
-        for vm in vms:
-            filter_str = f'metric.type = "compute.googleapis.com/instance/cpu/utilization" AND resource.labels.instance_id = "{vm}"'
-            interval = monitoring_v3.TimeInterval({
-                "end_time": {"seconds": int(time.time())},
-                "start_time": {"seconds": int(time.time()) - 3600}
-            })
-            results = client.list_time_series(
-                name=project_name,
-                filter=filter_str,
-                interval=interval,
-                aggregation=monitoring_v3.Aggregation(
-                    alignment_period={"seconds": 60},
-                    per_series_aligner=monitoring_v3.Aggregation.Aligner.ALIGN_MEAN
-                )
-            )
-            cpu_p95 = 0.0
-            for series in results:
-                values = [point.value.double_value for point in series.points]
-                if values:
-                    cpu_p95 = sorted(values)[int(len(values)*0.95)]
-            utilizations.append({
-                "instance": vm,
-                "cpuP95": round(cpu_p95 * 100, 1),
-                "recommendationMatch": cpu_p95 < 20  # example threshold
-            })
-        return utilizations
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        if result.returncode != 0:
+            return []
+        data = json.loads(result.stdout)
+        utilization = []
+        for ts in data.get("timeSeries", []):
+            instance_name = ts.get("resource", {}).get("labels", {}).get("instance_id", "unknown")
+            points = ts.get("points", [])
+            if points:
+                cpu_p95 = points[-1].get("value", {}).get("doubleValue", 0) * 100
+                utilization.append({
+                    "instance": instance_name,
+                    "cpuP95": round(cpu_p95, 1),
+                    "recommendationMatch": cpu_p95 < 20  # idle threshold
+                })
+        return sorted(utilization, key=lambda x: x["cpuP95"], reverse=True)[:12]
     except Exception as e:
-        print(f"Monitoring API failed: {e}")
-        return [{"instance": "example-vm", "cpuP95": 12.5, "recommendationMatch": True}]
+        print(f"Error fetching CPU utilization: {e}")
+        return []
 
-@ttl_cache(seconds=PRICING_TTL)
-def get_sku_price(sku_id):
-    """
-    Get list price for a SKU using Pricing API.
-    Not directly used in the main dashboard but can be exposed.
-    """
+def get_idle_resources():
+    """Find idle VM recommendations from GCP Recommender."""
+    project_id = get_metadata("project/project-id")
+    if project_id == "unknown":
+        return []
+    cmd = [
+        "gcloud", "recommender", "recommendations", "list",
+        "--project", project_id, "--location=global",
+        "--recommender=google.compute.instance.IdleResourceRecommender",
+        "--format=json"
+    ]
     try:
-        client = CloudCatalogClient()
-        # This is a simplified example; you would need to know the SKU ID.
-        # For now, return a dummy.
-        return 0.012
-    except Exception:
-        return 0.0
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        if result.returncode != 0:
+            return []
+        recs = json.loads(result.stdout)
+        idle = []
+        for rec in recs:
+            vm_name = rec.get("primaryResourceId", "unknown")
+            cost_savings = rec.get("primaryImpact", {}).get("costProjection", {}).get("cost", {}).get("amount", 0)
+            idle.append({
+                "resource": vm_name,
+                "type": "VM",
+                "idleSince": rec.get("lastRefreshTime", "").split("T")[0],
+                "potentialSavings": round(cost_savings, 2)
+            })
+        return idle[:12]
+    except Exception as e:
+        print(f"Error getting idle resources: {e}")
+        return []
 
-def build_finops_data():
-    """
-    Assemble all FinOps data (real where available, fallback to mock).
-    """
-    # Get real data
-    cost_trend = get_cost_trend()
-    recommendations = get_vm_recommendations()
+def get_rightsizing_recommendations():
+    """Fetch rightsizing recommendations from GCP Recommender."""
+    project_id = get_metadata("project/project-id")
+    if project_id == "unknown":
+        return []
+    cmd = [
+        "gcloud", "recommender", "recommendations", "list",
+        "--project", project_id, "--location=global",
+        "--recommender=google.compute.instance.MachineTypeRecommender",
+        "--format=json"
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        if result.returncode != 0:
+            return []
+        recs = json.loads(result.stdout)
+        recommendations = []
+        for rec in recs:
+            vm_name = rec.get("primaryResourceId", "unknown")
+            current_type = rec.get("content", {}).get("overview", {}).get("machineType", "unknown")
+            recommended_type = rec.get("content", {}).get("overview", {}).get("recommendedMachineType", "unknown")
+            savings = rec.get("primaryImpact", {}).get("costProjection", {}).get("cost", {}).get("amount", 0)
+            recommendations.append({
+                "resource": vm_name,
+                "current": current_type,
+                "recommended": recommended_type,
+                "savings": round(savings, 2)
+            })
+        return recommendations[:12]
+    except Exception as e:
+        print(f"Error getting rightsizing recommendations: {e}")
+        return []
+
+def get_budgets():
+    """Return active budgets from GCP Billing Budgets API."""
+    billing_id = get_billing_account_id()
+    if not billing_id:
+        return []
+    cmd = ["gcloud", "billing", "budgets", "list", f"--billing-account={billing_id}", "--format=json"]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        if result.returncode != 0:
+            return []
+        budgets = json.loads(result.stdout)
+        budget_list = []
+        for b in budgets:
+            budget_list.append({
+                "name": b.get("displayName", "Unnamed"),
+                "amount": float(b.get("amount", {}).get("specifiedAmount", {}).get("units", 0)),
+                "currentSpend": 0.0  # Real spend would require additional API calls
+            })
+        return budget_list[:5]
+    except Exception as e:
+        print(f"Error getting budgets: {e}")
+        return []
+
+def get_realized_savings():
+    """Return 0 until we implement real tracking of applied recommendations."""
+    return 0.0
+
+def get_potential_savings():
+    """Sum savings from all active recommendations."""
+    recs = get_rightsizing_recommendations()
     idle = get_idle_resources()
-    budgets = get_budgets()
-    utilizations = get_top_vms_utilization()
+    total = sum(r["savings"] for r in recs) + sum(i["potentialSavings"] for i in idle)
+    return round(total, 2)
 
-    # Compute top services and projects from cost trend? We'll use mock for now.
-    # Ideally, you would query BigQuery for these as well.
-    top_services = [
-        {"name": "Compute Engine", "value": "$87.20", "status": "info"},
-        {"name": "Cloud Storage", "value": "$23.50", "status": "info"},
-    ]
-    top_projects = [
-        {"name": "project-a", "value": "$45.60", "status": "info"},
-        {"name": "project-b", "value": "$32.10", "status": "info"},
-    ]
-
-    # Summary cards (compute from real data)
-    total_cost = sum(entry['value'] for entry in cost_trend[-30:]) if cost_trend else 124.5
-    forecast = total_cost * 1.1  # simplistic forecast
-    potential_savings = sum(rec.get('monthlySavings', 0) for rec in recommendations) + sum(i.get('savings', 0) for i in idle)
-    # Budget coverage (mock)
-    cud_coverage = "68%"
-
-    summary_cards = [
-        {"label": "Total Cost (MTD)", "value": f"${total_cost:.2f}", "status": "info"},
-        {"label": "Forecast (EOM)", "value": f"${forecast:.2f}", "status": "warning"},
-        {"label": "Potential Savings", "value": f"${potential_savings:.2f}", "status": "healthy"},
-        {"label": "CUD Coverage", "value": cud_coverage, "status": "healthy"},
-    ]
-
-    # Prepare idle resources list for the frontend
-    idle_resources = [
-        {"name": i['name'], "type": i['type'], "cpu": "N/A", "recommendation": i['recommendation']}
-        for i in idle
-    ]
-
-    # Prepare recommendations list
-    recommendations_list = [
-        {"instance": r['resource'], "current": "n2-standard-4", "suggested": "n2-standard-2", "savings": f"${r['monthlySavings']}/mo"}
-        for r in recommendations
-    ]
-
-    return {
-        "summaryCards": summary_cards,
-        "costTrend": cost_trend,
-        "topServices": top_services,
-        "topProjects": top_projects,
-        "idleResources": idle_resources,
-        "recommendations": recommendations_list,
-        "budgets": budgets,
-        "utilization": utilizations
-    }
-
-# ----------------------------------------------------------------------
-# Dashboard Data (Standard)
-# ----------------------------------------------------------------------
+# -------------------------------
+# Dashboard Data Builder
+# -------------------------------
 
 def build_dashboard_data():
     """Build the complete dashboard data dictionary (same as old dashboard-data.json)."""
@@ -656,7 +642,7 @@ def build_dashboard_data():
     zone_full     = get_metadata("instance/zone")
     machine_full  = get_metadata("instance/machine-type")
     project_id    = get_metadata("project/project-id")
-    billing_account_id = get_billing_account_id()
+    billing_account_id = get_billing_account_id()   # cached fetch
     internal_ip   = get_metadata("instance/network-interfaces/0/ip")
     external_ip   = get_metadata("instance/network-interfaces/0/access-configs/0/external-ip")
 
@@ -883,15 +869,61 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f"Error building dashboard data: {e}".encode())
             return
 
-        # FinOps endpoint
+        # FinOps API endpoint with graceful fallback for BigQuery errors
         if self.path == '/api/finops':
             try:
-                data = build_finops_data()
+                # Attempt to get real cost data from BigQuery (may fail)
+                cost_trend = []
+                top_services = []
+                try:
+                    cost_trend = get_cost_trend()
+                    top_services = get_top_services_by_cost()
+                except Exception as bq_err:
+                    print(f"BigQuery error (will use empty data): {bq_err}")
+                    # Continue with empty lists
+                
+                # Calculate MTD total and forecast (safe even if empty)
+                mtd_total = sum(day["value"] for day in cost_trend) if cost_trend else 0.0
+                forecast = 0.0
+                if len(cost_trend) >= 7:
+                    last_7_avg = sum(day["value"] for day in cost_trend[-7:]) / 7
+                    days_left = 30 - len(cost_trend)
+                    forecast = mtd_total + (last_7_avg * days_left)
+                
+                summary_cards = [
+                    {"label": "Total Cost (MTD)", "value": f"{mtd_total:.2f}", "status": "info"},
+                    {"label": "Forecast (EOM)", "value": f"{forecast:.2f}", "status": "warning"},
+                    {"label": "Potential Savings", "value": f"{get_potential_savings():.2f}", "status": "healthy"},
+                    {"label": "CUD Coverage", "value": "N/A", "status": "info"}
+                ]
+                
+                # These functions do not use BigQuery and should work
+                recommendations = get_rightsizing_recommendations()
+                idle_resources = get_idle_resources()
+                budgets = get_budgets()
+                utilization = get_cpu_utilization_all_vms()
+                realized_savings = get_realized_savings()
+                potential_savings = get_potential_savings()
+                quote = random.choice(load_quotes())
+                
+                finops_data = {
+                    "summaryCards": summary_cards,
+                    "costTrend": cost_trend,
+                    "topServices": top_services,
+                    "budgets": budgets,
+                    "idleResources": idle_resources,
+                    "recommendations": recommendations,
+                    "utilization": utilization,
+                    "realizedSavings": realized_savings,
+                    "potentialSavings": potential_savings,
+                    "quote": quote
+                }
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(json.dumps(data).encode())
+                self.wfile.write(json.dumps(finops_data).encode())
             except Exception as e:
+                # Catch-all for any other errors
                 self.send_response(500)
                 self.send_header('Content-type', 'text/plain')
                 self.end_headers()
