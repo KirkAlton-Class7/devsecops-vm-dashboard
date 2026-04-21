@@ -102,19 +102,10 @@ if ! command -v node >/dev/null 2>&1; then
   apt-get install -y nodejs
 fi
 
-# ---------------------------------
-# Upgrade Python to 3.10 and fix SSL/urllib3 issues
-# ---------------------------------
-log "Upgrading Python to 3.10"
-apt-get install -y software-properties-common
-add-apt-repository ppa:deadsnakes/ppa -y
-apt-get update -y
-apt-get install -y python3.10 python3.10-venv python3.10-dev
-update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
-update-alternatives --set python3 /usr/bin/python3.10
-
-# Upgrade pip and critical networking libraries
-log "Upgrading pip, urllib3, and requests"
+# ----------------------------------------
+# Upgrade pip and Required Python Packages
+# -----------------------------------------
+log "Upgrading pip and required libraries"
 python3 -m pip install --upgrade pip
 pip3 install --upgrade urllib3 requests
 
@@ -123,6 +114,12 @@ pip3 install --upgrade urllib3 requests
 # ---------------------------------
 log "Installing google-cloud-bigquery"
 pip3 install --upgrade google-cloud-bigquery
+
+# ---------------------------------
+# Install Monitoring Python library (required for CPU utilization)
+# ---------------------------------
+log "Installing google-cloud-monitoring"
+pip3 install --upgrade google-cloud-monitoring
 
 # ---------------------------------
 # Create app user & directories
