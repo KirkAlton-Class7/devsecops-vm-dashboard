@@ -922,19 +922,6 @@ class MonitoringHandler(BaseHTTPRequestHandler):
         """Suppress default HTTP server logging."""
         return
 
-# -------------------------------
-# Main Entry Point
-# -------------------------------
-if __name__ == '__main__':
-    port = 8080
-    server = HTTPServer(('0.0.0.0', port), MonitoringHandler)
-    
-    # Start pre‑warming in a background thread (doesn't block server start)
-    threading.Thread(target=prewarm_cache, daemon=True).start()
-    
-    print(f"Starting monitoring server on port {port}")
-    server.serve_forever()
-
 def prewarm_cache():
     """Pre‑warm expensive functions so first request is faster."""
     print("Pre‑warming FinOps cache...")
@@ -947,3 +934,16 @@ def prewarm_cache():
         print("Cache pre‑warmed successfully.")
     except Exception as e:
         print(f"Pre‑warm error: {e}", file=sys.stderr)
+
+# -------------------------------
+# Main Entry Point
+# -------------------------------
+if __name__ == '__main__':
+    port = 8080
+    server = HTTPServer(('0.0.0.0', port), MonitoringHandler)
+    
+    # Start pre‑warming in a background thread (doesn't block server start)
+    threading.Thread(target=prewarm_cache, daemon=True).start()
+    
+    print(f"Starting monitoring server on port {port}")
+    server.serve_forever()
