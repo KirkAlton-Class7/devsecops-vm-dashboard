@@ -55,7 +55,7 @@ export PROJECT_ID="kirk-devsecops-sandbox"   # Replace with your project ID
 
 gcloud iam service-accounts create vm-dashboard \
   --project=${PROJECT_ID} \
-  --display-name="FinOps Dashboard Service Account"
+  --display-name="VM Dashboard Service Account"
 ```
 
 > **Result:** `vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com`
@@ -72,7 +72,7 @@ export SA_EMAIL="vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com"
 
 ---
 
-## **Stage 3: Assign IAM Permissions**
+## **Stage 3: Assign IAM Permissions and Roles**
 
 ### **3.1 Billing Account (for Budgets & Cost data)**
 
@@ -82,7 +82,11 @@ gcloud beta billing accounts add-iam-policy-binding ${BILLING_ACCOUNT_ID} \
   --role="roles/billing.viewer"
 ```
 
-> **Enables:** Budgets, billing account metadata, cost data (via BigQuery export)
+**Enables:** Budgets, billing account metadata, cost data (via BigQuery export)
+
+> **Note**: Budgets API read access is included in roles/billing.viewer. <br>
+No additional role is required for listing or viewing budgets within the billing account.
+
 
 ### **3.2 Project-Level Roles**
 
@@ -119,16 +123,7 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 3. Choose your project (`${PROJECT_ID}`) and dataset name `billing_export`
 4. Click **Save**
 
-### **4.2 CLI Alternative (if Console fails)**
-
-```bash
-bq mk --transfer_config \
-  --project_id=${PROJECT_ID} \
-  --data_source=billing \
-  --target_dataset=billing_export \
-  --display_name="Billing Export" \
-  --params='{"billing_account_id":"'${BILLING_ACCOUNT_ID}'"}'
-```
+> **Warning:** Enabling Cloud Billing export to BigQuery can only be done through the GCP Console UI. There is no gcloud CLI command or stable REST API endpoint to configure it, so the`/v1/billingAccounts/{id}/exportSettings` endpoint returns 404. There is no Terraform resource for this either.
 
 > **Important:** After enabling, data appears within **24 hours**. The dashboard will show `[]` (empty) until then.
 
@@ -144,13 +139,29 @@ gcloud iam service-accounts list --filter="email:${SA_EMAIL}"
 
 # 2. Budgets API access (may return empty list if no budgets created yet)
 gcloud beta billing budgets list --billing-account=${BILLING_ACCOUNT_ID}
-
-# 3. Monitoring API access (may return empty array)
-gcloud beta monitoring time-series list \
-  --filter='metric.type="compute.googleapis.com/instance/cpu/utilization"' \
-  --interval='start=-PT1H' --format=json
 ```
 
+> **Warning: gcloud does not support Monitoring time series queries. Use the Monitoring API via curl.
+
+```bash
+# 3. Monitoring API access (may return empty array)
+
+# 3a. Linux (GNU date):
+curl -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+"https://monitoring.googleapis.com/v3/projects/$PROJECT_ID/timeSeries?filter=metric.type=\"compute.googleapis.com/instance/cpu/utilization\"&interval.endTime=$(date -u +"%Y-%m-%dT%H:%M:%SZ")&interval.startTime=$(date -u -d '1 hour ago' +"%Y-%m-%dT%H:%M:%SZ")"
+
+# 3b. macOS (BSD date):
+curl -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+"https://monitoring.googleapis.com/v3/projects/$PROJECT_ID/timeSeries?filter=metric.type=\"compute.googleapis.com/instance/cpu/utilization\"&interval.endTime=$(date -u +"%Y-%m-%dT%H:%M:%SZ")&interval.startTime=$(date -u -v-1H +"%Y-%m-%dT%H:%M:%SZ")"
+
+# 3c. Windows (PowerShell):
+$end = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+$start = (Get-Date).ToUniversalTime().AddHours(-1).ToString("yyyy-MM-ddTHH:mm:ssZ")
+$token = gcloud auth print-access-token
+
+curl -H "Authorization: Bearer $token" "https://monitoring.googleapis.com/v3/projects/$env:PROJECT_ID/timeSeries?filter=metric.type=""compute.googleapis.com/instance/cpu/utilization""&interval.endTime=$end&interval.startTime=$start"
+```
+> **Note:** Warning: Errors indicating the absence of a gcloud command for Monitoring time series do not indicate missing permissions. Successful API calls (no 401/403) confirm access.
 ---
 
 ## **Stage 6: Pre-Deployment Checklist**
@@ -159,6 +170,7 @@ gcloud beta monitoring time-series list \
 - [ ] IAM roles assigned
 - [ ] APIs enabled
 - [ ] BigQuery billing export configured
+- [ ] API access verified
 
 **Next step:** Use the **VM deployment runbook** to create the VM and **attach this service account at creation time** (not after).
 
@@ -198,7 +210,7 @@ unset PROJECT_ID BILLING_ACCOUNT_ID SA_EMAIL
 
 - **Create the service account first**, then attach it during VM creation.
 - **Use least privilege**; custom SA with only `billing.viewer` and project‑level read roles.
-- **Billing export takes up to 24 hours**. The dashboard will show no cost data until then.
+- **Billing export takes up to 24 hours**. The dashboard will not show cost data until then.
 - **Budgets API is included in `billing.viewer`**. No extra role needed for read‑only access.
 
 ---
