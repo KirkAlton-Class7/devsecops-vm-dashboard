@@ -1,5 +1,3 @@
----
-
 # Dashboard API – Configuration & Important Notes
 
 The API server (`dashboard_api.py`) provides live data for the dashboard via:
