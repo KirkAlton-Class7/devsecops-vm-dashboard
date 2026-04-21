@@ -91,18 +91,27 @@ No additional role is required for listing or viewing budgets within the billing
 ### **3.2 Project-Level Roles**
 
 ```bash
+# Compute Viewer – subnet name retrieval (DevSecOps network card)
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/compute.viewer"
+    
+# BigQuery Data Viewer – read billing export tables
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/bigquery.dataViewer"
 
+# BigQuery Job User – run queries
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/bigquery.jobUser"
 
+# Monitoring Viewer – CPU utilization metrics
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/monitoring.viewer"
 
+# Recommender Compute Viewer – rightsizing & idle resources
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/recommender.computeViewer"
@@ -129,32 +138,51 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 
 ---
 
-## **Stage 5: Verification**
+## **Stage 5: Verify Permissions**
 
 Run these commands to confirm permissions are correct.
 
 ```bash
-# 1. Service account exists
+# 1. Verify Service Account Exists
 gcloud iam service-accounts list --filter="email:${SA_EMAIL}"
 
-# 2. Budgets API access (may return empty list if no budgets created yet)
+# 2. Project IAM Roles (all five expected roles)
+gcloud projects get-iam-policy ${PROJECT_ID} --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.members:${SA_EMAIL}"
+
+# 3. Billing Account IAM (roles/billing.viewer)
+gcloud beta billing accounts get-iam-policy ${BILLING_ACCOUNT_ID} --format=json | grep -A2 ${SA_EMAIL}
+
+# 4. Required APIs Enabled
+gcloud services list --enabled --filter="cloudbilling.googleapis.com OR billingbudgets.googleapis.com OR recommender.googleapis.com OR monitoring.googleapis.com OR bigquery.googleapis.com"
+
+# 5. BigQuery Billing Export Dataset Exists
+bq ls billing_export 2>/dev/null || echo "Dataset not found"
+
+# 6. BigQuery Access (dry run query)
+bq query --use_legacy_sql=false --dry_run "SELECT 1"
+
+# 7. Recommender API Access
+gcloud recommender recommendations list --project=${PROJECT_ID} --location=global --recommender=google.compute.instance.MachineTypeRecommender --limit=1
+
+# 8. Budgets API Access
 gcloud beta billing budgets list --billing-account=${BILLING_ACCOUNT_ID}
+
 ```
 
 > **Warning: gcloud does not support Monitoring time series queries. Use the Monitoring API via curl.
 
 ```bash
-# 3. Monitoring API access (may return empty array)
+# 9. Monitoring API access (may return empty array)
 
-# 3a. Linux (GNU date):
+# 10a. Linux (GNU date):
 curl -H "Authorization: Bearer $(gcloud auth print-access-token)" \
 "https://monitoring.googleapis.com/v3/projects/$PROJECT_ID/timeSeries?filter=metric.type=\"compute.googleapis.com/instance/cpu/utilization\"&interval.endTime=$(date -u +"%Y-%m-%dT%H:%M:%SZ")&interval.startTime=$(date -u -d '1 hour ago' +"%Y-%m-%dT%H:%M:%SZ")"
 
-# 3b. macOS (BSD date):
+# 10b. macOS (BSD date):
 curl -H "Authorization: Bearer $(gcloud auth print-access-token)" \
 "https://monitoring.googleapis.com/v3/projects/$PROJECT_ID/timeSeries?filter=metric.type=\"compute.googleapis.com/instance/cpu/utilization\"&interval.endTime=$(date -u +"%Y-%m-%dT%H:%M:%SZ")&interval.startTime=$(date -u -v-1H +"%Y-%m-%dT%H:%M:%SZ")"
 
-# 3c. Windows (PowerShell):
+# 1oc. Windows (PowerShell):
 $end = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 $start = (Get-Date).ToUniversalTime().AddHours(-1).ToString("yyyy-MM-ddTHH:mm:ssZ")
 $token = gcloud auth print-access-token
@@ -171,6 +199,7 @@ curl -H "Authorization: Bearer $token" "https://monitoring.googleapis.com/v3/pro
 - [ ] APIs enabled
 - [ ] BigQuery billing export configured
 - [ ] API access verified
+
 
 **Next step:** Use the **[Quick Start](./QUICKSTART.md)** runbook to create the VM and **attach the service account at creation time**.
 

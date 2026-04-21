@@ -49,7 +49,7 @@ The FinOps dashboard will show real data only after these prerequisites are met 
 
 ---
 
-## Dashboard Customisation (Bootstrap Script)
+## Dashboard Customization (Bootstrap Script)
 
 See **`docs/CONFIGURATION.md`** *(placeholder – full customisation guide)*
 
@@ -87,11 +87,46 @@ BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"   # hardcoded for reliability
 - Quotes are read from `/var/www/vm-dashboard/data/quotes.json` (updated by cron).
 - The FinOps endpoint uses caching (1 hour for cost/budgets/recommendations, 5 minutes for CPU utilisation).
 
-After modifying the API, restart the service:
+If VM is already deployed, restart the service after modifying the API:
 
 ```bash
 sudo systemctl restart dashboard-api.service
 ```
+
+---
+
+Here’s the optimized version with expected results and notes for each check:
+
+## **Verify Permissions on VM (Post Deployment)**
+
+```bash
+# 1. Compute Viewer (subnet fallback) – requires a running VM
+VM_NAME=$(gcloud compute instances list --limit=1 --format="value(name)")
+ZONE=$(gcloud compute instances list --limit=1 --format="value(zone)")
+gcloud compute instances describe ${VM_NAME} --zone=${ZONE} --format="json" | jq '.networkInterfaces[0].subnetwork'
+```
+**Expected result:** A subnetwork URL (e.g., `"projects/your-project/regions/us-central1/subnetworks/default"`).  
+**Note:** If empty or `null`, the service account lacks `roles/compute.viewer` or the VM has no subnet (rare).
+
+```bash
+# 2. VM Service Account Scopes (run from the VM itself)
+curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/scopes | grep cloud-platform
+```
+**Expected result:** Output contains `https://www.googleapis.com/auth/cloud-platform`.  
+**Note:** If missing, the VM was created with insufficient scopes. Stop the VM and update scopes to `cloud-platform`.
+
+```bash
+# 3. Final API Tests (run after VM deployment, on the VM)
+curl -s http://127.0.0.1:8080/api/dashboard | jq '.meta.dashboardName'
+```
+**Expected result:** The dashboard name you configured (e.g., `"DevSecOps Dashboard"`).  
+**Note:** If empty or error, the API service is not running. Check with `sudo systemctl status dashboard-api.service`.
+
+```bash
+curl -s http://127.0.0.1:8080/api/finops | jq '.summaryCards'
+```
+**Expected result:** A JSON array with four summary cards (Total Cost MTD, Forecast EOM, Potential Savings, CUD Coverage). Values may be `"0.00"` if no data yet.  
+**Note:** If you see `"Error building FinOps data"`, check the API logs (`sudo journalctl -u dashboard-api.service -n 50`). This often indicates missing IAM roles or BigQuery export not configured.
 
 ---
 
