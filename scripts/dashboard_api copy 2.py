@@ -375,8 +375,7 @@ def get_billing_table():
             return f"{project_id}.{dataset_name}.{table.table_id}"
     return None
 
-# Increased TTL to 1 hour (cost data changes slowly)
-@ttl_cache(seconds=3600)
+@ttl_cache(seconds=300)
 def get_cost_trend(days=30):
     table = get_billing_table()
     if not table:
@@ -395,11 +394,10 @@ def get_cost_trend(days=30):
             trend.append({"date": row.date.strftime("%b %d"), "value": round(row.total_cost, 2)})
         return trend
     except Exception as e:
-        print(f"Error fetching cost trend: {e}", file=sys.stderr)
+        print(f"Error fetching cost trend: {e}")
         return []
 
-# Increased TTL to 1 hour
-@ttl_cache(seconds=3600)
+@ttl_cache(seconds=300)
 def get_top_services_by_cost(limit=15):
     table = get_billing_table()
     if not table:
@@ -425,7 +423,6 @@ def get_top_services_by_cost(limit=15):
 # FinOps Helper Functions (transformed to match frontend)
 # -------------------------------
 
-# CPU utilization changes every few minutes, keep 5 minutes
 @ttl_cache(seconds=300)
 def get_cpu_utilization_all_vms():
     """Fetch P95 CPU usage for all VMs using Cloud Monitoring Python client."""
@@ -475,8 +472,7 @@ def get_cpu_utilization_all_vms():
         print(f"Error fetching CPU utilization via Python client: {e}", file=sys.stderr)
         return []
 
-# Increased TTL to 1 hour
-@ttl_cache(seconds=3600)
+@ttl_cache(seconds=300)
 def get_idle_resources():
     """Return idle resources in the shape expected by the frontend."""
     project_id = get_metadata("project/project-id")
@@ -509,8 +505,7 @@ def get_idle_resources():
         print(f"Error getting idle resources: {e}", file=sys.stderr)
         return []
 
-# Increased TTL to 1 hour
-@ttl_cache(seconds=3600)
+@ttl_cache(seconds=300)
 def get_rightsizing_recommendations():
     """Return rightsizing recommendations in the shape expected by the frontend."""
     project_id = get_metadata("project/project-id")
@@ -546,8 +541,7 @@ def get_rightsizing_recommendations():
         print(f"Error getting rightsizing recommendations: {e}", file=sys.stderr)
         return []
 
-# Increased TTL to 1 hour
-@ttl_cache(seconds=3600)
+@ttl_cache(seconds=300)
 def get_budgets():
     """Return budgets in the shape expected by the frontend."""
     billing_id = BILLING_ACCOUNT_ID
@@ -589,10 +583,9 @@ def get_potential_savings():
     return round(total, 2)
 
 # -------------------------------
-# Dashboard Data Builder (cached for 10 seconds)
+# Dashboard Data Builder
 # -------------------------------
 
-@ttl_cache(seconds=10)
 def build_dashboard_data():
     """Build the complete dashboard data dictionary (same as old dashboard-data.json)."""
     # System Metrics
@@ -729,42 +722,6 @@ def build_dashboard_data():
     return data
 
 # -------------------------------
-# Cached FinOps data assembly (30 seconds)
-# -------------------------------
-
-@ttl_cache(seconds=30)
-def get_cached_finops_data():
-    """Assemble FinOps data with caching to reduce repeated JSON building."""
-    cost_trend = get_cost_trend()
-    top_services = get_top_services_by_cost()
-    mtd_total = sum(day["value"] for day in cost_trend) if cost_trend else 0.0
-    forecast = 0.0
-    if len(cost_trend) >= 7:
-        last_7_avg = sum(day["value"] for day in cost_trend[-7:]) / 7
-        days_left = 30 - len(cost_trend)
-        forecast = mtd_total + (last_7_avg * days_left)
-
-    summary_cards = [
-        {"label": "Total Cost (MTD)", "value": f"{mtd_total:.2f}", "status": "info"},
-        {"label": "Forecast (EOM)", "value": f"{forecast:.2f}", "status": "warning"},
-        {"label": "Potential Savings", "value": f"{get_potential_savings():.2f}", "status": "healthy"},
-        {"label": "CUD Coverage", "value": "N/A", "status": "info"}
-    ]
-
-    return {
-        "summaryCards": summary_cards,
-        "costTrend": cost_trend,
-        "topServices": top_services,
-        "budgets": get_budgets(),
-        "idleResources": get_idle_resources(),
-        "recommendations": get_rightsizing_recommendations(),
-        "utilization": get_cpu_utilization_all_vms(),
-        "realizedSavings": get_realized_savings(),
-        "potentialSavings": get_potential_savings(),
-        "quote": random.choice(load_quotes())
-    }
-
-# -------------------------------
 # HTTP Request Handler
 # -------------------------------
 
@@ -864,7 +821,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f"Error fetching metadata: {e}".encode())
             return
 
-        # Dashboard API endpoint (cached)
+        # Dashboard API endpoint
         if self.path == '/api/dashboard':
             try:
                 data = build_dashboard_data()
@@ -879,10 +836,55 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f"Error building dashboard data: {e}".encode())
             return
 
-        # FinOps API endpoint with cached assembly
+        # FinOps API endpoint with graceful fallback for BigQuery errors
         if self.path == '/api/finops':
             try:
-                finops_data = get_cached_finops_data()
+                # Attempt to get real cost data from BigQuery (may fail)
+                cost_trend = []
+                top_services = []
+                try:
+                    cost_trend = get_cost_trend()
+                    top_services = get_top_services_by_cost()
+                except Exception as bq_err:
+                    print(f"BigQuery error (will use empty data): {bq_err}", file=sys.stderr)
+                    # Continue with empty lists
+                
+                # Calculate MTD total and forecast (safe even if empty)
+                mtd_total = sum(day["value"] for day in cost_trend) if cost_trend else 0.0
+                forecast = 0.0
+                if len(cost_trend) >= 7:
+                    last_7_avg = sum(day["value"] for day in cost_trend[-7:]) / 7
+                    days_left = 30 - len(cost_trend)
+                    forecast = mtd_total + (last_7_avg * days_left)
+                
+                summary_cards = [
+                    {"label": "Total Cost (MTD)", "value": f"{mtd_total:.2f}", "status": "info"},
+                    {"label": "Forecast (EOM)", "value": f"{forecast:.2f}", "status": "warning"},
+                    {"label": "Potential Savings", "value": f"{get_potential_savings():.2f}", "status": "healthy"},
+                    {"label": "CUD Coverage", "value": "N/A", "status": "info"}
+                ]
+                
+                # These functions do not use BigQuery and should work
+                recommendations = get_rightsizing_recommendations()
+                idle_resources = get_idle_resources()
+                budgets = get_budgets()
+                utilization = get_cpu_utilization_all_vms()
+                realized_savings = get_realized_savings()
+                potential_savings = get_potential_savings()
+                quote = random.choice(load_quotes())
+                
+                finops_data = {
+                    "summaryCards": summary_cards,
+                    "costTrend": cost_trend,
+                    "topServices": top_services,
+                    "budgets": budgets,
+                    "idleResources": idle_resources,
+                    "recommendations": recommendations,
+                    "utilization": utilization,
+                    "realizedSavings": realized_savings,
+                    "potentialSavings": potential_savings,
+                    "quote": quote
+                }
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()

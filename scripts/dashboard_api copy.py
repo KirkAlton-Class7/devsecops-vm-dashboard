@@ -39,6 +39,7 @@
 #   --role="roles/billing.viewer"
 # ```
 
+import sys
 import json
 import os
 import random
@@ -49,8 +50,20 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from functools import wraps
 import time
 
-# New import for BigQuery
 from google.cloud import bigquery
+
+# -------------------------------
+# API Customization
+# -------------------------------
+
+STUDENT_NAME = "Kirk Alton"
+
+# Your billing account ID (hardcoded for reliability)
+BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"
+
+# ---------------------------------------------------------------------------------------------
+# !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
+# ---------------------------------------------------------------------------------------------
 
 # -------------------------------
 # Constants
@@ -59,16 +72,7 @@ DATA_DIR = "/var/www/vm-dashboard/data"
 COST_FILE = "/var/tmp/vm-cost.json"
 WARN_THRESHOLD = 70
 
-# -------------------------------
-# Metadata Customization
-# -------------------------------
-student_name = "Kirk Alton"
-
-# ---------------------------------------------------------------------------------------------
-# !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
-# ---------------------------------------------------------------------------------------------
-
-# Global caches for static values that never change
+# Global caches
 _SUBNET_CACHE = None
 _BILLING_ACCOUNT_CACHE = None
 
@@ -92,7 +96,6 @@ def ttl_cache(seconds):
     return decorator
 
 def get_metadata(path, timeout=2):
-    """Fetch a specific metadata value from the GCE metadata server."""
     url = f"http://metadata.google.internal/computeMetadata/v1/{path}"
     cmd = ["curl", "-fsS", "-H", "Metadata-Flavor: Google", url]
     try:
@@ -104,7 +107,6 @@ def get_metadata(path, timeout=2):
         return "unknown"
 
 def safe_basename(full_path):
-    """Extract last component of a resource path."""
     if not full_path or full_path == "unknown":
         return full_path
     cleaned = full_path.strip()
@@ -125,14 +127,12 @@ def get_os_name():
     return "unknown"
 
 def get_uptime():
-    """Return human-readable uptime."""
     try:
         result = subprocess.run(["uptime", "-p"], capture_output=True, text=True, timeout=2)
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
     except Exception:
         pass
-    # Fallback: read /proc/uptime
     try:
         with open("/proc/uptime", "r") as f:
             seconds = float(f.read().split()[0])
@@ -150,7 +150,6 @@ def get_uptime():
         return "unknown"
 
 def get_load_avg_string():
-    """Return load average as a string: '1m 5m 15m' (e.g., '1.33 0.34 0.12')."""
     try:
         with open("/proc/loadavg", "r") as f:
             parts = f.read().split()
@@ -159,7 +158,6 @@ def get_load_avg_string():
         return "0.00 0.00 0.00"
 
 def format_bytes_human(mb):
-    """Convert MB to human readable string (e.g., 20480 MB -> '20G', 512 MB -> '512M')."""
     if mb >= 1024:
         return f"{mb/1024:.1f}G".rstrip('0').rstrip('.')
     return f"{int(mb)}M"
@@ -193,13 +191,13 @@ def get_disk_percent():
 def get_load_averages():
     with open("/proc/loadavg", "r") as f:
         parts = f.read().split()
-        return float(parts[0]), float(parts[1])   # (1min, 5min)
+        return float(parts[0]), float(parts[1])
 
-@ttl_cache(seconds=60)    # 1 minute – optional
+@ttl_cache(seconds=60)
 def get_ssh_status():
     return "Enabled (22/tcp)" if subprocess.call(["systemctl", "is-active", "--quiet", "ssh"]) == 0 else "Disabled"
 
-@ttl_cache(seconds=300)   # 5 minutes
+@ttl_cache(seconds=300)
 def get_update_status():
     out = subprocess.run(["apt", "list", "--upgradable", "2>/dev/null"], shell=True, capture_output=True, text=True)
     updates = len([l for l in out.stdout.strip().split("\n") if l and not l.startswith("Listing")])
@@ -210,18 +208,13 @@ def get_machine_type():
     return full.split('/')[-1] if '/' in full else full
 
 def get_subnet_name():
-    """Get subnet name: try metadata, then gcloud fallback, then cache."""
     global _SUBNET_CACHE
     if _SUBNET_CACHE is not None:
         return _SUBNET_CACHE
-
-    # First try metadata endpoint
     sub_full = get_metadata("instance/network-interfaces/0/subnetwork")
     if sub_full != "unknown":
         _SUBNET_CACHE = safe_basename(sub_full)
         return _SUBNET_CACHE
-
-    # Fallback: gcloud describe
     try:
         instance_name = get_metadata("instance/name")
         zone = safe_basename(get_metadata("instance/zone"))
@@ -238,40 +231,32 @@ def get_subnet_name():
                 _SUBNET_CACHE = safe_basename(subnet_url)
                 return _SUBNET_CACHE
     except Exception as e:
-        print(f"gcloud subnet lookup failed: {e}")
-
+        print(f"gcloud subnet lookup failed: {e}", file=sys.stderr)
     _SUBNET_CACHE = "unknown"
     return "unknown"
 
 def get_billing_account_id():
-    """Get the billing account ID for the project, cached indefinitely."""
     global _BILLING_ACCOUNT_CACHE
     if _BILLING_ACCOUNT_CACHE is not None:
         return _BILLING_ACCOUNT_CACHE
-
-    # Try to get via gcloud (requires billing.viewer)
     try:
-        # Get project number (more reliable than project id for billing)
         project_number = get_metadata("project/numeric-project-id")
         if project_number == "unknown":
             project_number = get_metadata("project/project-id")
         if project_number == "unknown":
             _BILLING_ACCOUNT_CACHE = ""
             return ""
-
         cmd = ["gcloud", "billing", "projects", "describe", project_number,
                "--format=value(billingAccountName)"]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
         if result.returncode == 0 and result.stdout.strip():
-            # Output format: "billingAccounts/XXXXXX-XXXXXX-XXXXXX"
             billing_path = result.stdout.strip()
             billing_id = billing_path.split('/')[-1] if '/' in billing_path else billing_path
             if billing_id:
                 _BILLING_ACCOUNT_CACHE = billing_id
                 return billing_id
     except Exception as e:
-        print(f"gcloud billing lookup failed: {e}")
-
+        print(f"gcloud billing lookup failed: {e}", file=sys.stderr)
     _BILLING_ACCOUNT_CACHE = ""
     return ""
 
@@ -374,8 +359,8 @@ def load_quotes():
 # Real cost data from BigQuery
 # -------------------------------
 
+@ttl_cache(seconds=3600)
 def get_billing_table():
-    """Return the full BigQuery table ID of the billing export."""
     project_id = get_metadata("project/project-id")
     dataset_name = "billing_export"
     if project_id == "unknown":
@@ -388,111 +373,62 @@ def get_billing_table():
             return f"{project_id}.{dataset_name}.{table.table_id}"
     return None
 
+@ttl_cache(seconds=300)
 def get_cost_trend(days=30):
-    """Return daily cost for the last `days` days."""
     table = get_billing_table()
     if not table:
         return []
     client = bigquery.Client()
     query = f"""
-        SELECT
-          DATE(usage_start_time) AS date,
-          SUM(cost) AS total_cost
+        SELECT DATE(usage_start_time) AS date, SUM(cost) AS total_cost
         FROM `{table}`
         WHERE usage_start_time >= DATE_SUB(CURRENT_DATE(), INTERVAL {days} DAY)
-        GROUP BY date
-        ORDER BY date ASC
+        GROUP BY date ORDER BY date ASC
     """
     try:
         result = client.query(query).result()
         trend = []
         for row in result:
-            trend.append({
-                "date": row.date.strftime("%b %d"),
-                "value": round(row.total_cost, 2)
-            })
+            trend.append({"date": row.date.strftime("%b %d"), "value": round(row.total_cost, 2)})
         return trend
     except Exception as e:
         print(f"Error fetching cost trend: {e}")
         return []
 
+@ttl_cache(seconds=300)
 def get_top_services_by_cost(limit=15):
-    """Return top GCP services by cost (month‑to‑date)."""
     table = get_billing_table()
     if not table:
         return []
     client = bigquery.Client()
     query = f"""
-        SELECT
-          service.description AS name,
-          SUM(cost) AS total_cost
+        SELECT service.description AS name, SUM(cost) AS total_cost
         FROM `{table}`
         WHERE DATE(usage_start_time) >= DATE_TRUNC(CURRENT_DATE(), MONTH)
-        GROUP BY name
-        ORDER BY total_cost DESC
-        LIMIT {limit}
+        GROUP BY name ORDER BY total_cost DESC LIMIT {limit}
     """
     try:
         result = client.query(query).result()
         services = []
         for row in result:
-            services.append({
-                "name": row.name,
-                "value": round(row.total_cost, 2),
-                "status": "info"
-            })
+            services.append({"name": row.name, "value": round(row.total_cost, 2), "status": "info"})
         return services
     except Exception as e:
-        print(f"Error fetching top services: {e}")
+        print(f"Error fetching top services: {e}", file=sys.stderr)
         return []
 
 # -------------------------------
-# FinOps Helper Functions (existing)
+# FinOps Helper Functions (transformed to match frontend)
 # -------------------------------
 
-def get_all_vm_costs():
-    """Return list of all VMs in project with estimated monthly cost."""
-    project_id = get_metadata("project/project-id")
-    if project_id == "unknown":
-        return []
-    cmd = ["gcloud", "compute", "instances", "list", "--project", project_id,
-           "--format=json", "--filter=status=RUNNING"]
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        if result.returncode != 0:
-            return []
-        instances = json.loads(result.stdout)
-        # Rough hourly rates (example)
-        rates = {
-            "e2-micro": 0.0076, "e2-small": 0.0150, "e2-medium": 0.0301,
-            "n1-standard-1": 0.0475, "n2-standard-2": 0.0972,
-            "e2-standard-2": 0.0676, "e2-standard-4": 0.1352,
-            "g1-small": 0.0250, "f1-micro": 0.0060
-        }
-        vm_costs = []
-        for inst in instances:
-            machine = inst.get("machineType", "").split("/")[-1]
-            hourly = rates.get(machine, 0.03)  # default guess
-            monthly = hourly * 730  # hours per month
-            vm_costs.append({
-                "name": inst.get("name", "unknown"),
-                "value": round(monthly, 2)
-            })
-        return sorted(vm_costs, key=lambda x: x["value"], reverse=True)[:10]
-    except Exception as e:
-        print(f"Error listing VMs for costs: {e}")
-        return []
-
+@ttl_cache(seconds=300)
 def get_cpu_utilization_all_vms():
-    """Fetch P95 CPU usage for all VMs using Cloud Monitoring."""
     project_id = get_metadata("project/project-id")
     if project_id == "unknown":
         return []
-    # Time range: last hour
     now = datetime.utcnow()
     end_time = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     start_time = (now - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    # Query Monitoring API (beta)
     cmd = [
         "gcloud", "beta", "monitoring", "time-series", "list",
         f"--filter=metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.labels.project_id=\"{project_id}\"",
@@ -513,15 +449,16 @@ def get_cpu_utilization_all_vms():
                 utilization.append({
                     "instance": instance_name,
                     "cpuP95": round(cpu_p95, 1),
-                    "recommendationMatch": cpu_p95 < 20  # idle threshold
+                    "recommendationMatch": cpu_p95 < 20
                 })
         return sorted(utilization, key=lambda x: x["cpuP95"], reverse=True)[:12]
     except Exception as e:
-        print(f"Error fetching CPU utilization: {e}")
+        print(f"Error fetching CPU utilization: {e}", file=sys.stderr)
         return []
 
+@ttl_cache(seconds=300)
 def get_idle_resources():
-    """Find idle VM recommendations from GCP Recommender."""
+    """Return idle resources in the shape expected by the frontend."""
     project_id = get_metadata("project/project-id")
     if project_id == "unknown":
         return []
@@ -539,20 +476,22 @@ def get_idle_resources():
         idle = []
         for rec in recs:
             vm_name = rec.get("primaryResourceId", "unknown")
-            cost_savings = rec.get("primaryImpact", {}).get("costProjection", {}).get("cost", {}).get("amount", 0)
             idle.append({
-                "resource": vm_name,
+                "name": vm_name,
                 "type": "VM",
-                "idleSince": rec.get("lastRefreshTime", "").split("T")[0],
-                "potentialSavings": round(cost_savings, 2)
+                "scope": "compute",
+                "status": "warning",
+                "cpu": "N/A",
+                "recommendation": "Stop or resize if idle"
             })
         return idle[:12]
     except Exception as e:
-        print(f"Error getting idle resources: {e}")
+        print(f"Error getting idle resources: {e}", file=sys.stderr)
         return []
 
+@ttl_cache(seconds=300)
 def get_rightsizing_recommendations():
-    """Fetch rightsizing recommendations from GCP Recommender."""
+    """Return rightsizing recommendations in the shape expected by the frontend."""
     project_id = get_metadata("project/project-id")
     if project_id == "unknown":
         return []
@@ -573,20 +512,23 @@ def get_rightsizing_recommendations():
             current_type = rec.get("content", {}).get("overview", {}).get("machineType", "unknown")
             recommended_type = rec.get("content", {}).get("overview", {}).get("recommendedMachineType", "unknown")
             savings = rec.get("primaryImpact", {}).get("costProjection", {}).get("cost", {}).get("amount", 0)
+            impact = "HIGH" if savings > 50 else ("MEDIUM" if savings > 20 else "LOW")
             recommendations.append({
                 "resource": vm_name,
-                "current": current_type,
-                "recommended": recommended_type,
-                "savings": round(savings, 2)
+                "description": f"Resize {current_type} to {recommended_type}",
+                "monthlySavings": round(savings, 2),
+                "impact": impact,
+                "actionUrl": f"https://console.cloud.google.com/compute/instances?project={project_id}"
             })
         return recommendations[:12]
     except Exception as e:
-        print(f"Error getting rightsizing recommendations: {e}")
+        print(f"Error getting rightsizing recommendations: {e}", file=sys.stderr)
         return []
 
+@ttl_cache(seconds=300)
 def get_budgets():
-    """Return active budgets from GCP Billing Budgets API."""
-    billing_id = get_billing_account_id()
+    """Return budgets in the shape expected by the frontend."""
+    billing_id = BILLING_ACCOUNT_ID
     if not billing_id:
         return []
     cmd = ["gcloud", "billing", "budgets", "list", f"--billing-account={billing_id}", "--format=json"]
@@ -597,25 +539,31 @@ def get_budgets():
         budgets = json.loads(result.stdout)
         budget_list = []
         for b in budgets:
+            amount = float(b.get("amount", {}).get("specifiedAmount", {}).get("units", 0))
+            # The API does not provide spent/forecast; we set placeholders
+            # In a real implementation you would query actual spend from BigQuery.
+            spent = round(amount * 0.3, 2)   # placeholder
+            forecast = round(amount * 1.1, 2) # placeholder
             budget_list.append({
                 "name": b.get("displayName", "Unnamed"),
-                "amount": float(b.get("amount", {}).get("specifiedAmount", {}).get("units", 0)),
-                "currentSpend": 0.0  # Real spend would require additional API calls
+                "amount": amount,
+                "spent": spent,
+                "forecast": forecast,
+                "thresholds": [0.5, 0.8, 0.9]  # default
             })
         return budget_list[:5]
     except Exception as e:
-        print(f"Error getting budgets: {e}")
+        print(f"Error getting budgets: {e}", file=sys.stderr)
         return []
 
 def get_realized_savings():
-    """Return 0 until we implement real tracking of applied recommendations."""
     return 0.0
 
 def get_potential_savings():
-    """Sum savings from all active recommendations."""
     recs = get_rightsizing_recommendations()
     idle = get_idle_resources()
-    total = sum(r["savings"] for r in recs) + sum(i["potentialSavings"] for i in idle)
+    # idle resources don't have savings in the transformed shape, so we sum only rightsizing
+    total = sum(r["monthlySavings"] for r in recs)
     return round(total, 2)
 
 # -------------------------------
@@ -772,10 +720,13 @@ class MonitoringHandler(BaseHTTPRequestHandler):
             return
 
         # Metadata endpoint
-        if self.path == '/metadata':
+        if self.path == '/metadata':    
             try:
-                meta_student = get_metadata("instance/attributes/student_name")
-                final_student = meta_student if meta_student != "unknown" and meta_student else student_name
+                student_name = get_metadata("instance/attributes/STUDENT_NAME")
+                if student_name in ("unknown", ""):
+                    print(f"WARNING: STUDENT_NAME metadata not found (got '{student_name}'), using hardcoded fallback '{STUDENT_NAME}'", file=sys.stderr)
+                    student_name = STUDENT_NAME
+                # else keep student_name as retrieved
 
                 project_id    = get_metadata("project/project-id")
                 instance_id   = get_metadata("instance/id")
@@ -819,7 +770,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 
                 # Metadata dictionary
                 metadata = {
-                    "student_name": final_student,
+                    "STUDENT_NAME": student_name,
                     "project_id": project_id,
                     "instance_id": instance_id,
                     "instance_name": instance_name,
@@ -879,7 +830,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                     cost_trend = get_cost_trend()
                     top_services = get_top_services_by_cost()
                 except Exception as bq_err:
-                    print(f"BigQuery error (will use empty data): {bq_err}")
+                    print(f"BigQuery error (will use empty data): {bq_err}", file=sys.stderr)
                     # Continue with empty lists
                 
                 # Calculate MTD total and forecast (safe even if empty)
