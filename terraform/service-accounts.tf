@@ -26,6 +26,20 @@ resource "google_service_account" "vm_dashboard" {
 # ----------------------------------------------------------------
 
 # ----------------------------------------------------------------
+# IAM ROLE - COMPUTE VIEWER
+# ----------------------------------------------------------------
+# Allows the VM dashboard to read instance details (e.g., subnet name)
+# via `gcloud compute instances describe` when metadata falls back.
+# ----------------------------------------------------------------
+
+resource "google_project_iam_member" "vm_dashboard_compute_viewer" {
+  project = "kirk-devsecops-sandbox"
+  role    = "roles/compute.viewer"
+
+  member = "serviceAccount:${google_service_account.vm_dashboard.email}"
+}
+
+# ----------------------------------------------------------------
 # IAM ROLE - BIGQUERY DATA VIEWER
 # ----------------------------------------------------------------
 # Allows the VM dashboard to read billing export tables.

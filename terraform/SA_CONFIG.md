@@ -1,0 +1,36 @@
+## **Terraform Service Account – Billing Admin Permissions (One‑Time Setup)**
+
+> **Prerequisite:** You must already have a dedicated Terraform service account (e.g., `terraform-service@PROJECT_ID.iam.gserviceaccount.com`). This runbook grants that account the ability to manage IAM policies on the billing account.
+
+### **Step 1: Set Environment Variables**
+
+Run these commands to automatically retrieve your project ID, billing account ID, and Terraform service account email:
+
+```bash
+export PROJECT_ID=$(gcloud config get-value project)
+export BILLING_ACCOUNT_ID=$(gcloud billing projects describe ${PROJECT_ID} --format="value(billingAccountName)" | cut -d'/' -f2)
+export TERRAFORM_SA_EMAIL="terraform-service@${PROJECT_ID}.iam.gserviceaccount.com"
+```
+
+> **Note:** If your Terraform service account has a different name, replace `terraform-service` with the actual account ID.
+
+### **Step 2: Grant `roles/billing.admin` to the Terraform Service Account**
+
+Run the following command (requires your user account to have `billing.admin` on the billing account):
+
+```bash
+gcloud billing accounts add-iam-policy-binding ${BILLING_ACCOUNT_ID} \
+    --member="serviceAccount:${TERRAFORM_SA_EMAIL}" \
+    --role="roles/billing.admin"
+```
+
+> **Why this is needed:** Terraform uses this service account to apply IAM bindings on the billing account (e.g., granting `billing.viewer` to the VM dashboard service account).  
+> **Note:** This is a **one‑time** operation. Once granted, the Terraform service account retains this permission for all future runs.
+
+### **Verification**
+
+```bash
+gcloud beta billing accounts get-iam-policy ${BILLING_ACCOUNT_ID} --format=json | grep -A2 terraform-service
+```
+
+Expected output includes `"role": "roles/billing.admin"`.
