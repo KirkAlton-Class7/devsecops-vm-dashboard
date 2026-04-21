@@ -172,9 +172,9 @@ curl -H "Authorization: Bearer $token" "https://monitoring.googleapis.com/v3/pro
 - [ ] BigQuery billing export configured
 - [ ] API access verified
 
-**Next step:** Use the **VM deployment runbook** to create the VM and **attach this service account at creation time** (not after).
+**Next step:** Use the **[Quick Start](./QUICKSTART.md)** runbook to create the VM and **attach the service account at creation time**.
 
-> **Crucial:** Do not create the VM before this setup. The service account must be attached **during VM creation** to avoid manual reconfiguration.
+> **Crucial:** Do not create the VM before setting up this service account. The service account should be attached **during VM creation** to avoid unnecessary troubleshooting or reconfiguration.
 
 ---
 
