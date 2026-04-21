@@ -1,5 +1,3 @@
----
-
 # VM Dashboard (DevSecOps + FinOps)
 
 A self-hosted dashboard for **real-time infrastructure monitoring and cost visibility** on **GCP**.
