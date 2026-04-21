@@ -153,7 +153,7 @@ export default function FinOpsDashboard({
 
     fetchFinOpsData();
 
-    const interval = setInterval(fetchFinOpsData, 60000);
+    const interval = setInterval(fetchFinOpsData, 600000);  // 10 minutes
 
     return () => clearInterval(interval);
   }, []);

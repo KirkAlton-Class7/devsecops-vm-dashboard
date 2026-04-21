@@ -45,6 +45,8 @@ import os
 import random
 import subprocess
 import urllib.request
+from google.cloud import monitoring_v3
+from google.cloud.monitoring_v3 import Aggregation
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from functools import wraps
@@ -373,7 +375,8 @@ def get_billing_table():
             return f"{project_id}.{dataset_name}.{table.table_id}"
     return None
 
-@ttl_cache(seconds=300)
+# Increased TTL to 1 hour (cost data changes slowly)
+@ttl_cache(seconds=3600)
 def get_cost_trend(days=30):
     table = get_billing_table()
     if not table:
@@ -392,10 +395,11 @@ def get_cost_trend(days=30):
             trend.append({"date": row.date.strftime("%b %d"), "value": round(row.total_cost, 2)})
         return trend
     except Exception as e:
-        print(f"Error fetching cost trend: {e}")
+        print(f"Error fetching cost trend: {e}", file=sys.stderr)
         return []
 
-@ttl_cache(seconds=300)
+# Increased TTL to 1 hour
+@ttl_cache(seconds=3600)
 def get_top_services_by_cost(limit=15):
     table = get_billing_table()
     if not table:
@@ -421,42 +425,58 @@ def get_top_services_by_cost(limit=15):
 # FinOps Helper Functions (transformed to match frontend)
 # -------------------------------
 
+# CPU utilization changes every few minutes, keep 5 minutes
 @ttl_cache(seconds=300)
 def get_cpu_utilization_all_vms():
+    """Fetch P95 CPU usage for all VMs using Cloud Monitoring Python client."""
     project_id = get_metadata("project/project-id")
     if project_id == "unknown":
         return []
-    now = datetime.utcnow()
-    end_time = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-    start_time = (now - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    cmd = [
-        "gcloud", "beta", "monitoring", "time-series", "list",
-        f"--filter=metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.labels.project_id=\"{project_id}\"",
-        f"--interval=start={start_time},end={end_time}",
-        "--format=json", "--aggregation.alignment-period=3600s", "--aggregation.per-series-aligner=ALIGN_PERCENTILE_95"
-    ]
+
+    client = monitoring_v3.MetricServiceClient()
+    project_name = f"projects/{project_id}"
+
+    # Last hour (Unix timestamps)
+    now = time.time()
+    end_time = int(now)
+    start_time = end_time - 3600  # 1 hour ago
+
+    # Filter: CPU utilization metric
+    filter_str = 'metric.type="compute.googleapis.com/instance/cpu/utilization"'
+
+    # Aggregation: 1‑hour alignment, 95th percentile
+    aggregation = Aggregation(
+        alignment_period={"seconds": 3600},
+        per_series_aligner=Aggregation.Aligner.ALIGN_PERCENTILE_95,
+    )
+
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
-        if result.returncode != 0:
-            return []
-        data = json.loads(result.stdout)
+        results = client.list_time_series(
+            name=project_name,
+            filter=filter_str,
+            interval={"start_time": {"seconds": start_time}, "end_time": {"seconds": end_time}},
+            aggregation=aggregation,
+        )
         utilization = []
-        for ts in data.get("timeSeries", []):
-            instance_name = ts.get("resource", {}).get("labels", {}).get("instance_id", "unknown")
-            points = ts.get("points", [])
+        for ts in results:
+            labels = ts.resource.labels
+            instance_name = labels.get("instance_id", "unknown")
+            points = ts.points
             if points:
-                cpu_p95 = points[-1].get("value", {}).get("doubleValue", 0) * 100
+                cpu_p95 = points[-1].value.double_value * 100
                 utilization.append({
                     "instance": instance_name,
                     "cpuP95": round(cpu_p95, 1),
                     "recommendationMatch": cpu_p95 < 20
                 })
+        # Sort by highest CPU first and limit to 12
         return sorted(utilization, key=lambda x: x["cpuP95"], reverse=True)[:12]
     except Exception as e:
-        print(f"Error fetching CPU utilization: {e}", file=sys.stderr)
+        print(f"Error fetching CPU utilization via Python client: {e}", file=sys.stderr)
         return []
 
-@ttl_cache(seconds=300)
+# Increased TTL to 1 hour
+@ttl_cache(seconds=3600)
 def get_idle_resources():
     """Return idle resources in the shape expected by the frontend."""
     project_id = get_metadata("project/project-id")
@@ -489,7 +509,8 @@ def get_idle_resources():
         print(f"Error getting idle resources: {e}", file=sys.stderr)
         return []
 
-@ttl_cache(seconds=300)
+# Increased TTL to 1 hour
+@ttl_cache(seconds=3600)
 def get_rightsizing_recommendations():
     """Return rightsizing recommendations in the shape expected by the frontend."""
     project_id = get_metadata("project/project-id")
@@ -525,7 +546,8 @@ def get_rightsizing_recommendations():
         print(f"Error getting rightsizing recommendations: {e}", file=sys.stderr)
         return []
 
-@ttl_cache(seconds=300)
+# Increased TTL to 1 hour
+@ttl_cache(seconds=3600)
 def get_budgets():
     """Return budgets in the shape expected by the frontend."""
     billing_id = BILLING_ACCOUNT_ID
@@ -567,9 +589,10 @@ def get_potential_savings():
     return round(total, 2)
 
 # -------------------------------
-# Dashboard Data Builder
+# Dashboard Data Builder (cached for 10 seconds)
 # -------------------------------
 
+@ttl_cache(seconds=10)
 def build_dashboard_data():
     """Build the complete dashboard data dictionary (same as old dashboard-data.json)."""
     # System Metrics
@@ -706,6 +729,47 @@ def build_dashboard_data():
     return data
 
 # -------------------------------
+# Cached FinOps data assembly (30 seconds)
+# -------------------------------
+
+@ttl_cache(seconds=30)
+def get_cached_finops_data():
+    """Assemble FinOps data with caching to reduce repeated JSON building."""
+    cost_trend = get_cost_trend()
+    top_services = get_top_services_by_cost()
+    
+    # Calculate MTD total and improved forecast
+    mtd_total = sum(day["value"] for day in cost_trend) if cost_trend else 0.0
+    forecast = 0.0
+    if cost_trend and len(cost_trend) > 0:
+        days_so_far = len(cost_trend)
+        avg_daily_cost = mtd_total / days_so_far
+        total_days_in_month = 30  # or use actual days in current month (e.g., calendar month)
+        forecast = avg_daily_cost * total_days_in_month
+    else:
+        forecast = 0.0
+
+    summary_cards = [
+        {"label": "Total Cost (MTD)", "value": f"{mtd_total:.2f}", "status": "info"},
+        {"label": "Forecast (EOM)", "value": f"{forecast:.2f}", "status": "warning"},
+        {"label": "Potential Savings", "value": f"{get_potential_savings():.2f}", "status": "healthy"},
+        {"label": "CUD Coverage", "value": "N/A", "status": "info"}
+    ]
+
+    return {
+        "summaryCards": summary_cards,
+        "costTrend": cost_trend,
+        "topServices": top_services,
+        "budgets": get_budgets(),
+        "idleResources": get_idle_resources(),
+        "recommendations": get_rightsizing_recommendations(),
+        "utilization": get_cpu_utilization_all_vms(),
+        "realizedSavings": get_realized_savings(),
+        "potentialSavings": get_potential_savings(),
+        "quote": random.choice(load_quotes())
+    }
+
+# -------------------------------
 # HTTP Request Handler
 # -------------------------------
 
@@ -805,7 +869,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f"Error fetching metadata: {e}".encode())
             return
 
-        # Dashboard API endpoint
+        # Dashboard API endpoint (cached)
         if self.path == '/api/dashboard':
             try:
                 data = build_dashboard_data()
@@ -820,55 +884,10 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f"Error building dashboard data: {e}".encode())
             return
 
-        # FinOps API endpoint with graceful fallback for BigQuery errors
+        # FinOps API endpoint with cached assembly
         if self.path == '/api/finops':
             try:
-                # Attempt to get real cost data from BigQuery (may fail)
-                cost_trend = []
-                top_services = []
-                try:
-                    cost_trend = get_cost_trend()
-                    top_services = get_top_services_by_cost()
-                except Exception as bq_err:
-                    print(f"BigQuery error (will use empty data): {bq_err}", file=sys.stderr)
-                    # Continue with empty lists
-                
-                # Calculate MTD total and forecast (safe even if empty)
-                mtd_total = sum(day["value"] for day in cost_trend) if cost_trend else 0.0
-                forecast = 0.0
-                if len(cost_trend) >= 7:
-                    last_7_avg = sum(day["value"] for day in cost_trend[-7:]) / 7
-                    days_left = 30 - len(cost_trend)
-                    forecast = mtd_total + (last_7_avg * days_left)
-                
-                summary_cards = [
-                    {"label": "Total Cost (MTD)", "value": f"{mtd_total:.2f}", "status": "info"},
-                    {"label": "Forecast (EOM)", "value": f"{forecast:.2f}", "status": "warning"},
-                    {"label": "Potential Savings", "value": f"{get_potential_savings():.2f}", "status": "healthy"},
-                    {"label": "CUD Coverage", "value": "N/A", "status": "info"}
-                ]
-                
-                # These functions do not use BigQuery and should work
-                recommendations = get_rightsizing_recommendations()
-                idle_resources = get_idle_resources()
-                budgets = get_budgets()
-                utilization = get_cpu_utilization_all_vms()
-                realized_savings = get_realized_savings()
-                potential_savings = get_potential_savings()
-                quote = random.choice(load_quotes())
-                
-                finops_data = {
-                    "summaryCards": summary_cards,
-                    "costTrend": cost_trend,
-                    "topServices": top_services,
-                    "budgets": budgets,
-                    "idleResources": idle_resources,
-                    "recommendations": recommendations,
-                    "utilization": utilization,
-                    "realizedSavings": realized_savings,
-                    "potentialSavings": potential_savings,
-                    "quote": quote
-                }
+                finops_data = get_cached_finops_data()
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
