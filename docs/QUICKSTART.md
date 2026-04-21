@@ -2,7 +2,7 @@
 
 ## Prerequisites & IAM Setup
 
-> See [GCP Prerequisites Runbook](./docs/PREREQUISITES.md)
+> See [GCP Prerequisites Runbook](./PREREQUISITES.md)
 
 **Quick summary:**
 
