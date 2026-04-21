@@ -1,4 +1,6 @@
-# Dashboard Customization – `app_bootstrap.sh`
+# Application Bootstrap Configuration
+
+## Dashboard Customization – `app_bootstrap.sh`
 
 The dashboard’s appearance and behavior can be customized by editing the variables at the top of `scripts/bootstrap/app_bootstrap.sh`. No other changes are required for standard customization.
 

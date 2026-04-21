@@ -1,6 +1,8 @@
-# VM Dashboard (DevSecOps + FinOps)
+# VM Dashboard
 
-A self-hosted dashboard for **real-time infrastructure monitoring and cost visibility** on **GCP**.
+A real‑time infrastructure and cost monitoring dashboard that deploys automatically on **GCP** (primary), with partial support for AWS and Azure.  
+
+It provides live system data and metrics, for **DevSecops**, and includes a mode with **FinOps insights** (cost trends, budgets, rightsizing, idle resources). Both dashboard modes include a particle screensaver, an international photo gallery, inspirational quotes, and a terminal‑style text mode, all without external monitoring services.
 
 Provides:
 
@@ -17,7 +19,7 @@ No external monitoring services required.
 
 All detailed setup and configuration lives in `docs/`. Review in this order:
 
-1. **[Features](./docs/FEATURES.md)** – capabilities (DevSecOps + FinOps)
+1. **[Features and Roadmap](./docs/FEATURES.md)** – capabilities (DevSecOps + FinOps)
 2. **[Prerequisites](./docs/PREREQUISITES.md)** – IAM, APIs, billing export, service accounts
 3. **[API Configuration](./docs/API_CONFIG.md)** – `dashboard_api.py` settings (IDs, TTLs, flags)
 4. **[App Configuration](./docs/APP_CONFIG.md)** – bootstrap + UI settings
