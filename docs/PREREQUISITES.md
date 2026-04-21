@@ -1,0 +1,210 @@
+# **Prerequisites Setup for FinOps Dashboard**
+
+## **Purpose**
+
+This runbook defines all prerequisite configuration required **before** deploying the VM dashboard infrastructure. It ensures a dedicated service account is created, properly permissioned, and ready to be attached **at VM deployment time** (covered in a separate runbook).
+
+---
+
+## **What This Enables in the Dashboard**
+
+| Dashboard Feature | Required Permission / API | Enabled by Step |
+|------------------|---------------------------|----------------|
+| **Real cost data** (BigQuery) | `bigquery.dataViewer`, `bigquery.jobUser` | 3.2 |
+| **Budgets & alerts** | `billing.viewer`, `billingbudgets.googleapis.com` | 3.1, 1 |
+| **CPU utilization** (per VM) | `monitoring.viewer`, `monitoring.googleapis.com` | 3.2, 1 |
+| **Rightsizing recommendations** | `recommender.computeViewer`, `recommender.googleapis.com` | 3.2, 1 |
+| **Cost trends & forecasts** | BigQuery billing export | 4 |
+| **Idle resources** | `recommender.computeViewer` | 3.2 |
+| **Service account identity** | Custom SA created | 2.1 |
+
+---
+
+## **Prerequisites**
+
+- Installed and authenticated Google Cloud SDK (`gcloud auth login`)
+- Active GCP project with billing enabled
+- **Required IAM roles** (temporary, for setup):
+  - `roles/billing.admin` (on the billing account)
+  - `roles/owner` (on the project)
+
+---
+
+## **Stage 1: Enable Required APIs**
+
+```bash
+gcloud services enable \
+  cloudbilling.googleapis.com \
+  billingbudgets.googleapis.com \
+  recommender.googleapis.com \
+  monitoring.googleapis.com \
+  bigquery.googleapis.com \
+  cloudquotas.googleapis.com
+```
+
+> **Note:** This step is required once per project. If any API fails, check your project owner permissions.
+
+---
+
+## **Stage 2: Create Service Account & Set Variables**
+
+### **2.1 Create a Dedicated Service Account**
+
+```bash
+export PROJECT_ID="kirk-devsecops-sandbox"   # Replace with your project ID
+
+gcloud iam service-accounts create vm-dashboard \
+  --project=${PROJECT_ID} \
+  --display-name="FinOps Dashboard Service Account"
+```
+
+> **Result:** `vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com`
+
+### **2.2 Set Environment Variables**
+
+```bash
+export BILLING_ACCOUNT_ID="01BB2F-8195CD-645BC0"   # Your billing account ID
+export SA_EMAIL="vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com"
+```
+
+> **Why a custom SA?**<br>
+> Using the default Compute Engine service account is **not recommended** for production. A dedicated SA improves audit clarity and follows least privilege.
+
+---
+
+## **Stage 3: Assign IAM Permissions**
+
+### **3.1 Billing Account (for Budgets & Cost data)**
+
+```bash
+gcloud beta billing accounts add-iam-policy-binding ${BILLING_ACCOUNT_ID} \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/billing.viewer"
+```
+
+> **Enables:** Budgets, billing account metadata, cost data (via BigQuery export)
+
+### **3.2 Project-Level Roles**
+
+```bash
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/bigquery.dataViewer"
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/bigquery.jobUser"
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/monitoring.viewer"
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/recommender.computeViewer"
+```
+
+> **Enables:** BigQuery cost queries, CPU utilization metrics, rightsizing & idle resource recommendations.
+
+---
+
+## **Stage 4: Configure Billing Export to BigQuery**
+
+> **Required for real cost data.** Without this, the dashboard will show empty cost trends.
+
+### **4.1 Console Method (Recommended)**
+
+1. Go to **Billing** → **BigQuery Export**
+2. Click **Edit settings**
+3. Choose your project (`${PROJECT_ID}`) and dataset name `billing_export`
+4. Click **Save**
+
+### **4.2 CLI Alternative (if Console fails)**
+
+```bash
+bq mk --transfer_config \
+  --project_id=${PROJECT_ID} \
+  --data_source=billing \
+  --target_dataset=billing_export \
+  --display_name="Billing Export" \
+  --params='{"billing_account_id":"'${BILLING_ACCOUNT_ID}'"}'
+```
+
+> **Important:** After enabling, data appears within **24 hours**. The dashboard will show `[]` (empty) until then.
+
+---
+
+## **Stage 5: Verification**
+
+Run these commands to confirm permissions are correct.
+
+```bash
+# 1. Service account exists
+gcloud iam service-accounts list --filter="email:${SA_EMAIL}"
+
+# 2. Budgets API access (may return empty list if no budgets created yet)
+gcloud beta billing budgets list --billing-account=${BILLING_ACCOUNT_ID}
+
+# 3. Monitoring API access (may return empty array)
+gcloud beta monitoring time-series list \
+  --filter='metric.type="compute.googleapis.com/instance/cpu/utilization"' \
+  --interval='start=-PT1H' --format=json
+```
+
+---
+
+## **Stage 6: Pre-Deployment Checklist**
+
+- [ ] Service account created
+- [ ] IAM roles assigned
+- [ ] APIs enabled
+- [ ] BigQuery billing export configured
+
+**Next step:** Use the **VM deployment runbook** to create the VM and **attach this service account at creation time** (not after).
+
+> **Crucial:** Do not create the VM before this setup. The service account must be attached **during VM creation** to avoid manual reconfiguration.
+
+---
+
+## **Troubleshooting & Notes**
+
+| Issue | Likely Cause | Fix |
+|-------|--------------|-----|
+| `billing budgets list` returns empty | No budgets created yet | Create a budget in GCP Console → Billing → Budgets |
+| CPU utilization stays `[]` | VM just started or Monitoring API not enabled | Wait 5–10 minutes; verify API enabled (`gcloud services list --enabled`) |
+| Cost trends empty after 24h | BigQuery export not configured | Re‑run Stage 4 or check Billing → BigQuery Export settings |
+| Terraform fails on `google_billing_account_iam_member` | Your Terraform user lacks `billing.admin` | Run `gcloud billing accounts add-iam-policy-binding ... --role="roles/billing.admin"` for your user, or remove the billing IAM resource from Terraform |
+
+---
+
+## **Cleanup (Optional)**
+
+```bash
+# Remove IAM bindings
+gcloud projects remove-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/bigquery.dataViewer"
+
+# Delete service account
+gcloud iam service-accounts delete ${SA_EMAIL}
+
+# Unset variables
+unset PROJECT_ID BILLING_ACCOUNT_ID SA_EMAIL
+```
+
+---
+
+## **Key Takeaways**
+
+- **Create the service account first**, then attach it during VM creation.
+- **Use least privilege**; custom SA with only `billing.viewer` and project‑level read roles.
+- **Billing export takes up to 24 hours**. The dashboard will show no cost data until then.
+- **Budgets API is included in `billing.viewer`**. No extra role needed for read‑only access.
+
+---
+
+## **References**
+
+- [GCP Billing IAM roles](https://cloud.google.com/billing/docs/how-to/billing-access)
+- [BigQuery billing export setup](https://cloud.google.com/billing/docs/how-to/export-data-bigquery-setup)
+- [Cloud Monitoring metrics list](https://cloud.google.com/monitoring/api/metrics_gcp)
