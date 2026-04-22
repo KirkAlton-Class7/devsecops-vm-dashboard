@@ -1,63 +1,45 @@
 # Features and Roadmap
 
+
+## DevSecOps Mode
+
+**DevSecOps Mode (default view)** – A real-time, graphical dashboard of infrastructure health. Optimized for live system metrics and quick access to VM information.
+To enable, press `D` or click the **DevSecOps** button in the mode dropdown menu.
+
 ---
 
-## Features Menu
-
-### Overview (DevSecOps Mode)
+### Summary Cards
 
 * Four interactive summary cards:
-  * **CPU Usage** – current percentage with color‑coded health status
-  * **Memory Usage** – real‑time memory consumption
-  * **Disk Usage** – root partition utilisation
-  * **Estimated Cost** – heuristic, cloud‑specific running cost (approximate)
 
-* Each card updates every 10 seconds via the live API.
+  * **CPU Usage** – current percentage with color-coded health status
+  * **Memory Usage** – real-time memory consumption
+  * **Disk Usage** – root partition utilization
+  * **Estimated Cost** – heuristic, cloud-specific running cost (approximate)
 
-* **Cards are clickable**:
+* Each card updates every **10 seconds** via the live API.
+
+* **Cards are clickable:**
+
   * **CPU / Memory / Disk** → GCP Compute Engine instance details page
-  * **Estimated Cost** → GCP Billing overview for the project
-  * **Optimize button** (appears on the Cost card when a billing account ID is available) → opens the FinOps Hub for cost optimisation.
-
-### FinOps Dashboard (New!)
-
-Switch to **FinOps mode** via the mode toggle in the header. This unlocks:
-
-* **Daily Cost Trend** – last 10 days of actual cloud spend (from BigQuery billing export)
-* **Top Services by Cost** – breakdown of your biggest spend categories
-* **Budgets** – view your defined budgets with spent/forecast and threshold alerts
-* **CPU Utilization** – P95 CPU usage per VM (last hour) with rightsizing candidates
-* **Rightsizing Opportunities** – machine type recommendations with estimated monthly savings
-* **Idle Resources** – VMs and other assets with low usage
-* **Savings Summary** – realised and potential savings from recommendations
-
-All FinOps data is fetched from **real GCP APIs** (BigQuery, Cloud Monitoring, Recommender, Budgets).  
-*See the prerequisites section below for required IAM roles and API setup.*
+  * **Estimated Cost** → GCP Billing overview
+  * **Optimize button** *(appears when billing account ID is available)* → opens FinOps Hub for cost optimization
 
 ---
 
 ### Load
 
 * **System Load (1m)** – current load average
-* **Trend Chart** – bar graph of the last 10 load samples (each sample taken every 10 seconds)
-* **Detailed insights**:
-  * Peak load over the last 10 readings
+
+* **Trend Chart** – bar graph of the last 10 samples (10s interval)
+
+* **Detailed insights:**
+
+  * Peak load (last 10 readings)
   * Average load
-  * Color‑coded status (Normal, Elevated, High, Critical)
-* The chart automatically rescales to the peak load (capped at 5.0).
+  * Color-coded status: Normal / Elevated / High / Critical
 
----
-
-### Ambience
-
-Aesthetic and atmospheric widgets that add character to the dashboard:
-
-* **Featured Quote** – view inspirational quotes (refreshes every 10 seconds, sourced from `quotes.json`; GitHub‑synced every 10 minutes)
-* **Screensaver** – interactive particle background. Click to cycle through three modes:
-  * *Drift*: drifting cyan particles with connecting lines
-  * *Haze*: kinetic purple particles that randomly settle into one of three geometric quilt patterns
-  * *State*: white static particles that glow and snap to new positions every 8 seconds, with an imploding glow and subtle settle wiggle
-* **International Photo Gallery** – images from around the world, dynamically generated from the `/images` folder. Each image includes a title, location, and photographer credit.
+* Chart auto-rescales to peak load (capped at 5.0)
 
 ---
 
@@ -66,6 +48,7 @@ Aesthetic and atmospheric widgets that add character to the dashboard:
 Grouped into three compact cards:
 
 * **Identity**
+
   * Project ID
   * Instance ID
   * Instance Name
@@ -73,203 +56,266 @@ Grouped into three compact cards:
   * Machine Type
 
 * **Network**
+
   * VPC
   * Subnet
   * Internal IP
   * External IP
 
 * **Location**
+
   * Region
   * Zone
-  * Uptime (human‑readable)
+  * Uptime (human-readable)
   * Load average (5m)
 
-All fields are fetched from the cloud metadata service (with fallbacks) and update live.
+> All fields are fetched from the cloud metadata service (with fallbacks) and update live.
 
 ---
 
 ### System Resources
 
-A detailed widget split into three sections:
+A detailed widget with three sections:
 
 * **CPU**
+
   * Current usage (percentage bar)
-  * Number of cores and frequency (if available)
-  * **Live CPU Trend** – mini line chart updated every 10 seconds, showing the last 20 readings
+  * Core count + frequency (if available)
+  * **Live CPU Trend** – mini line chart (last 20 readings, 10s interval)
 
 * **Memory**
-  * Total, used, and free (in MB or GB)
+
+  * Total / Used / Free (MB or GB)
   * Usage bar
 
 * **Disk**
-  * Total, used, and available (in MB or GB)
+
+  * Total / Used / Available (MB or GB)
   * Usage bar
-
----
-
-### Featured Quote
-
-* Random quote displayed in the Ambience section.
-* **Bookmark quotes** – click the star icon to add a quote to your favourites list.
-* **Favourites list** – view and manage your saved quotes (stored in browser `localStorage`).
-* Quotes are refreshed every 10 seconds from the live API.
-
----
-
-### International Photo Gallery
-
-* Static images are scanned from the `/images` directory and displayed in a responsive grid.
-* Image metadata is sourced from `images.json` and saved locally.
-* Click the **info icon** on any image to see:
-  * Image title
-  * Location (city / country)
-* **Save favourites** – mark images you like (stored locally).
-* **Book flights** – the ✈️ button opens a new tab in Google Flights with a location pre‑filled (uses the image’s location metadata).
-* **Living info** – the 🏠 button triggers a Google search for “What is it really like to live in [location]?”
 
 ---
 
 ### Services
 
-* Displays the health status and performance of key system components:
-  * **nginx** – running / stopped
-  * **Python3** – installed / missing
-  * **Metadata Service** – reachable / unreachable
-  * **HTTP Service** – serving / not serving
-  * **Startup Script** – completed / pending
-  * **GitHub Quotes Sync** – successful / failed
-  * **Bootstrap Packages** – list of installed packages
-* **Cycle services** – use button or keyboard shortcut to show a custom number of services (3 → 30).
+Displays health and status of key system components:
+
+* **nginx** – running / stopped
+
+* **Python3** – installed / missing
+
+* **Metadata Service** – reachable / unreachable
+
+* **HTTP Service** – serving / not serving
+
+* **Startup Script** – completed / pending
+
+* **GitHub Quotes Sync** – successful / failed
+
+* **Bootstrap Packages** – installed packages list
+
+* **Cycle services** – adjust visible services (3 → 30) via button or shortcut
 
 ---
 
-### Cycle Application Logs
+### Application Logs
 
-* Displays the last **X** log entries (default 5, user‑configurable up to 30).
-* Each log entry shows:
-  * Time (HH:MM:SS)
-  * Log level (info, warning, error)
-  * Scope (system, metrics, quotes, nginx, security)
-  * Message
-* **Cycle logs** – adjust the number of displayed logs (5 → 30) via the button or keyboard shortcut.
+* Displays last **X** log entries (default: 5, configurable up to 30)
+
+Each entry includes:
+
+* Time (HH:MM:SS)
+
+* Level (info / warning / error)
+
+* Scope (system, metrics, quotes, nginx, security)
+
+* Message
+
+* **Cycle logs** – adjust log count (5 → 30)
 
 ---
 
-### Text Mode
+## Text Mode
 
-A minimalist, terminal‑style view of all the same information, optimised for keyboard navigation and quick copy‑paste.
+A minimalist, terminal-style view of DevSecOps data. Optimized for keyboard navigation and copy-paste workflows.
 
-#### How to Use
+To enable, press `T` or click **TEXT MODE** (top-right).
 
-1. Click the **TEXT MODE** button in the top‑right corner.
-2. The dashboard switches to a monospace layout showing:
-   * Identity, Overview, Network, Location
-   * Monitoring endpoints
-   * Services
-   * Application logs
-3. Press `Esc` or click the `[Esc] EXIT` link to return to the graphical dashboard.
+Displays:
 
-#### Keyboard Shortcuts
+* Identity, Overview, Network, Location
+* Monitoring endpoints
+* Services
+* Application logs
 
-| Key   | Action                                          |
-| ----- | ----------------------------------------------- |
-| `Esc` | Exit text mode                                  |
-| `C`   | Copy the entire dashboard snapshot to clipboard |
-| `R`   | Refresh the displayed data                      |
-| `H`   | Toggle help overlay                             |
-| `L`   | Cycle the log limit (5 → 10 → 20 → 30)          |
-| `S`   | Cycle the service limit (3 → 5 → 10 → 20 → 30)  |
+Exit with `Esc` or `[Esc] EXIT`.
+
+---
+
+### Keyboard Shortcuts
+
+| Key   | Action                                     |
+| ----- | ------------------------------------------ |
+| `Esc` | Exit text mode                             |
+| `C`   | Copy dashboard snapshot                    |
+| `R`   | Refresh data                               |
+| `H`   | Toggle help overlay                        |
+| `L`   | Cycle log limit (5 → 10 → 20 → 30)         |
+| `S`   | Cycle service limit (3 → 5 → 10 → 20 → 30) |
 
 > [!TIP]
-> All preferences (service limit, log limit, favourite quotes, favourite images) are saved in your browser’s `localStorage`. This data persists across modes and sessions.
-
+> Preferences (service limit, logs, favourites) are saved in `localStorage` and persist across sessions.
 
 ---
 
-### Monitoring Endpoints
+## FinOps Mode
 
-Quick access to the built‑in HTTP endpoints:
+**FinOps Mode** – A cost-optimization dashboard for cloud spend, budgets, and usage.
+To enable, press `F` or click the **FinOps** button.
 
-* **`/healthz`** – plain text health check (served by NGINX)
-* **`/metadata`** – JSON with instance metadata + health object (uptime, load average, RAM, disk)
-* **`/api/dashboard`** – live JSON data used by the DevSecOps frontend
-* **`/api/finops`** – live FinOps data (cost trends, budgets, utilisation, recommendations)
+---
 
-Each endpoint is displayed as a clickable link (relative URL) that opens in a new tab.
+### Core Widgets
+
+* **Total Cost (MTD)** – month-to-date spend (BigQuery)
+
+* **Forecast (EOM)** – projected end-of-month cost
+
+* **Potential Savings** – estimated savings from rightsizing
+
+* **CUD Coverage** – placeholder (coming soon)
+
+* **Daily Cost Trend** – last 10 days
+
+* **Top Services by Cost** – spend breakdown
+
+* **Budgets** – thresholds + alerts
+
+* **CPU Utilization** – P95 per VM (last hour)
+
+* **Rightsizing Opportunities** – machine recommendations
+
+* **Idle Resources** – underutilized assets
+
+* **Savings Summary** – realized + potential savings
+
+> **Note:** Data is sourced from GCP APIs (BigQuery, Monitoring, Recommender, Budgets).
+> Initial data population may be delayed (see below).
+
+---
+
+### FinOps Data Population Latency
+
+| Feature           | Latency        | Notes                                            |
+| ----------------- | -------------- | ------------------------------------------------ |
+| CPU utilization   | 5–10 minutes   | Monitoring API (1-min collection, 5-min queries) |
+| Cost trends       | ~24 hours      | BigQuery billing export (daily)                  |
+| Top services      | ~24 hours      | Same as cost trends                              |
+| Budgets           | Near real-time | API-based                                        |
+| Rightsizing       | 24–48 hours    | Requires usage history                           |
+| Idle resources    | 24–48 hours    | Same as above                                    |
+| Realized savings  | N/A            | Not implemented                                  |
+| Potential savings | 24–48 hours    | Derived from recommendations                     |
+
+> First-time billing export may take **up to 24 hours**.
+
+---
+
+## Ambience (Shared Feature)
+
+### Featured Quote
+
+* Random quote (refreshes every 10s)
+* ⭐ Bookmark quotes → saved locally
+* View/manage favourites via `localStorage`
+
+---
+
+### Screensaver
+
+Interactive particle background (click to cycle):
+
+* **Drift** – cyan particles + connecting lines
+* **Haze** – purple particles forming patterns
+* **State** – white particles with periodic repositioning
+
+---
+
+### International Photo Gallery
+
+* Images loaded from `/images` + `images.json`
+* Responsive grid layout
+
+Features:
+
+* ℹ️ View image metadata (title + location)
+* ⭐ Save favourites (local)
+* ✈️ Open Google Flights (pre-filled location)
+* 🏠 “Living info” Google search
+
+---
+
+## Monitoring Endpoints
+
+Quick access to built-in endpoints:
+
+* `/healthz` – plain text health check
+* `/metadata` – VM metadata + health JSON
+* `/api/dashboard` – DevSecOps data
+* `/api/finops` – FinOps data
+
+All endpoints are clickable (open in new tab).
 
 ---
 
 ## Endpoints (Quick Reference)
 
-| Endpoint         | Method | Description                                                                                        |
-| ---------------- | ------ | -------------------------------------------------------------------------------------------------- |
-| `/healthz`       | GET    | Returns `ok\n` (HTTP 200) – confirms NGINX is running.                                             |
-| `/metadata`      | GET    | JSON with VM identity, network details, and a `health` object.                                     |
-| `/api/dashboard` | GET    | Live DevSecOps dashboard data (CPU%, memory%, disk%, cost, quotes, logs, etc.).                    |
-| `/api/finops`    | GET    | Live FinOps data (cost trends, top services, budgets, CPU utilisation, recommendations, savings).  |
+| Endpoint         | Method | Description                |
+| ---------------- | ------ | -------------------------- |
+| `/healthz`       | GET    | Returns `ok` (NGINX check) |
+| `/metadata`      | GET    | VM + health JSON           |
+| `/api/dashboard` | GET    | DevSecOps data             |
+| `/api/finops`    | GET    | FinOps data                |
 
 ---
 
-### Example `/metadata` response (GCP)
+### Example `/metadata` Response (GCP)
 
-```json
-{
-  "STUDENT_NAME": "Kirk Alton",
-  "project_id": "kirk-devsecops-sandbox",
-  "instance_id": "1234567890123456789",
-  "instance_name": "vm-dashboard",
-  "hostname": "vm-dashboard.us-central1-a.c...",
-  "machine_type": "e2-medium",
-  "network": {
-    "vpc": "main",
-    "subnet": "private-subnet",
-    "internal_ip": "10.0.0.9",
-    "external_ip": "34.59.220.4"
-  },
-  "region": "us-central1",
-  "zone": "us-central1-a",
-  "startup_utc": "2025-04-17T19:21:15Z",
-  "uptime": "up 2 hours, 3 minutes",
-  "health": {
-    "uptime": "up 2 hours, 3 minutes",
-    "load_avg": "0.12 0.34 0.56",
-    "ram_mb": { "used": 512, "free": 3400, "total": 3912 },
-    "disk_root": { "size": "20G", "used": "2.3G", "avail": "17G", "use_pct": "12%" }
-  }
-}
-```
+*(unchanged)*
 
 ---
 
 ## Known Limitation — Clipboard (HTTP vs HTTPS)
 
-The copy feature **will not work over plain HTTP**.
+Clipboard API requires secure context.
 
-* `navigator.clipboard.writeText()` is **blocked by the browser** unless the page is served from:
-  * `https://`
-  * `http://localhost`
+**Works only on:**
 
-If your dashboard is accessed at `http://<public-ip>`, then:
-* `navigator.clipboard` may be `undefined`, or
-* the write operation will silently fail or throw an error
+* `https://`
+* `http://localhost`
 
-> [!IMPORTANT]
-> This is **not a bug in the dashboard**. It is a **browser‑enforced security restriction**.
+**Fails on:**
+
+* `http://<public-ip>`
+
+---
 
 ### Impact
 
-* Text Mode → **Copy (`C`) is unreliable or non‑functional on HTTP**
-* The rest of the dashboard works normally
+* Text Mode → Copy (`C`) unreliable on HTTP
+* Dashboard otherwise unaffected
 
-### Required Fix
+---
 
-Serve the dashboard over **HTTPS** (e.g., NGINX + Certbot).
+### Fix
 
-### Current Workaround
+Serve via **HTTPS** (NGINX + Certbot)
 
-The dashboard includes a fallback to `document.execCommand('copy')`. This works on HTTP but is deprecated and requires user interaction.
+---
 
+### Workaround
 
+Fallback to `document.execCommand('copy')` (deprecated, requires interaction)
 
 ---
 
@@ -277,35 +323,37 @@ The dashboard includes a fallback to `document.execCommand('copy')`. This works 
 
 ### Security
 
-- [ ] Enable HTTPS via Let's Encrypt + NGINX
-- [ ] Add optional self‑signed certificate mode for lab deployments
+* [ ] Enable HTTPS (Let’s Encrypt + NGINX)
+* [ ] Self-signed cert mode for labs
 
-### FinOps Enhancements
+### FinOps
 
-- [ ] Add CUD (committed use discount) coverage widget
-- [ ] Add “Forecast vs Budget” sparklines
-- [ ] Integrate Cloud Asset Inventory for idle resource detection
+* [ ] CUD coverage widget
+* [ ] Forecast vs Budget sparklines
+* [ ] Cloud Asset Inventory integration
 
-### Clipboard & UX Enhancements
+### Clipboard & UX
 
-- [ ] Improve fallback handling for HTTP environments
-- [ ] Add “Copy Snapshot” button (mouse users)
-- [ ] Add “View Snapshot” modal (manual copy option)
-- [ ] Add toast: *“Copy requires HTTPS — fallback used”*
+* [ ] Improve HTTP fallback
+* [ ] Add “Copy Snapshot” button
+* [ ] Add “View Snapshot” modal
+* [ ] Add HTTPS warning toast
 
-### Export Features
+### Export
 
-- [ ] Download snapshot as `.txt`
-- [ ] Download snapshot as `.json`
-- [ ] Add `/api/snapshot` endpoint for remote retrieval
+* [ ] `.txt` snapshot
+* [ ] `.json` snapshot
+* [ ] `/api/snapshot` endpoint
 
-### Future Improvements
+### Future
 
-- Add persistent storage for historical metrics.
-- Make the dashboard fully cloud‑agnostic with provider adapters.
+* Persistent historical metrics
+* Cloud-agnostic provider adapters
 
 ---
 
 ## License
 
-MIT license – free to use, modify, and distribute.
+MIT License – free to use, modify, and distribute.
+
+---
