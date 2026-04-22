@@ -386,7 +386,8 @@ def get_cost_trend(days=30):
     query = f"""
         SELECT DATE(usage_start_time) AS date, SUM(cost) AS total_cost
         FROM `{table}`
-        WHERE usage_start_time >= DATE_SUB(CURRENT_DATE(), INTERVAL {days} DAY)
+        WHERE DATE(usage_start_time) >= DATE_SUB(CURRENT_DATE(), INTERVAL {days} DAY)
+
         GROUP BY date ORDER BY date ASC
     """
     try:

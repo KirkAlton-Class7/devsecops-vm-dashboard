@@ -115,6 +115,10 @@ pip3 install --upgrade urllib3 requests
 log "Installing google-cloud-bigquery"
 pip3 install --upgrade google-cloud-bigquery
 
+# Upgrade Monitoring client library (fixes list_time_series aggregation error)
+log "Upgrading google-cloud-monitoring"
+pip3 install --upgrade google-cloud-monitoring
+
 # ---------------------------------
 # Install Monitoring Python library (required for CPU utilization)
 # ---------------------------------
