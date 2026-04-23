@@ -342,94 +342,75 @@ export default function FinOpsDashboard({
               )}
             </section>
           )}
-          <section
-            id="utilization"
-            className="grid grid-cols-1 gap-6 lg:grid-cols-2"
-          >
-            {data.utilization && data.utilization.length > 0 && (
-              <Card
-                title={
-                  <WidgetTitle icon={Gauge} tone="cyan">
-                    CPU Utilization
-                  </WidgetTitle>
-                }
-                subtitle="Top VMs • Last hour, P95"
-              >
-                <div className="mb-3 flex items-center justify-between px-1">
-                  <div className="text-xs text-slate-500">
-                    Showing {getDisplayText(cpuLimit, data.utilization.length)} VMs
+
+          {/* CPU Utilization – always visible, with placeholder when empty */}
+          <section id="utilization" className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card
+              title={<WidgetTitle icon={Gauge} tone="cyan">CPU Utilization</WidgetTitle>}
+              subtitle="Top VMs • Last hour, P95"
+            >
+              {data.utilization && data.utilization.length > 0 ? (
+                <>
+                  <div className="mb-3 flex items-center justify-between px-1">
+                    <div className="text-xs text-slate-500">
+                      Showing {getDisplayText(cpuLimit, data.utilization.length)} VMs
+                    </div>
+                    <CycleButton
+                      label="Cycle VMs"
+                      title="Cycle CPU utilization"
+                      onClick={() => setCpuLimit((current) => getNextLimit(current, data.utilization.length))}
+                    />
                   </div>
-
-                  <CycleButton
-                    label="Cycle VMs"
-                    title="Cycle CPU utilization"
-                    onClick={() =>
-                      setCpuLimit((current) =>
-                        getNextLimit(current, data.utilization.length)
-                      )
-                    }
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  {utilizationRows.map((vm, idx) => (
-                    <div
-                      key={`${vm.instance}-${idx}`}
-                      className="flex items-center justify-between gap-2 rounded-lg bg-white/5 p-2"
-                    >
-                      <div className="flex min-w-0 flex-1 items-center gap-3">
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 text-cyan-400">
-                          <Cpu className="h-4 w-4" />
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-white">
-                            {vm.instance}
-                          </p>
-
-                          <div className="mt-0.5 flex items-center gap-2">
-                            <span className="text-xs text-slate-400">
-                              P95 CPU:
-                            </span>
-
-                            <span className="font-mono text-xs text-cyan-400">
-                              {vm.cpuP95}%
-                            </span>
-
-                            {vm.recommendationMatch && (
-                              <span className="whitespace-nowrap rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-400">
-                                Rightsizing candidate
-                              </span>
-                            )}
+                  <div className="space-y-3">
+                    {utilizationRows.map((vm, idx) => (
+                      <div
+                        key={`${vm.instance}-${idx}`}
+                        className="flex items-center justify-between gap-2 rounded-lg bg-white/5 p-2"
+                      >
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 text-cyan-400">
+                            <Cpu className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-white">{vm.instance}</p>
+                            <div className="mt-0.5 flex items-center gap-2">
+                              <span className="text-xs text-slate-400">P95 CPU:</span>
+                              <span className="font-mono text-xs text-cyan-400">{vm.cpuP95}%</span>
+                              {vm.recommendationMatch && (
+                                <span className="whitespace-nowrap rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-400">
+                                  Rightsizing candidate
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        <div className="w-24 flex-shrink-0">
+                          <UtilizationChart
+                            data={[
+                              vm.cpuP95 * 0.8,
+                              vm.cpuP95 * 0.9,
+                              vm.cpuP95,
+                              vm.cpuP95 * 1.1,
+                              vm.cpuP95,
+                            ]}
+                            unit="%"
+                            height={32}
+                          />
+                        </div>
                       </div>
-
-                      <div className="w-24 flex-shrink-0">
-                        <UtilizationChart
-                          data={[
-                            vm.cpuP95 * 0.8,
-                            vm.cpuP95 * 0.9,
-                            vm.cpuP95,
-                            vm.cpuP95 * 1.1,
-                            vm.cpuP95,
-                          ]}
-                          unit="%"
-                          height={32}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="py-8 text-center text-slate-400">
+                  <p>No CPU utilization data available yet</p>
+                  <p className="text-xs mt-1">Metrics will appear 5‑10 minutes after a VM starts.</p>
                 </div>
-              </Card>
-            )}
+              )}
+            </Card>
 
             <Card
-              title={
-                <WidgetTitle icon={Sparkles} tone="emerald">
-                  Rightsizing Opportunities
-                </WidgetTitle>
-              }
+              title={<WidgetTitle icon={Sparkles} tone="emerald">Rightsizing Opportunities</WidgetTitle>}
               subtitle="Estimated monthly savings"
             >
               <div className="mb-3 flex items-center justify-between px-1">
@@ -441,7 +422,6 @@ export default function FinOpsDashboard({
                   )}{" "}
                   recommendations
                 </div>
-
                 <CycleButton
                   label="Cycle Rightsizing"
                   title="Cycle rightsizing recommendations"
@@ -452,17 +432,11 @@ export default function FinOpsDashboard({
                   }
                 />
               </div>
-
               <div className="space-y-2">
                 {recommendationRows.map((rec, idx) => (
-                  <RecommendationItem
-                    key={`${rec.resource}-${idx}`}
-                    {...rec}
-                  />
+                  <RecommendationItem key={`${rec.resource}-${idx}`} {...rec} />
                 ))}
-
-                {(!data.recommendations ||
-                  data.recommendations.length === 0) && (
+                {(!data.recommendations || data.recommendations.length === 0) && (
                   <div className="py-8 text-center text-slate-400">
                     No recommendations available
                   </div>
