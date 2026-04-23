@@ -21,7 +21,7 @@ const icons = {
   Network: Network,
   Cost: DollarSign,
   "Total Cost (MTD)": DollarSign,
-  "Forecast (EOM)": TrendingUp,   // or Calendar
+  "Forecast (EOM)": TrendingUp,
   "Potential Savings": PiggyBank,
   "CUD Coverage": Shield,
   default: Zap
@@ -32,19 +32,37 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
   const isWarning = status === "warning";
 
   const getClickUrl = () => {
+    // --- FinOps summary cards ---
+    if (label === "Total Cost (MTD)" || label === "Forecast (EOM)") {
+      if (projectId) {
+        return `https://console.cloud.google.com/billing?project=${projectId}`;
+      }
+      return "https://console.cloud.google.com/billing";
+    }
+    if (label === "Potential Savings") {
+      if (projectId) {
+        return `https://console.cloud.google.com/recommender?project=${projectId}`;
+      }
+      return "https://console.cloud.google.com/recommender";
+    }
+    if (label === "CUD Coverage") {
+      if (projectId) {
+        return `https://console.cloud.google.com/billing/committed-use-discounts?project=${projectId}`;
+      }
+      return "https://console.cloud.google.com/billing";
+    }
+    // --- Existing DevSecOps cards ---
     if (label === "Cost" || label === "Estimated Cost") {
       if (projectId) {
         return `https://console.cloud.google.com/billing?project=${projectId}`;
-      } else {
-        return "https://console.cloud.google.com/billing/projects";
       }
+      return "https://console.cloud.google.com/billing/projects";
     }
     if (label === "CPU" || label === "Memory" || label === "Disk") {
       if (instanceName && zone && projectId) {
         return `https://console.cloud.google.com/compute/instancesDetail/zones/${zone}/instances/${instanceName}?project=${projectId}`;
-      } else {
-        return "https://console.cloud.google.com/compute/";
       }
+      return "https://console.cloud.google.com/compute/";
     }
     return null;
   };
@@ -56,6 +74,16 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
 
   const handleOptimizeClick = (e) => {
     e.stopPropagation();
+    // For Potential Savings, open Recommender page
+    if (label === "Potential Savings") {
+      if (projectId) {
+        window.open(`https://console.cloud.google.com/recommender?project=${projectId}`, "_blank");
+      } else {
+        window.open("https://console.cloud.google.com/recommender", "_blank");
+      }
+      return;
+    }
+    // For Cost / Estimated Cost, open FinOps Hub
     if (billingAccountId && projectId) {
       window.open(`https://console.cloud.google.com/billing/${billingAccountId}/optimize?project=${projectId}`, "_blank");
     } else if (projectId) {
@@ -92,7 +120,7 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
     ? "rgba(251, 146, 60, 0.8)"
     : "rgba(6, 182, 212, 0.8)";
 
-  const showOptimize = (label === "Cost" || label === "Estimated Cost") && billingAccountId;
+  const showOptimize = (label === "Cost" || label === "Estimated Cost" || label === "Potential Savings") && billingAccountId;
 
   return (
     <motion.div
@@ -104,7 +132,7 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
       onClick={handleClick}
     >
       <div className="relative p-6 z-10">
-        {/* Top row: icon + status pill – reduced margin when optimize button is shown */}
+        {/* Top row: icon + status pill */}
         <div className={`flex items-start justify-between ${showOptimize ? 'mb-2' : 'mb-4'}`}>
           <motion.div 
             className={`p-3 rounded-xl bg-white/5 backdrop-blur-sm border ${getBorderColor()}`}
@@ -125,7 +153,7 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
           </motion.div>
         </div>
 
-        {/* Optimize button – directly under the status pill */}
+        {/* Optimize button – for Cost or Potential Savings */}
         {showOptimize && (
           <div className="flex justify-end mb-4">
             <button
@@ -146,7 +174,7 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
           <p className="text-sm text-slate-400 font-medium tracking-wide uppercase">{label}</p>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar (only for DevSecOps cards) */}
         {percentage !== null && (
           <div className="mt-4">
             <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
@@ -169,7 +197,7 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
           </div>
         )}
         
-        {/* Network/Cost indicator */}
+        {/* Active indicator for non‑percentage cards */}
         {!percentage && (
           <div className="mt-4">
             <div className="flex items-center gap-2">

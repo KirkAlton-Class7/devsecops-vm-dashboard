@@ -37,7 +37,8 @@ export default function CostTrendChart() {
   // Fetch immediately and then every 60 seconds (cost data changes slowly)
   useEffect(() => {
     fetchCostData();
-    const interval = setInterval(fetchCostData, 60000);
+    const interval = setInterval(fetchCostData, 3600000); // 1 hour
+
     return () => clearInterval(interval);
   }, []);
 

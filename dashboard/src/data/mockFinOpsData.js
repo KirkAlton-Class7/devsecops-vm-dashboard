@@ -146,4 +146,10 @@ export const mockFinOpsData = {
 
   realizedSavings: 15.3,
   potentialSavings: 67,
+
+  // 👇 Added identity for mock data (so Optimize button appears)
+  identity: {
+    project: "mock-project-123",
+    billingAccountId: "mock-billing-id"
+  }
 };
