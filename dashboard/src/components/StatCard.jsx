@@ -9,9 +9,9 @@ import {
   Zap,
   DollarSign,
   Sparkles,
-  Calendar,        // optional for Forecast
-  PiggyBank,       // for Potential Savings
-  Shield           // for CUD Coverage
+  Calendar,
+  PiggyBank,
+  Shield
 } from "lucide-react";
 
 const icons = {
@@ -32,30 +32,22 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
   const isWarning = status === "warning";
 
   const getClickUrl = () => {
-    // --- FinOps summary cards ---
+    // FinOps summary cards
     if (label === "Total Cost (MTD)" || label === "Forecast (EOM)") {
-      if (projectId) {
-        return `https://console.cloud.google.com/billing?project=${projectId}`;
-      }
+      if (projectId) return `https://console.cloud.google.com/billing?project=${projectId}`;
       return "https://console.cloud.google.com/billing";
     }
     if (label === "Potential Savings") {
-      if (projectId) {
-        return `https://console.cloud.google.com/recommender?project=${projectId}`;
-      }
+      if (projectId) return `https://console.cloud.google.com/recommender?project=${projectId}`;
       return "https://console.cloud.google.com/recommender";
     }
     if (label === "CUD Coverage") {
-      if (projectId) {
-        return `https://console.cloud.google.com/billing/committed-use-discounts?project=${projectId}`;
-      }
+      if (projectId) return `https://console.cloud.google.com/billing/committed-use-discounts?project=${projectId}`;
       return "https://console.cloud.google.com/billing";
     }
-    // --- Existing DevSecOps cards ---
+    // DevSecOps cards
     if (label === "Cost" || label === "Estimated Cost") {
-      if (projectId) {
-        return `https://console.cloud.google.com/billing?project=${projectId}`;
-      }
+      if (projectId) return `https://console.cloud.google.com/billing?project=${projectId}`;
       return "https://console.cloud.google.com/billing/projects";
     }
     if (label === "CPU" || label === "Memory" || label === "Disk") {
@@ -83,7 +75,7 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
       }
       return;
     }
-    // For Cost / Estimated Cost, open FinOps Hub
+    // For Cost / Estimated Cost, open FinOps Hub (kept for completeness, but button won't appear)
     if (billingAccountId && projectId) {
       window.open(`https://console.cloud.google.com/billing/${billingAccountId}/optimize?project=${projectId}`, "_blank");
     } else if (projectId) {
@@ -120,7 +112,8 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
     ? "rgba(251, 146, 60, 0.8)"
     : "rgba(6, 182, 212, 0.8)";
 
-  const showOptimize = (label === "Cost" || label === "Estimated Cost" || label === "Potential Savings") && billingAccountId;
+  // Optimize button appears ONLY on "Potential Savings" (FinOps dashboard)
+  const showOptimize = label === "Potential Savings" && billingAccountId;
 
   return (
     <motion.div
@@ -153,7 +146,7 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
           </motion.div>
         </div>
 
-        {/* Optimize button – for Cost or Potential Savings */}
+        {/* Optimize button (only for Potential Savings) */}
         {showOptimize && (
           <div className="flex justify-end mb-4">
             <button

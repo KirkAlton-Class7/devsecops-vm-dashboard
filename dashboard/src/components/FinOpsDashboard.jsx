@@ -220,7 +220,8 @@ export default function FinOpsDashboard({
                 {...card}
                 instanceName=""
                 zone=""
-                projectId=""
+                projectId={data.identity?.project || ""}
+                billingAccountId={data.identity?.billingAccountId || ""}
               />
             ))}
           </section>

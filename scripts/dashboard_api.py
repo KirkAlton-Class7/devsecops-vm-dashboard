@@ -373,7 +373,7 @@ def get_billing_table():
     dataset_ref = client.dataset(dataset_name, project=project_id)
     tables = list(client.list_tables(dataset_ref))
     for table in tables:
-        if "gcp_billing_export" in table.table_id:
+        if "gcp_billing_export_v1_" in table.table_id:
             return f"{project_id}.{dataset_name}.{table.table_id}"
     return None
 
