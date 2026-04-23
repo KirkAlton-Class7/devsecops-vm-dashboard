@@ -18,7 +18,7 @@
 
 resource "google_billing_budget" "daily_budget" {
   billing_account = "01BB2F-8195CD-645BC0" # Replace with your billing account ID
-  display_name    = "Daily Budget (Simulated)"
+  display_name    = "Daily Budget - ${locals.project_name}"
 
   lifecycle {
     prevent_destroy = true
@@ -53,7 +53,7 @@ resource "google_billing_budget" "daily_budget" {
 
 resource "google_billing_budget" "compute_budget" {
   billing_account = "01BB2F-8195CD-645BC0" # Replace with your billing account ID
-  display_name    = "Compute Budget"
+  display_name    = "Compute Budget - ${locals.project_name}"
 
   lifecycle {
     prevent_destroy = true
@@ -96,7 +96,7 @@ resource "google_billing_budget" "compute_budget" {
 
 resource "google_billing_budget" "bigquery_budget" {
   billing_account = "01BB2F-8195CD-645BC0" # Replace with your billing account ID
-  display_name    = "BigQuery Budget"
+  display_name    = "BigQuery Budget - ${locals.project_name}"
 
   lifecycle {
     prevent_destroy = true
@@ -135,7 +135,7 @@ resource "google_billing_budget" "bigquery_budget" {
 
 resource "google_billing_budget" "network_budget" {
   billing_account = "01BB2F-8195CD-645BC0" # Replace with your billing account ID
-  display_name    = "Network Budget"
+  display_name    = "Network Budget - ${locals.project_name}"
 
   lifecycle {
     prevent_destroy = true
