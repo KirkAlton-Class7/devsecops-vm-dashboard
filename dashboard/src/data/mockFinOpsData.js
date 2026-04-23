@@ -28,8 +28,25 @@ export const mockFinOpsData = {
     { label: "CUD Coverage", value: "68%", status: "healthy" },
   ],
 
+  // 30-day cost trend (March 24 – April 22)
   costTrend: [
-    { date: "Apr 9", value: 12.3 },
+    { date: "Mar 24", value: 8.2 },
+    { date: "Mar 25", value: 9.5 },
+    { date: "Mar 26", value: 7.8 },
+    { date: "Mar 27", value: 10.1 },
+    { date: "Mar 28", value: 12.3 },
+    { date: "Mar 29", value: 11.4 },
+    { date: "Mar 30", value: 9.9 },
+    { date: "Mar 31", value: 10.5 },
+    { date: "Apr 1",  value: 11.2 },
+    { date: "Apr 2",  value: 10.8 },
+    { date: "Apr 3",  value: 9.7 },
+    { date: "Apr 4",  value: 12.0 },
+    { date: "Apr 5",  value: 13.4 },
+    { date: "Apr 6",  value: 11.9 },
+    { date: "Apr 7",  value: 10.3 },
+    { date: "Apr 8",  value: 12.5 },
+    { date: "Apr 9",  value: 12.3 },
     { date: "Apr 10", value: 11.8 },
     { date: "Apr 11", value: 13.1 },
     { date: "Apr 12", value: 10.5 },
@@ -39,6 +56,10 @@ export const mockFinOpsData = {
     { date: "Apr 16", value: 12.1 },
     { date: "Apr 17", value: 11.5 },
     { date: "Apr 18", value: 12.7 },
+    { date: "Apr 19", value: 14.2 },  // spike
+    { date: "Apr 20", value: 13.8 },
+    { date: "Apr 21", value: 12.6 },
+    { date: "Apr 22", value: 13.0 },
   ],
 
   topServices: [
@@ -88,6 +109,27 @@ export const mockFinOpsData = {
       forecast: 520,
       thresholds: [0.5, 0.8, 0.9],
     },
+    {
+      name: "Networking budget",
+      amount: 250,
+      spent: 120,
+      forecast: 200,
+      thresholds: [0.5, 0.8, 0.9],
+    },
+    {
+      name: "Storage budget",
+      amount: 300,
+      spent: 210,
+      forecast: 290,
+      thresholds: [0.5, 0.8, 0.9],
+    },
+    {
+      name: "AI/ML budget",
+      amount: 800,
+      spent: 350,
+      forecast: 500,
+      thresholds: [0.5, 0.8, 0.9],
+    },
   ],
 
   idleResources: [
@@ -115,6 +157,62 @@ export const mockFinOpsData = {
       cpu: "N/A",
       recommendation: "Delete",
     },
+    {
+      name: "staging-static-ip",
+      type: "External IP",
+      scope: "network",
+      status: "warning",
+      cpu: "N/A",
+      recommendation: "Attach or release",
+    },
+    {
+      name: "legacy-backup-jan",
+      type: "Snapshot",
+      scope: "storage",
+      status: "warning",
+      cpu: "N/A",
+      recommendation: "Move to archive or delete",
+    },
+    {
+      name: "tmp-build-bucket",
+      type: "Cloud Storage",
+      scope: "storage",
+      status: "warning",
+      cpu: "N/A",
+      recommendation: "Apply lifecycle policy",
+    },
+    {
+      name: "orphaned-disk-01",
+      type: "Persistent Disk",
+      scope: "storage",
+      status: "stopped",
+      cpu: "N/A",
+      recommendation: "Detach and delete",
+    },
+    {
+      name: "test-sql-replica",
+      type: "Cloud SQL",
+      scope: "database",
+      status: "warning",
+      cpu: "3%",
+      recommendation: "Stop replica during idle windows",
+    },
+    {
+      name: "unused-nat-gateway",
+      type: "Cloud NAT",
+      scope: "network",
+      status: "warning",
+      cpu: "N/A",
+      recommendation: "Remove unused gateway",
+    },
+    {
+      name: "debug-log-sink",
+      type: "Logging Sink",
+      scope: "system",
+      status: "warning",
+      cpu: "N/A",
+      recommendation: "Disable noisy export",
+    },
   ],
 
   recommendations: [
@@ -132,11 +230,63 @@ export const mockFinOpsData = {
       impact: "MEDIUM",
       actionUrl: "https://console.cloud.google.com/compute/instances",
     },
+    {
+      resource: "analytics-worker-01",
+      description: "Move batch job to scheduled Cloud Run task",
+      monthlySavings: 38,
+      impact: "HIGH",
+      actionUrl: "https://console.cloud.google.com/run",
+    },
+    {
+      resource: "staging-cluster",
+      description: "Scale node pool from 3 nodes to 1 off-hours",
+      monthlySavings: 64,
+      impact: "HIGH",
+      actionUrl: "https://console.cloud.google.com/kubernetes/list",
+    },
+    {
+      resource: "tmp-build-bucket",
+      description: "Add 14-day lifecycle rule for temporary artifacts",
+      monthlySavings: 12,
+      impact: "LOW",
+      actionUrl: "https://console.cloud.google.com/storage/browser",
+    },
+    {
+      resource: "cloud-logging",
+      description: "Reduce debug log retention from 30 days to 7 days",
+      monthlySavings: 18,
+      impact: "MEDIUM",
+      actionUrl: "https://console.cloud.google.com/logs/storage",
+    },
+    {
+      resource: "unused-ip-1",
+      description: "Release unattached external IP address",
+      monthlySavings: 7,
+      impact: "LOW",
+      actionUrl: "https://console.cloud.google.com/networking/addresses",
+    },
+    {
+      resource: "test-sql-replica",
+      description: "Stop non-production replica outside testing windows",
+      monthlySavings: 31,
+      impact: "MEDIUM",
+      actionUrl: "https://console.cloud.google.com/sql/instances",
+    },
   ],
 
   utilization: [
     { instance: "db-server", cpuP95: 12.5, recommendationMatch: true },
     { instance: "web-server-01", cpuP95: 35.2, recommendationMatch: false },
+    { instance: "analytics-worker-01", cpuP95: 9.8, recommendationMatch: true },
+    { instance: "qa-runner-02", cpuP95: 4.1, recommendationMatch: true },
+    { instance: "batch-worker-old", cpuP95: 1.7, recommendationMatch: true },
+    { instance: "api-gateway-01", cpuP95: 42.6, recommendationMatch: false },
+    { instance: "cache-node-01", cpuP95: 18.4, recommendationMatch: true },
+    { instance: "staging-node-01", cpuP95: 7.9, recommendationMatch: true },
+    { instance: "reporting-vm", cpuP95: 24.3, recommendationMatch: false },
+    { instance: "test-sql-replica", cpuP95: 3.4, recommendationMatch: true },
+    { instance: "build-runner-01", cpuP95: 28.8, recommendationMatch: false },
+    { instance: "worker-pool-spot-01", cpuP95: 15.6, recommendationMatch: true },
   ],
 
   quote: {
@@ -147,9 +297,9 @@ export const mockFinOpsData = {
   realizedSavings: 15.3,
   potentialSavings: 67,
 
-  // 👇 Added identity for mock data (so Optimize button appears)
+  // Identity for Optimize button
   identity: {
     project: "mock-project-123",
     billingAccountId: "mock-billing-id"
-  }
+  },
 };

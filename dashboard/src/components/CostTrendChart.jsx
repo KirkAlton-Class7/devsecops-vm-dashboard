@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import { DollarSign } from "lucide-react";
 import Card from "./Card";
 
-export default function CostTrendChart({ title = "Daily Cost Trend" }) {
-  const [historicalCost, setHistoricalCost] = useState([]); // Start empty
+export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget = 10 }) {
+  const [historicalCost, setHistoricalCost] = useState([]);
   const [currentCost, setCurrentCost] = useState("0.00");
   const [maxCost, setMaxCost] = useState(10.0);
   const [hasData, setHasData] = useState(false);
@@ -20,7 +20,6 @@ export default function CostTrendChart({ title = "Daily Cost Trend" }) {
           const latestCost = costValues[costValues.length - 1];
           setCurrentCost(latestCost.toFixed(2));
           
-          // Take the last 10 values from the API response
           const lastTen = costValues.slice(-10);
           setHistoricalCost(lastTen);
           const peak = Math.max(...lastTen, 1.0);
@@ -38,11 +37,33 @@ export default function CostTrendChart({ title = "Daily Cost Trend" }) {
 
   useEffect(() => {
     fetchCostData();
-    const interval = setInterval(fetchCostData, 3600000); // 1 hour
+    const interval = setInterval(fetchCostData, 3600000);
     return () => clearInterval(interval);
   }, []);
 
-  // If no real data, show a placeholder message
+  // Budget‑based helpers
+  const getCostStatus = (cost, budget) => {
+    if (!budget || budget <= 0) return "Low";
+    const ratio = cost / budget;
+    if (ratio < 0.5) return "Low";
+    if (ratio < 0.8) return "Moderate";
+    if (ratio < 1.0) return "High";
+    return "Critical";
+  };
+
+  const getCostColor = (cost, budget) => {
+    const status = getCostStatus(cost, budget);
+    switch (status) {
+      case "Low": return "from-emerald-500 to-cyan-500";
+      case "Moderate": return "from-yellow-500 to-amber-500";
+      case "High": return "from-orange-500 to-red-500";
+      case "Critical": return "from-red-500 to-rose-600";
+      default: return "from-emerald-500 to-cyan-500";
+    }
+  };
+
+  const getStatusText = (cost, budget) => getCostStatus(cost, budget);
+
   if (!hasData) {
     return (
       <Card title={title} subtitle="Cost data will appear once BigQuery export runs">
@@ -55,27 +76,9 @@ export default function CostTrendChart({ title = "Daily Cost Trend" }) {
     );
   }
 
-  // Helper functions
-  const getCostStatus = (cost) => {
-    if (cost < 5) return "healthy";
-    if (cost < 10) return "moderate";
-    if (cost < 20) return "warning";
-    return "critical";
-  };
-
-  const getCostColor = (cost) => {
-    if (cost < 5) return "from-emerald-500 to-cyan-500";
-    if (cost < 10) return "from-yellow-500 to-amber-500";
-    if (cost < 20) return "from-orange-500 to-red-500";
-    return "from-red-500 to-rose-600";
-  };
-
-  const getStatusText = (cost) => {
-    if (cost < 5) return "Low";
-    if (cost < 10) return "Moderate";
-    if (cost < 20) return "High";
-    return "Critical";
-  };
+  const currentCostNum = parseFloat(currentCost);
+  const currentStatus = getCostStatus(currentCostNum, dailyBudget);
+  const currentColor = getCostColor(currentCostNum, dailyBudget);
 
   return (
     <motion.div
@@ -96,8 +99,12 @@ export default function CostTrendChart({ title = "Daily Cost Trend" }) {
             </div>
             <div className="text-right">
               <p className="text-2xl font-mono font-bold text-white">${currentCost}</p>
-              <p className={`text-xs ${getCostStatus(parseFloat(currentCost)) === 'healthy' ? 'text-emerald-400' : getCostStatus(parseFloat(currentCost)) === 'moderate' ? 'text-yellow-400' : 'text-red-400'}`}>
-                {getStatusText(parseFloat(currentCost))}
+              <p className={`text-xs ${
+                currentStatus === "Low" ? "text-emerald-400" :
+                currentStatus === "Moderate" ? "text-yellow-400" :
+                currentStatus === "High" ? "text-orange-400" : "text-red-400"
+              }`}>
+                {currentStatus}
               </p>
             </div>
           </div>
@@ -105,18 +112,17 @@ export default function CostTrendChart({ title = "Daily Cost Trend" }) {
           {/* Bars container */}
           <div className="flex items-end gap-1.5 h-48 mt-4">
             {historicalCost.map((value, index) => {
-              const readingsAgo = historicalCost.length - 1 - index;
-              const daysAgo = readingsAgo;
-              let timeLabel = daysAgo === 0 ? "Today" : `${daysAgo}d ago`;
-              
+              const daysAgo = historicalCost.length - 1 - index;
+              const timeLabel = daysAgo === 0 ? "Today" : `${daysAgo}d ago`;
               const barHeightPercent = (value / maxCost) * 100;
               const barHeight = `${Math.min(barHeightPercent, 100)}%`;
+              const barColor = getCostColor(value, dailyBudget);
               
               return (
                 <div key={index} className="flex-1 flex flex-col items-center gap-1 h-full">
                   <div className="relative w-full flex-1 flex items-end" style={{ height: 'calc(100% - 32px)' }}>
                     <motion.div
-                      className={`w-full bg-gradient-to-t ${getCostColor(value)} rounded-t-md cursor-pointer group relative`}
+                      className={`w-full bg-gradient-to-t ${barColor} rounded-t-md cursor-pointer group relative`}
                       style={{ height: barHeight, minHeight: value > 0 ? '4px' : '0px' }}
                       initial={{ height: 0 }}
                       animate={{ height: barHeight }}
@@ -143,26 +149,29 @@ export default function CostTrendChart({ title = "Daily Cost Trend" }) {
             <span>${maxCost.toFixed(1)}</span>
           </div>
           
-          {/* Cost Explanation */}
+          {/* Budget‑based explanation (dynamic) */}
           <div className="mt-2 pt-2 border-t border-white/10">
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-                <span className="text-slate-400">&lt; $5 = Low</span>
+                <span className="text-slate-400">&lt; 50% of budget = Low</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-                <span className="text-slate-400">$5 - $10 = Moderate</span>
+                <span className="text-slate-400">50% – 80% = Moderate</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                <span className="text-slate-400">$10 - $20 = High</span>
+                <span className="text-slate-400">80% – 100% = High</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <span className="text-slate-400">&gt; $20 = Critical</span>
+                <span className="text-slate-400">&gt; 100% = Critical</span>
               </div>
             </div>
+            <p className="text-[10px] text-slate-500 mt-2 text-center">
+              Daily budget: ${dailyBudget.toFixed(2)}
+            </p>
           </div>
           
           {/* Stats */}

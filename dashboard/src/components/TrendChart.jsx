@@ -69,7 +69,7 @@ export default function CostTrendChart() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card title="Daily Cost Trend" subtitle="Last 10 days • Cost in USD">
+      <Card title="Daily Cost Trend" subtitle="Last 10 days • Based on Daily Budget (USD)">
         <div className="space-y-4">
           {/* Current Cost Indicator */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">

@@ -17,6 +17,8 @@ export default function Header({
   currentMode = "standard",
   onModeChange,
   flashMode = false,
+  dailyBudget = 10,
+  onDailyBudgetChange,
 }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showModeMenu, setShowModeMenu] = useState(false);
@@ -25,21 +27,27 @@ export default function Header({
   const flashTimeoutRef = useRef(null);
   const isFlashingRef = useRef(false);
 
+  // Local state for budget input (string, to avoid parsing glitches)
+  const [budgetInputValue, setBudgetInputValue] = useState(String(dailyBudget));
+  // Flash state for the Update button
+  const [isUpdateFlashing, setIsUpdateFlashing] = useState(false);
+  const updateFlashTimeoutRef = useRef(null);
+
+  // Sync local input when dailyBudget prop changes (e.g., from localStorage on initial load)
+  useEffect(() => {
+    setBudgetInputValue(String(dailyBudget));
+  }, [dailyBudget]);
+
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
-
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     if (flashMode && !isFlashingRef.current) {
-      if (flashTimeoutRef.current) {
-        clearTimeout(flashTimeoutRef.current);
-      }
-
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
       isFlashingRef.current = true;
       setIsFlashing(true);
-
       flashTimeoutRef.current = setTimeout(() => {
         setIsFlashing(false);
         isFlashingRef.current = false;
@@ -73,10 +81,25 @@ export default function Header({
 
   const handleModeSelect = (mode) => {
     setShowModeMenu(false);
+    if (onModeChange) onModeChange(mode);
+  };
 
-    if (onModeChange) {
-      onModeChange(mode);
-    }
+  const handleBudgetUpdate = () => {
+    const raw = budgetInputValue.trim();
+    const numeric = raw === "" ? 0 : parseFloat(raw);
+    const finalValue = isNaN(numeric) ? 0 : numeric;
+    if (onDailyBudgetChange) onDailyBudgetChange(finalValue);
+    
+    // Flash the Update button
+    if (updateFlashTimeoutRef.current) clearTimeout(updateFlashTimeoutRef.current);
+    setIsUpdateFlashing(true);
+    updateFlashTimeoutRef.current = setTimeout(() => {
+      setIsUpdateFlashing(false);
+    }, 200);
+  };
+
+  const handleBudgetInputChange = (e) => {
+    setBudgetInputValue(e.target.value);
   };
 
   return (
@@ -110,11 +133,11 @@ export default function Header({
                 {appName}
               </p>
             </div>
-
             <p className="text-xs text-slate-400 mt-1">{tagline}</p>
           </motion.div>
 
           <div className="flex items-center gap-2 lg:gap-4">
+            {/* Date (hidden on small screens) */}
             <motion.div
               className="hidden md:flex items-center gap-2 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-white/5 backdrop-blur-sm border border-white/10"
               whileHover={{ scale: 1.05 }}
@@ -122,6 +145,7 @@ export default function Header({
               <span className="text-xs text-slate-400">{formattedDate}</span>
             </motion.div>
 
+            {/* Time */}
             <motion.div
               className="hidden sm:flex items-center gap-2 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-white/5 backdrop-blur-sm border border-white/10"
               whileHover={{ scale: 1.05 }}
@@ -132,26 +156,47 @@ export default function Header({
               </span>
             </motion.div>
 
+            {/* Uptime (optional) */}
             {uptime && (
               <motion.div
                 className="flex items-center gap-2 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30"
                 whileHover={{ scale: 1.05 }}
               >
                 <Activity className="w-3 h-3 lg:w-4 lg:h-4 text-emerald-400 animate-pulse" />
-
                 <span className="text-xs lg:text-sm text-slate-300 hidden sm:inline">
-                  Uptime:{" "}
-                  <span className="font-medium text-emerald-400">
-                    {uptime}
-                  </span>
+                  Uptime: <span className="font-medium text-emerald-400">{uptime}</span>
                 </span>
-
                 <span className="text-xs lg:text-sm text-slate-300 sm:hidden">
                   {uptime}
                 </span>
               </motion.div>
             )}
 
+            {/* Daily Budget – only in FinOps mode */}
+            {currentMode === "finops" && (
+              <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
+                <span className="text-xs text-slate-400">Daily Budget (USD):</span>
+                <input
+                  type="text"
+                  value={budgetInputValue}
+                  onChange={handleBudgetInputChange}
+                  className="w-20 px-2 py-0.5 text-sm bg-slate-800 border border-slate-700 rounded text-white focus:outline-none focus:border-cyan-500"
+                  placeholder="0"
+                />
+                <button
+                  onClick={handleBudgetUpdate}
+                  className={`px-2 py-0.5 text-xs rounded transition-all ${
+                    isUpdateFlashing
+                      ? "bg-cyan-500/30 text-white shadow-[0_0_8px_cyan] border-cyan-400"
+                      : "border border-cyan-500/50 text-cyan-400 hover:text-cyan-300 hover:border-cyan-400"
+                  }`}
+                >
+                  Update
+                </button>
+              </div>
+            )}
+
+            {/* Mode button */}
             <div className="relative">
               <motion.button
                 ref={modeButtonRef}
@@ -163,9 +208,6 @@ export default function Header({
                     ? "shadow-[0_0_12px_theme(colors.cyan.400)] border-cyan-400/60"
                     : ""
                 }`}
-                style={{
-                  transition: "box-shadow 0.1s ease, border-color 0.1s ease",
-                }}
               >
                 <currentModeOption.icon className="w-3 h-3" />
                 <span className="hidden sm:inline">

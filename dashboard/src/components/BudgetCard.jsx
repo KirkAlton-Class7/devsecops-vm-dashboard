@@ -2,9 +2,14 @@ import Card from "./Card";
 import { AlertTriangle, AlertCircle } from "lucide-react";
 
 export default function BudgetCard({ name, amount, spent }) {
-  const percentUsed = (spent / amount) * 100;
-  const isOverBudget = spent > amount;
-  const isNearLimit = percentUsed > 90;
+  // Safely calculate percent used (avoid division by zero)
+  let percentUsed = 0;
+  if (amount > 0) {
+    percentUsed = (spent / amount) * 100;
+  }
+  
+  const isOverBudget = amount > 0 && spent > amount;
+  const isNearLimit = percentUsed > 90 && percentUsed < 100;
 
   const getGradientColors = () => {
     if (percentUsed <= 50) return "from-emerald-500 to-lime-500";
@@ -32,7 +37,7 @@ export default function BudgetCard({ name, amount, spent }) {
           />
         </div>
         <div className="flex justify-between text-xs">
-          <span className="text-slate-500">{percentUsed.toFixed(0)}% used</span>
+          <span className="text-slate-500">{Math.floor(percentUsed)}% used</span>
         </div>
         {isNearLimit && !isOverBudget && (
           <p className="text-xs text-orange-400 flex items-center gap-1">

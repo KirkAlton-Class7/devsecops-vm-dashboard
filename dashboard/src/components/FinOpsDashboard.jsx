@@ -114,6 +114,16 @@ export default function FinOpsDashboard({
   const BUDGETS_PER_PAGE = 3;
   const [direction, setDirection] = useState(0); // -1 = left, 1 = right
 
+  // Daily budget state (client-side, stored in localStorage)
+  const [dailyBudget, setDailyBudget] = useState(() => {
+    const saved = localStorage.getItem("finops_daily_budget");
+    return saved ? parseFloat(saved) : 10;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("finops_daily_budget", dailyBudget);
+  }, [dailyBudget]);
+
   const goToPage = (newPage) => {
     if (newPage === budgetPage) return;
     setDirection(newPage > budgetPage ? 1 : -1);
@@ -207,6 +217,8 @@ export default function FinOpsDashboard({
           currentMode={currentMode}
           onModeChange={onModeChange}
           flashMode={flashMode}
+          dailyBudget={dailyBudget}
+          onDailyBudgetChange={setDailyBudget}
         />
 
         <main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6">
@@ -243,6 +255,7 @@ export default function FinOpsDashboard({
                   Daily Cost Trend
                 </WidgetTitle>
               }
+              dailyBudget={dailyBudget}
             />
 
             <CostBreakdownChart
@@ -303,7 +316,7 @@ export default function FinOpsDashboard({
                 </motion.div>
               </div>
 
-              {/* Pagination buttons – same as before */}
+              {/* Pagination buttons */}
               {data.budgets.length > BUDGETS_PER_PAGE && (
                 <div className="flex justify-center gap-4 mt-6">
                   <button
