@@ -120,9 +120,19 @@ export default function FinOpsDashboard({
     return saved ? parseFloat(saved) : 10;
   });
 
+  // Monthly budget state (client-side, stored in localStorage)
+  const [monthlyBudget, setMonthlyBudget] = useState(() => {
+    const saved = localStorage.getItem("finops_monthly_budget");
+    return saved ? parseFloat(saved) : 100;
+  });
+
   useEffect(() => {
     localStorage.setItem("finops_daily_budget", dailyBudget);
   }, [dailyBudget]);
+
+  useEffect(() => {
+    localStorage.setItem("finops_monthly_budget", monthlyBudget);
+  }, [monthlyBudget]);
 
   const goToPage = (newPage) => {
     if (newPage === budgetPage) return;
@@ -219,6 +229,8 @@ export default function FinOpsDashboard({
           flashMode={flashMode}
           dailyBudget={dailyBudget}
           onDailyBudgetChange={setDailyBudget}
+          monthlyBudget={monthlyBudget}
+          onMonthlyBudgetChange={setMonthlyBudget}
         />
 
         <main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6">
@@ -234,6 +246,7 @@ export default function FinOpsDashboard({
                 zone=""
                 projectId={data.identity?.project || ""}
                 billingAccountId={data.identity?.billingAccountId || ""}
+                monthlyBudget={monthlyBudget}
               />
             ))}
           </section>

@@ -27,9 +27,18 @@ const icons = {
   default: Zap
 };
 
-export default function StatCard({ label, value, status, instanceName, zone, projectId, billingAccountId }) {
+export default function StatCard({
+  label,
+  value,
+  status,
+  instanceName,
+  zone,
+  projectId,
+  billingAccountId,
+  monthlyBudget = 0
+}) {
   const Icon = icons[label] || icons.default;
-  const isWarning = status === "warning";
+  let isWarning = status === "warning";
 
   // Override displayed value and badge for action cards
   let displayValue = value;
@@ -40,6 +49,28 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
   } else if (label === "CUD Coverage") {
     displayValue = "Configure";
     // Keep original status (e.g., "info") – no badge change required
+  }
+
+  // Budget‑based status for Total Cost and Forecast cards
+  let budgetRatio = null;
+  if ((label === "Total Cost (MTD)" || label === "Forecast (EOM)") && monthlyBudget > 0) {
+    const numericValue = parseFloat(value);
+    if (!isNaN(numericValue)) {
+      budgetRatio = numericValue / monthlyBudget;
+      if (budgetRatio < 0.5) {
+        displayStatus = "HEALTHY";
+        isWarning = false;
+      } else if (budgetRatio < 0.8) {
+        displayStatus = "MODERATE";
+        isWarning = false;
+      } else if (budgetRatio < 1.0) {
+        displayStatus = "HIGH";
+        isWarning = true;
+      } else {
+        displayStatus = "CRITICAL";
+        isWarning = true;
+      }
+    }
   }
 
   const getClickUrl = () => {

@@ -6,6 +6,7 @@ import {
   Terminal,
   Cpu,
   CircleDollarSign,
+  DollarSign,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
@@ -19,6 +20,8 @@ export default function Header({
   flashMode = false,
   dailyBudget = 10,
   onDailyBudgetChange,
+  monthlyBudget = 100,
+  onMonthlyBudgetChange,
 }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showModeMenu, setShowModeMenu] = useState(false);
@@ -27,16 +30,28 @@ export default function Header({
   const flashTimeoutRef = useRef(null);
   const isFlashingRef = useRef(false);
 
-  // Local state for budget input (string, to avoid parsing glitches)
-  const [budgetInputValue, setBudgetInputValue] = useState(String(dailyBudget));
-  // Flash state for the Update button
-  const [isUpdateFlashing, setIsUpdateFlashing] = useState(false);
-  const updateFlashTimeoutRef = useRef(null);
+  // Budget dropdown state
+  const [showBudgetsMenu, setShowBudgetsMenu] = useState(false);
+  const budgetsButtonRef = useRef(null);
 
-  // Sync local input when dailyBudget prop changes (e.g., from localStorage on initial load)
+  // Daily budget input state
+  const [dailyBudgetInputValue, setDailyBudgetInputValue] = useState(String(dailyBudget));
+  const [isDailyUpdateFlashing, setIsDailyUpdateFlashing] = useState(false);
+  const dailyUpdateTimeoutRef = useRef(null);
+
+  // Monthly budget input state
+  const [monthlyBudgetInputValue, setMonthlyBudgetInputValue] = useState(String(monthlyBudget));
+  const [isMonthlyUpdateFlashing, setIsMonthlyUpdateFlashing] = useState(false);
+  const monthlyUpdateTimeoutRef = useRef(null);
+
+  // Sync local inputs when props change
   useEffect(() => {
-    setBudgetInputValue(String(dailyBudget));
+    setDailyBudgetInputValue(String(dailyBudget));
   }, [dailyBudget]);
+
+  useEffect(() => {
+    setMonthlyBudgetInputValue(String(monthlyBudget));
+  }, [monthlyBudget]);
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -84,22 +99,42 @@ export default function Header({
     if (onModeChange) onModeChange(mode);
   };
 
-  const handleBudgetUpdate = () => {
-    const raw = budgetInputValue.trim();
+  const handleDailyBudgetUpdate = () => {
+    const raw = dailyBudgetInputValue.trim();
     const numeric = raw === "" ? 0 : parseFloat(raw);
     const finalValue = isNaN(numeric) ? 0 : numeric;
     if (onDailyBudgetChange) onDailyBudgetChange(finalValue);
-    
-    // Flash the Update button
-    if (updateFlashTimeoutRef.current) clearTimeout(updateFlashTimeoutRef.current);
-    setIsUpdateFlashing(true);
-    updateFlashTimeoutRef.current = setTimeout(() => {
-      setIsUpdateFlashing(false);
+
+    if (dailyUpdateTimeoutRef.current) clearTimeout(dailyUpdateTimeoutRef.current);
+    setIsDailyUpdateFlashing(true);
+    dailyUpdateTimeoutRef.current = setTimeout(() => {
+      setIsDailyUpdateFlashing(false);
     }, 200);
   };
 
-  const handleBudgetInputChange = (e) => {
-    setBudgetInputValue(e.target.value);
+  const handleDailyBudgetInputChange = (e) => {
+    setDailyBudgetInputValue(e.target.value);
+  };
+
+  const handleMonthlyBudgetUpdate = () => {
+    const raw = monthlyBudgetInputValue.trim();
+    const numeric = raw === "" ? 0 : parseFloat(raw);
+    const finalValue = isNaN(numeric) ? 0 : numeric;
+    if (onMonthlyBudgetChange) onMonthlyBudgetChange(finalValue);
+
+    if (monthlyUpdateTimeoutRef.current) clearTimeout(monthlyUpdateTimeoutRef.current);
+    setIsMonthlyUpdateFlashing(true);
+    monthlyUpdateTimeoutRef.current = setTimeout(() => {
+      setIsMonthlyUpdateFlashing(false);
+    }, 200);
+  };
+
+  const handleMonthlyBudgetInputChange = (e) => {
+    setMonthlyBudgetInputValue(e.target.value);
+  };
+
+  const toggleBudgetsMenu = () => {
+    setShowBudgetsMenu(!showBudgetsMenu);
   };
 
   return (
@@ -172,27 +207,87 @@ export default function Header({
               </motion.div>
             )}
 
-            {/* Daily Budget – only in FinOps mode */}
+            {/* Budgets button – only in FinOps mode */}
             {currentMode === "finops" && (
-              <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
-                <span className="text-xs text-slate-400">Daily Budget (USD):</span>
-                <input
-                  type="text"
-                  value={budgetInputValue}
-                  onChange={handleBudgetInputChange}
-                  className="w-20 px-2 py-0.5 text-sm bg-slate-800 border border-slate-700 rounded text-white focus:outline-none focus:border-cyan-500"
-                  placeholder="0"
-                />
-                <button
-                  onClick={handleBudgetUpdate}
-                  className={`px-2 py-0.5 text-xs rounded transition-all ${
-                    isUpdateFlashing
-                      ? "bg-cyan-500/30 text-white shadow-[0_0_8px_cyan] border-cyan-400"
-                      : "border border-cyan-500/50 text-cyan-400 hover:text-cyan-300 hover:border-cyan-400"
-                  }`}
+              <div className="relative">
+                <motion.button
+                  ref={budgetsButtonRef}
+                  onClick={toggleBudgetsMenu}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-white/5 text-slate-300 hover:border-white/40 transition-all text-xs font-mono"
                 >
-                  Update
-                </button>
+                  <DollarSign className="w-3 h-3" />
+                  <span className="hidden sm:inline">Budgets (USD)</span>
+                  <ChevronDown
+                    className={`w-3 h-3 transition-transform duration-200 ${
+                      showBudgetsMenu ? "rotate-180" : ""
+                    }`}
+                  />
+                </motion.button>
+
+                {showBudgetsMenu &&
+                  createPortal(
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="fixed w-64 rounded-xl bg-slate-800/95 backdrop-blur-xl border border-white/10 shadow-xl overflow-hidden z-[9999] p-3 space-y-3"
+                      style={{
+                        top: budgetsButtonRef.current
+                          ? budgetsButtonRef.current.getBoundingClientRect().bottom + 8
+                          : 0,
+                        right: budgetsButtonRef.current
+                          ? window.innerWidth -
+                            budgetsButtonRef.current.getBoundingClientRect().right
+                          : 0,
+                      }}
+                    >
+                      {/* Daily budget row */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-slate-400">Daily:</span>
+                        <input
+                          type="text"
+                          value={dailyBudgetInputValue}
+                          onChange={handleDailyBudgetInputChange}
+                          className="w-20 px-2 py-1 text-sm bg-slate-800 border border-slate-700 rounded text-white focus:outline-none focus:border-cyan-500"
+                          placeholder="0"
+                        />
+                        <button
+                          onClick={handleDailyBudgetUpdate}
+                          className={`px-2 py-1 text-xs rounded transition-all ${
+                            isDailyUpdateFlashing
+                              ? "bg-cyan-500/30 text-white shadow-[0_0_8px_cyan] border-cyan-400"
+                              : "border border-cyan-500/50 text-cyan-400 hover:text-cyan-300 hover:border-cyan-400"
+                          }`}
+                        >
+                          Update
+                        </button>
+                      </div>
+                      {/* Monthly budget row */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-slate-400">Monthly:</span>
+                        <input
+                          type="text"
+                          value={monthlyBudgetInputValue}
+                          onChange={handleMonthlyBudgetInputChange}
+                          className="w-24 px-2 py-1 text-sm bg-slate-800 border border-slate-700 rounded text-white focus:outline-none focus:border-cyan-500"
+                          placeholder="0"
+                        />
+                        <button
+                          onClick={handleMonthlyBudgetUpdate}
+                          className={`px-2 py-1 text-xs rounded transition-all ${
+                            isMonthlyUpdateFlashing
+                              ? "bg-cyan-500/30 text-white shadow-[0_0_8px_cyan] border-cyan-400"
+                              : "border border-cyan-500/50 text-cyan-400 hover:text-cyan-300 hover:border-cyan-400"
+                          }`}
+                        >
+                          Update
+                        </button>
+                      </div>
+                    </motion.div>,
+                    document.body
+                  )}
               </div>
             )}
 
