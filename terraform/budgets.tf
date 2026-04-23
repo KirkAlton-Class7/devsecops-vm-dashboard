@@ -20,6 +20,10 @@ resource "google_billing_budget" "daily_budget" {
   billing_account = "01BB2F-8195CD-645BC0" # Replace with your billing account ID
   display_name    = "Daily Budget (Simulated)"
 
+  lifecycle {
+    prevent_destroy = true
+  }
+
   budget_filter {
     projects = ["projects/kirk-devsecops-sandbox"]
   }
@@ -50,6 +54,10 @@ resource "google_billing_budget" "daily_budget" {
 resource "google_billing_budget" "compute_budget" {
   billing_account = "01BB2F-8195CD-645BC0" # Replace with your billing account ID
   display_name    = "Compute Budget"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 
   budget_filter {
     projects = ["projects/kirk-devsecops-sandbox"]
@@ -90,6 +98,10 @@ resource "google_billing_budget" "bigquery_budget" {
   billing_account = "01BB2F-8195CD-645BC0" # Replace with your billing account ID
   display_name    = "BigQuery Budget"
 
+  lifecycle {
+    prevent_destroy = true
+  }
+
   budget_filter {
     projects = ["projects/kirk-devsecops-sandbox"]
 
@@ -124,6 +136,10 @@ resource "google_billing_budget" "bigquery_budget" {
 resource "google_billing_budget" "network_budget" {
   billing_account = "01BB2F-8195CD-645BC0" # Replace with your billing account ID
   display_name    = "Network Budget"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 
   budget_filter {
     projects = ["projects/kirk-devsecops-sandbox"]

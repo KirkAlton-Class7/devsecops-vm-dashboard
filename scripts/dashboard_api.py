@@ -515,6 +515,39 @@ def get_rightsizing_recommendations():
         print(f"Error getting rightsizing recommendations: {e}", file=sys.stderr)
         return []
 
+@ttl_cache(seconds=3600)
+def get_idle_resources():
+    """Return idle resources in the shape expected by the frontend."""
+    project_id = get_metadata("project/project-id")
+    if project_id == "unknown":
+        return []
+    cmd = [
+        "gcloud", "recommender", "recommendations", "list",
+        "--project", project_id, "--location=global",
+        "--recommender=google.compute.instance.IdleResourceRecommender",
+        "--format=json"
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        if result.returncode != 0:
+            return []
+        recs = json.loads(result.stdout)
+        idle = []
+        for rec in recs:
+            vm_name = rec.get("primaryResourceId", "unknown")
+            idle.append({
+                "name": vm_name,
+                "type": "VM",
+                "scope": "compute",
+                "status": "warning",
+                "cpu": "N/A",
+                "recommendation": "Stop or resize if idle"
+            })
+        return idle[:12]
+    except Exception as e:
+        print(f"Error getting idle resources: {e}", file=sys.stderr)
+        return []
+
 # Increased TTL to 1 hour
 @ttl_cache(seconds=3600)
 def get_budgets():
