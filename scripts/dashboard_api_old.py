@@ -51,6 +51,7 @@ from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from functools import wraps
 import time
+import threading
 
 from google.cloud import bigquery
 
@@ -385,7 +386,8 @@ def get_cost_trend(days=30):
     query = f"""
         SELECT DATE(usage_start_time) AS date, SUM(cost) AS total_cost
         FROM `{table}`
-        WHERE usage_start_time >= DATE_SUB(CURRENT_DATE(), INTERVAL {days} DAY)
+        WHERE DATE(usage_start_time) >= DATE_SUB(CURRENT_DATE(), INTERVAL {days} DAY)
+
         GROUP BY date ORDER BY date ASC
     """
     try:
@@ -732,20 +734,33 @@ def build_dashboard_data():
 # Cached FinOps data assembly (30 seconds)
 # -------------------------------
 
+import concurrent.futures
+
 @ttl_cache(seconds=30)
 def get_cached_finops_data():
-    """Assemble FinOps data with caching to reduce repeated JSON building."""
-    cost_trend = get_cost_trend()
-    top_services = get_top_services_by_cost()
-    
-    # Calculate MTD total and improved forecast
+    """Assemble FinOps data with parallel fetching for speed."""
+    # Launch all expensive calls in parallel
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        future_cost = executor.submit(get_cost_trend)
+        future_services = executor.submit(get_top_services_by_cost)
+        future_idle = executor.submit(get_idle_resources)
+        future_rightsize = executor.submit(get_rightsizing_recommendations)
+        future_budgets = executor.submit(get_budgets)
+        future_util = executor.submit(get_cpu_utilization_all_vms)
+
+        cost_trend = future_cost.result()
+        top_services = future_services.result()
+        idle_resources = future_idle.result()
+        recommendations = future_rightsize.result()
+        budgets = future_budgets.result()
+        utilization = future_util.result()
+
+    # Calculate MTD total and forecast
     mtd_total = sum(day["value"] for day in cost_trend) if cost_trend else 0.0
     forecast = 0.0
     if cost_trend and len(cost_trend) > 0:
-        days_so_far = len(cost_trend)
-        avg_daily_cost = mtd_total / days_so_far
-        total_days_in_month = 30  # or use actual days in current month (e.g., calendar month)
-        forecast = avg_daily_cost * total_days_in_month
+        avg_daily = mtd_total / len(cost_trend)
+        forecast = avg_daily * 30  # assume 30‑day month
     else:
         forecast = 0.0
 
@@ -760,10 +775,10 @@ def get_cached_finops_data():
         "summaryCards": summary_cards,
         "costTrend": cost_trend,
         "topServices": top_services,
-        "budgets": get_budgets(),
-        "idleResources": get_idle_resources(),
-        "recommendations": get_rightsizing_recommendations(),
-        "utilization": get_cpu_utilization_all_vms(),
+        "budgets": budgets,
+        "idleResources": idle_resources,
+        "recommendations": recommendations,
+        "utilization": utilization,
         "realizedSavings": get_realized_savings(),
         "potentialSavings": get_potential_savings(),
         "quote": random.choice(load_quotes())
@@ -908,11 +923,28 @@ class MonitoringHandler(BaseHTTPRequestHandler):
         """Suppress default HTTP server logging."""
         return
 
+def prewarm_cache():
+    """Pre‑warm expensive functions so first request is faster."""
+    print("Pre‑warming FinOps cache...")
+    try:
+        get_cost_trend()
+        get_top_services_by_cost()
+        get_idle_resources()
+        get_rightsizing_recommendations()
+        get_budgets()
+        print("Cache pre‑warmed successfully.")
+    except Exception as e:
+        print(f"Pre‑warm error: {e}", file=sys.stderr)
+
 # -------------------------------
 # Main Entry Point
 # -------------------------------
 if __name__ == '__main__':
     port = 8080
     server = HTTPServer(('0.0.0.0', port), MonitoringHandler)
+    
+    # Start pre‑warming in a background thread (doesn't block server start)
+    threading.Thread(target=prewarm_cache, daemon=True).start()
+    
     print(f"Starting monitoring server on port {port}")
     server.serve_forever()

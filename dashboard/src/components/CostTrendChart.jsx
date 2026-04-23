@@ -14,21 +14,18 @@ export default function CostTrendChart({ title = "Daily Cost Trend" }) {
       const response = await fetch("/api/finops");
       if (response.ok) {
         const data = await response.json();
-        // Expect data.costTrend to be an array of objects like { date, value }
         const costValues = data.costTrend.map(item => item.value);
         if (costValues.length > 0) {
           setHasData(true);
           const latestCost = costValues[costValues.length - 1];
           setCurrentCost(latestCost.toFixed(2));
-          setHistoricalCost(prev => {
-            // Keep last 10 values
-            const newData = [...prev, latestCost].slice(-10);
-            const peak = Math.max(...newData, 1.0);
-            setMaxCost(Math.min(Math.ceil(peak * 1.2), 50.0));
-            return newData;
-          });
+          
+          // Take the last 10 values from the API response
+          const lastTen = costValues.slice(-10);
+          setHistoricalCost(lastTen);
+          const peak = Math.max(...lastTen, 1.0);
+          setMaxCost(Math.min(Math.ceil(peak * 1.2), 50.0));
         } else {
-          // No cost data from API – show empty state
           setHasData(false);
           setHistoricalCost([]);
           setCurrentCost("0.00");
@@ -41,7 +38,7 @@ export default function CostTrendChart({ title = "Daily Cost Trend" }) {
 
   useEffect(() => {
     fetchCostData();
-    const interval = setInterval(fetchCostData, 60000);
+    const interval = setInterval(fetchCostData, 3600000); // 1 hour
     return () => clearInterval(interval);
   }, []);
 
