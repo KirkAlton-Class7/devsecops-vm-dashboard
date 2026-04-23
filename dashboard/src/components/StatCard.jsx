@@ -31,18 +31,28 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
   const Icon = icons[label] || icons.default;
   const isWarning = status === "warning";
 
+  // Override displayed value and badge for action cards
+  let displayValue = value;
+  let displayStatus = status;
+  if (label === "Potential Savings") {
+    displayValue = "Explore";
+    displayStatus = "OPTIMIZE";
+  } else if (label === "CUD Coverage") {
+    displayValue = "Configure";
+    // Keep original status (e.g., "info") – no badge change required
+  }
+
   const getClickUrl = () => {
+    // Action cards override
+    if (label === "Potential Savings") {
+      return "https://console.cloud.google.com/cloud-hub/optimization";
+    }
+    if (label === "CUD Coverage") {
+      return "https://console.cloud.google.com/compute/commitments";
+    }
     // FinOps summary cards
     if (label === "Total Cost (MTD)" || label === "Forecast (EOM)") {
       if (projectId) return `https://console.cloud.google.com/billing?project=${projectId}`;
-      return "https://console.cloud.google.com/billing";
-    }
-    if (label === "Potential Savings") {
-      if (projectId) return `https://console.cloud.google.com/recommender?project=${projectId}`;
-      return "https://console.cloud.google.com/recommender";
-    }
-    if (label === "CUD Coverage") {
-      if (projectId) return `https://console.cloud.google.com/billing/committed-use-discounts?project=${projectId}`;
       return "https://console.cloud.google.com/billing";
     }
     // DevSecOps cards
@@ -64,25 +74,6 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
     if (url) window.open(url, "_blank");
   };
 
-  const handleOptimizeClick = (e) => {
-    e.stopPropagation();
-    // For Potential Savings, open Recommender page
-    if (label === "Potential Savings") {
-      if (projectId) {
-        window.open(`https://console.cloud.google.com/recommender?project=${projectId}`, "_blank");
-      } else {
-        window.open("https://console.cloud.google.com/recommender", "_blank");
-      }
-      return;
-    }
-    // For Cost / Estimated Cost, open FinOps Hub (kept for completeness, but button won't appear)
-    if (billingAccountId && projectId) {
-      window.open(`https://console.cloud.google.com/billing/${billingAccountId}/optimize?project=${projectId}`, "_blank");
-    } else if (projectId) {
-      window.open("https://console.cloud.google.com/billing/projects", "_blank");
-    }
-  };
-
   const getGradient = () => {
     if (isWarning) return "from-orange-500/20 via-amber-500/20 to-yellow-500/20";
     return "from-emerald-500/20 via-teal-500/20 to-cyan-500/20";
@@ -99,6 +90,8 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
   };
   
   const getStatusColor = () => {
+    // For custom status "OPTIMIZE", use cyan styling
+    if (displayStatus === "OPTIMIZE") return "text-cyan-400 bg-cyan-500/10";
     if (isWarning) return "text-orange-400 bg-orange-500/10";
     return "text-emerald-400 bg-emerald-500/10";
   };
@@ -112,9 +105,6 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
     ? "rgba(251, 146, 60, 0.8)"
     : "rgba(6, 182, 212, 0.8)";
 
-  // Optimize button appears ONLY on "Potential Savings" (FinOps dashboard)
-  const showOptimize = label === "Potential Savings" && billingAccountId;
-
   return (
     <motion.div
       className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${getGradient()} backdrop-blur-xl border ${getBorderColor()} shadow-xl group w-full cursor-pointer`}
@@ -126,7 +116,7 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
     >
       <div className="relative p-6 z-10">
         {/* Top row: icon + status pill */}
-        <div className={`flex items-start justify-between ${showOptimize ? 'mb-2' : 'mb-4'}`}>
+        <div className="flex items-start justify-between mb-4">
           <motion.div 
             className={`p-3 rounded-xl bg-white/5 backdrop-blur-sm border ${getBorderColor()}`}
             whileHover={{ scale: 1.05, boxShadow: `0 0 12px ${glowColor}`, transition: { duration: 0.2, ease: "easeOut" } }}
@@ -137,32 +127,24 @@ export default function StatCard({ label, value, status, instanceName, zone, pro
           
           <motion.div 
             className={`flex items-center gap-1 px-2 py-1 rounded-full backdrop-blur-sm ${getStatusColor()}`}
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
+            whileHover={{ scale: 1.05, boxShadow: `0 0 8px ${glowColor}`, transition: { duration: 0.2 } }}
+            transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
           >
-            {isWarning ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            <span className="text-xs font-medium uppercase">{status}</span>
+            {displayStatus === "OPTIMIZE" ? (
+              <Sparkles className="w-3 h-3" />
+            ) : isWarning ? (
+              <TrendingUp className="w-3 h-3" />
+            ) : (
+              <TrendingDown className="w-3 h-3" />
+            )}
+            <span className="text-xs font-medium uppercase">{displayStatus}</span>
           </motion.div>
         </div>
-
-        {/* Optimize button (only for Potential Savings) */}
-        {showOptimize && (
-          <div className="flex justify-end mb-4">
-            <button
-              onClick={handleOptimizeClick}
-              className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors bg-white/5 hover:bg-white/10 px-2 py-1 rounded-full border border-cyan-500/30"
-            >
-              <Sparkles className="w-3 h-3" />
-              <span>Optimize</span>
-            </button>
-          </div>
-        )}
         
         {/* Value and label */}
         <div className="space-y-2">
           <p className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-            {value}
+            {displayValue}
           </p>
           <p className="text-sm text-slate-400 font-medium tracking-wide uppercase">{label}</p>
         </div>

@@ -41,7 +41,6 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
     return () => clearInterval(interval);
   }, []);
 
-  // Budget‑based helpers
   const getCostStatus = (cost, budget) => {
     if (!budget || budget <= 0) return "Low";
     const ratio = cost / budget;
@@ -62,8 +61,6 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
     }
   };
 
-  const getStatusText = (cost, budget) => getCostStatus(cost, budget);
-
   if (!hasData) {
     return (
       <Card title={title} subtitle="Cost data will appear once BigQuery export runs">
@@ -78,7 +75,6 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
 
   const currentCostNum = parseFloat(currentCost);
   const currentStatus = getCostStatus(currentCostNum, dailyBudget);
-  const currentColor = getCostColor(currentCostNum, dailyBudget);
 
   return (
     <motion.div
@@ -149,7 +145,7 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
             <span>${maxCost.toFixed(1)}</span>
           </div>
           
-          {/* Budget‑based explanation (dynamic) */}
+          {/* Budget‑based explanation (dynamic) – removed the inline budget display, kept legend */}
           <div className="mt-2 pt-2 border-t border-white/10">
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="flex items-center gap-2">
@@ -169,17 +165,19 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
                 <span className="text-slate-400">&gt; 100% = Critical</span>
               </div>
             </div>
-            <p className="text-[10px] text-slate-500 mt-2 text-center">
-              Daily budget: ${dailyBudget.toFixed(2)}
-            </p>
           </div>
           
-          {/* Stats */}
-          <div className="mt-2 pt-2 flex justify-between text-xs border-t border-white/10">
-            <div className="flex items-center gap-4">
-              <span className="text-slate-500">Peak: <span className="text-cyan-400 font-mono">${Math.max(...historicalCost).toFixed(2)}</span></span>
-              <span className="text-slate-500">Avg (10 days): <span className="text-emerald-400 font-mono">${(historicalCost.reduce((a,b) => a + b, 0) / historicalCost.length).toFixed(2)}</span></span>
-              <span className="text-slate-500">Current: <span className="text-white font-mono">${currentCost}</span></span>
+          {/* Stats + Daily Budget (bottom-right) */}
+          <div className="mt-2 pt-2 border-t border-white/10">
+            <div className="flex justify-between items-center text-xs">
+              <div className="flex items-center gap-4">
+                <span className="text-slate-500">Peak: <span className="text-cyan-400 font-mono">${Math.max(...historicalCost).toFixed(2)}</span></span>
+                <span className="text-slate-500">Avg (10 days): <span className="text-emerald-400 font-mono">${(historicalCost.reduce((a,b) => a + b, 0) / historicalCost.length).toFixed(2)}</span></span>
+                <span className="text-slate-500">Current: <span className="text-white font-mono">${currentCost}</span></span>
+              </div>
+              <div className="text-slate-400">
+                Daily Budget: ${dailyBudget.toFixed(2)}
+              </div>
             </div>
           </div>
         </div>
