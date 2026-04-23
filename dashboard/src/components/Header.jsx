@@ -86,7 +86,7 @@ export default function Header({
   const modeOptions = [
     { value: "standard", label: "DEVSECOPS (D)", icon: Cpu },
     { value: "text", label: "TEXTMODE (T)", icon: Terminal },
-    { value: "finops", label: "FINOPS (F)", icon: CircleDollarSign },
+    { value: "finops", label: "FINOPS (F)", icon: DollarSign },
   ];
 
   const currentModeOption = useMemo(
@@ -217,7 +217,7 @@ export default function Header({
                   whileTap={{ scale: 0.95 }}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-white/5 text-slate-300 hover:border-white/40 transition-all text-xs font-mono"
                 >
-                  <DollarSign className="w-3 h-3" />
+                  <CircleDollarSign className="w-3 h-3" />
                   <span className="hidden sm:inline">Budgets (USD)</span>
                   <ChevronDown
                     className={`w-3 h-3 transition-transform duration-200 ${
