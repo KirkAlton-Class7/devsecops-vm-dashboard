@@ -66,8 +66,8 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
       <Card title={title} subtitle="Cost data will appear once BigQuery export runs">
         <div className="p-8 text-center text-slate-400">
           <DollarSign className="w-12 h-12 mx-auto mb-2 opacity-40" />
-          <p>No cost data available yet</p>
-          <p className="text-xs mt-1">Billing export is initializing – please wait up to 24h</p>
+          <p>No cost data available.</p>
+          <p className="text-xs mt-1">Billing export is initializing. Please wait up to 24 hours.</p>
         </div>
       </Card>
     );

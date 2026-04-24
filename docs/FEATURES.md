@@ -193,7 +193,7 @@ To enable, press `F` or click the **FinOps** button.
 
 * **CPU Utilization** – P95 per VM (last hour)
 
-* **Rightsizing Opportunities** – machine recommendations
+* **Rightsizing Recommendations** – machine recommendations
 
 * **Idle Resources** – underutilized assets
 

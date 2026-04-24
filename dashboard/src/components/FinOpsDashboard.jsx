@@ -8,6 +8,8 @@ import {
   RefreshCw,
   Server,
   Sparkles,
+  Shrink,
+  SquarePause
 } from "lucide-react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
@@ -416,14 +418,15 @@ export default function FinOpsDashboard({
                 </>
               ) : (
                 <div className="py-8 text-center text-slate-400">
-                  <p>No CPU utilization data available yet</p>
-                  <p className="text-xs mt-1">Metrics will appear 5‑10 minutes after a VM starts.</p>
+                  <Gauge className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                  <p>No CPU utilization data available.</p>
+                  <p className="text-xs mt-1">CPU utilization appears within 5‑10 minutes after a VM starts.</p>
                 </div>
               )}
             </Card>
 
             <Card
-              title={<WidgetTitle icon={Sparkles} tone="emerald">Rightsizing Opportunities</WidgetTitle>}
+              title={<WidgetTitle icon={Sparkles} tone="emerald">Rightsizing Recommendations</WidgetTitle>}
               subtitle="Estimated monthly savings"
             >
               <div className="mb-3 flex items-center justify-between px-1">
@@ -449,11 +452,15 @@ export default function FinOpsDashboard({
                 {recommendationRows.map((rec, idx) => (
                   <RecommendationItem key={`${rec.resource}-${idx}`} {...rec} />
                 ))}
+
                 {(!data.recommendations || data.recommendations.length === 0) && (
                   <div className="py-8 text-center text-slate-400">
-                    No recommendations available
+                    <Shrink className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                    <p>No recommendations available.</p>
+                    <p className="text-xs mt-1">GCP Recommender API may take up to 48 hours to generate insights.</p>
                   </div>
                 )}
+      
               </div>
             </Card>
           </section>
