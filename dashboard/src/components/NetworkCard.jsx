@@ -10,6 +10,10 @@ export default function NetworkCard({ network }) {
     { label: "External IP", value: network?.externalIp, icon: Globe }
   ];
 
+  const handleClick = () => {
+    window.open("https://console.cloud.google.com/networking/networks/", "_blank");
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -24,7 +28,8 @@ export default function NetworkCard({ network }) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 + 0.1 }}
-              className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+              className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+              onClick={handleClick}
             >
               <div className="flex items-center gap-3">
                 <item.icon className="w-4 h-4 text-purple-400" />
