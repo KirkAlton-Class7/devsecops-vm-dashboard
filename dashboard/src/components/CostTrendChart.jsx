@@ -228,7 +228,7 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
           style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', minWidth: '220px' }}
         >
           <div className="flex justify-between items-center border-b border-slate-700 pb-1 mb-1">
-            <span className="font-semibold text-cyan-400">Usage in Context</span>
+            <span className="font-semibold text-cyan-400">Cost in Context</span>
             <button onClick={() => setActiveBarIndex(null)} className="text-slate-400 hover:text-white"><X className="w-3 h-3" /></button>
           </div>
           {/* First block */}

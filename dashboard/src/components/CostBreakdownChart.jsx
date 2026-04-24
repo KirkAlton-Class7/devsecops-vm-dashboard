@@ -17,7 +17,7 @@ export default function CostBreakdownChart({ data, title = "Cost by Service", da
 
   if (!hasData) {
     return (
-      <Card title={title}>
+      <Card title={title} subtitle="Cost breakdown by service (USD)">
         <div className="p-8 text-center text-slate-400">
           <DollarSign className="w-12 h-12 mx-auto mb-2 opacity-40" />
           <p>No cost data available.</p>
@@ -32,8 +32,11 @@ export default function CostBreakdownChart({ data, title = "Cost by Service", da
   const barHeight = 48;
   const chartHeight = Math.max(350, data.length * barHeight);
 
+  // Format currency for Y‑axis (optional, but X‑axis uses it)
+  const formatUSD = (value) => `$${value.toFixed(0)}`;
+
   return (
-    <Card title={title}>
+    <Card title={title} subtitle="Cost breakdown by service – USD">
       <div className="w-full" style={{ minHeight: `${chartHeight}px` }}>
         <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart
@@ -44,16 +47,26 @@ export default function CostBreakdownChart({ data, title = "Cost by Service", da
             barGap={2}
             barCategoryGap="10%"
           >
-            <XAxis type="number" tick={{ fill: "#94a3b8", fontSize: 12 }} />
+            <XAxis
+              type="number"
+              tick={{ fill: "#94a3b8", fontSize: 13 }}
+              tickFormatter={formatUSD}
+            />
             <YAxis
               type="category"
               dataKey={nameKey}
-              tick={{ fill: "#94a3b8", fontSize: 12 }}
-              width={130}
+              tick={{ fill: "#94a3b8", fontSize: 13 }}
+              width={140} // Slightly wider to prevent truncation
             />
             <Tooltip
-              contentStyle={{ backgroundColor: "#1e293b", border: "none" }}
-              formatter={(value) => [`$${value}`, "Cost"]}
+              contentStyle={{
+                backgroundColor: "#1e293b",
+                border: "none",
+                borderRadius: "0.5rem",
+                fontSize: "12px",
+              }}
+              labelStyle={{ color: "#cbd5e1" }}
+              formatter={(value) => [`$${value.toFixed(2)}`, "Cost"]}
             />
             <Bar dataKey={dataKey}>
               {data.map((entry, index) => (
