@@ -90,7 +90,7 @@ export default function Sidebar({
             animate={{ x: 0 }}
             exit={{ x: -300 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed top-0 left-0 h-full w-72 bg-gradient-to-b from-slate-900/95 to-slate-950/95 backdrop-blur-xl border-r border-white/10 shadow-2xl z-30 xl:block overflow-y-auto"
+            className="fixed top-0 left-0 h-full w-72 bg-gradient-to-b from-slate-900/95 to-slate-950/95 backdrop-blur-xl border-r border-white/10 shadow-2xl z-30 xl:block overflow-y-auto overflow-x-hidden"
           >
             <div className="flex flex-col h-full">
               {/* Header */}
@@ -157,7 +157,7 @@ export default function Sidebar({
                 </ul>
               </nav>
 
-              {/* Footer – using props for URLs */}
+              {/* Footer */}
               <div className="p-6 border-t border-white/10">
                 <div className="space-y-3">
                   <motion.a
