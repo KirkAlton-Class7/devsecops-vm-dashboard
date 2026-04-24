@@ -218,7 +218,7 @@ export default function Header({
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-white/5 text-slate-300 hover:border-white/40 transition-all text-xs font-mono"
                 >
                   <CircleDollarSign className="w-3 h-3" />
-                  <span className="hidden sm:inline">Budgets (USD)</span>
+                  <span className="hidden sm:inline">Budgets</span>
                   <ChevronDown
                     className={`w-3 h-3 transition-transform duration-200 ${
                       showBudgetsMenu ? "rotate-180" : ""
@@ -243,9 +243,14 @@ export default function Header({
                           : 0,
                       }}
                     >
+                      {/* Sleek USD label – same size as labels, cyan, minimal margin */}
+                      <div className="text-xs text-slate-300 text-center mb-1">
+                        User Budgets (USD)
+                      </div>
+
                       {/* Daily budget row */}
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-slate-400">Daily:</span>
+                        <span className="text-xs text-slate-300">Daily:</span>
                         <input
                           type="text"
                           value={dailyBudgetInputValue}
@@ -266,7 +271,7 @@ export default function Header({
                       </div>
                       {/* Monthly budget row */}
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-slate-400">Monthly:</span>
+                        <span className="text-xs text-slate-300">Monthly:</span>
                         <input
                           type="text"
                           value={monthlyBudgetInputValue}

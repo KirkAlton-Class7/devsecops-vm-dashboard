@@ -24,7 +24,8 @@ import CostBreakdownChart from "./CostBreakdownChart";
 import QuoteCard from "./QuoteCard";
 import NetworkParticles from "./NetworkParticles";
 import ImageGallery from "./ImageGallery";
-import { finopsNavItems, mockFinOpsData } from "../data/mockFinOpsDashboard";
+import { finopsNavItems } from "../config/finopsNavItems";
+import { mockFinOpsData } from "../data/mockFinOpsDashboard";
 
 const cycleSteps = [3, 6, 9, 12];
 
