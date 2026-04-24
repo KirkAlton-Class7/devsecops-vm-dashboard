@@ -51,7 +51,6 @@ export default function App() {
   const flashTimeoutRef = useRef(null);
   const textFlashTimeoutRef = useRef(null);
 
-  // Brief flash for standard/finops mode (D and F)
   const triggerFlash = useCallback(() => {
     if (flashTimeoutRef.current) return;
     setFlashMode(true);
@@ -61,7 +60,6 @@ export default function App() {
     }, 300);
   }, []);
 
-  // Brief flash for text mode (T)
   const triggerTextFlash = useCallback(() => {
     if (textFlashTimeoutRef.current) return;
     setFlashTextMode(true);
@@ -296,7 +294,12 @@ export default function App() {
           <motion.section id="vm-information" className="grid grid-cols-1 gap-6 lg:grid-cols-3" variants={itemVariants}>
             <IdentityCard identity={dashboard.identity || {}} />
             <NetworkCard network={dashboard.network || {}} />
-            <LocationCard location={dashboard.location || {}} />
+            <LocationCard
+              location={dashboard.location || {}}
+              instanceName={dashboard.identity?.instanceName}
+              zone={dashboard.location?.zone}
+              projectId={dashboard.identity?.project}
+            />
           </motion.section>
 
           {/* System Resources */}

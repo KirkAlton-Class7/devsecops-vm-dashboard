@@ -2,12 +2,29 @@ import { motion } from "framer-motion";
 import { Server, Database, Globe, Cpu, Fingerprint, Cloud } from "lucide-react";
 import Card from "./Card";
 
-export default function IdentityCard({ identity }) {
+export default function IdentityCard({ identity, zone, projectId }) {
+  const handleProjectClick = () => {
+    if (identity?.project) {
+      window.open(`https://console.cloud.google.com/welcome?project=${identity.project}`, "_blank");
+    } else {
+      window.open("https://console.cloud.google.com/welcome", "_blank");
+    }
+  };
+
+  const handleInstanceClick = () => {
+    if (identity?.instanceName && zone && (projectId || identity?.project)) {
+      const url = `https://console.cloud.google.com/compute/instancesDetail/zones/${zone}/instances/${identity.instanceName}?project=${projectId || identity.project}`;
+      window.open(url, "_blank");
+    } else {
+      window.open("https://console.cloud.google.com/compute/instances", "_blank");
+    }
+  };
+
   const items = [
-    { label: "Project", value: identity?.project, icon: Cloud },
-    { label: "Instance ID", value: identity?.instanceId, icon: Fingerprint },
-    { label: "Instance Name", value: identity?.instanceName, icon: Globe},
-    { label: "Machine Type", value: identity?.machineType, icon: Cpu }
+    { label: "Project", value: identity?.project, icon: Cloud, onClick: handleProjectClick },
+    { label: "Instance ID", value: identity?.instanceId, icon: Fingerprint, onClick: handleInstanceClick },
+    { label: "Instance Name", value: identity?.instanceName, icon: Globe, onClick: handleInstanceClick },
+    { label: "Machine Type", value: identity?.machineType, icon: Cpu, onClick: handleInstanceClick }
   ];
 
   return (
@@ -24,7 +41,8 @@ export default function IdentityCard({ identity }) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
-              className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+              className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+              onClick={item.onClick}
             >
               <div className="flex items-center gap-3">
                 <item.icon className="w-4 h-4 text-cyan-400" />

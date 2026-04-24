@@ -52,6 +52,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from functools import wraps
 import time
 import threading
+import requests
 
 from google.cloud import bigquery
 
@@ -372,7 +373,7 @@ def get_billing_table():
     dataset_ref = client.dataset(dataset_name, project=project_id)
     tables = list(client.list_tables(dataset_ref))
     for table in tables:
-        if "gcp_billing_export" in table.table_id:
+        if "gcp_billing_export_v1_" in table.table_id:
             return f"{project_id}.{dataset_name}.{table.table_id}"
     return None
 
@@ -430,85 +431,51 @@ def get_top_services_by_cost(limit=15):
 # CPU utilization changes every few minutes, keep 5 minutes
 @ttl_cache(seconds=300)
 def get_cpu_utilization_all_vms():
-    """Fetch P95 CPU usage for all VMs using Cloud Monitoring Python client."""
+    """Fetch CPU utilisation for all VMs (last hour) and compute P95."""
     project_id = get_metadata("project/project-id")
     if project_id == "unknown":
         return []
 
-    client = monitoring_v3.MetricServiceClient()
-    project_name = f"projects/{project_id}"
+    # Get access token
+    token = subprocess.run(
+        ["gcloud", "auth", "print-access-token"],
+        capture_output=True, text=True, check=True
+    ).stdout.strip()
 
-    # Last hour (Unix timestamps)
-    now = time.time()
-    end_time = int(now)
-    start_time = end_time - 3600  # 1 hour ago
+    # Build the API URL without aggregation (raw points)
+    end_time = datetime.utcnow().replace(microsecond=0)
+    start_time = end_time - timedelta(hours=1)
 
-    # Filter: CPU utilization metric
-    filter_str = 'metric.type="compute.googleapis.com/instance/cpu/utilization"'
-
-    # Aggregation: 1‑hour alignment, 95th percentile
-    aggregation = Aggregation(
-        alignment_period={"seconds": 3600},
-        per_series_aligner=Aggregation.Aligner.ALIGN_PERCENTILE_95,
-    )
+    params = {
+        "filter": 'metric.type="compute.googleapis.com/instance/cpu/utilization"',
+        "interval.startTime": start_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "interval.endTime": end_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+    }
+    headers = {"Authorization": f"Bearer {token}"}
+    url = f"https://monitoring.googleapis.com/v3/projects/{project_id}/timeSeries"
 
     try:
-        results = client.list_time_series(
-            name=project_name,
-            filter=filter_str,
-            interval={"start_time": {"seconds": start_time}, "end_time": {"seconds": end_time}},
-            aggregation=aggregation,
-        )
+        response = requests.get(url, headers=headers, params=params, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+
         utilization = []
-        for ts in results:
-            labels = ts.resource.labels
-            instance_name = labels.get("instance_id", "unknown")
-            points = ts.points
+        for ts in data.get("timeSeries", []):
+            instance_id = ts.get("resource", {}).get("labels", {}).get("instance_id", "unknown")
+            points = [p.get("value", {}).get("doubleValue", 0) for p in ts.get("points", [])]
             if points:
-                cpu_p95 = points[-1].value.double_value * 100
+                # Compute 95th percentile manually
+                sorted_vals = sorted(points)
+                idx = int(0.95 * len(sorted_vals))
+                p95 = sorted_vals[idx] * 100  # convert to percentage
                 utilization.append({
-                    "instance": instance_name,
-                    "cpuP95": round(cpu_p95, 1),
-                    "recommendationMatch": cpu_p95 < 20
+                    "instance": instance_id,
+                    "cpuP95": round(p95, 1),
+                    "recommendationMatch": p95 < 20
                 })
-        # Sort by highest CPU first and limit to 12
         return sorted(utilization, key=lambda x: x["cpuP95"], reverse=True)[:12]
     except Exception as e:
-        print(f"Error fetching CPU utilization via Python client: {e}", file=sys.stderr)
-        return []
-
-# Increased TTL to 1 hour
-@ttl_cache(seconds=3600)
-def get_idle_resources():
-    """Return idle resources in the shape expected by the frontend."""
-    project_id = get_metadata("project/project-id")
-    if project_id == "unknown":
-        return []
-    cmd = [
-        "gcloud", "recommender", "recommendations", "list",
-        "--project", project_id, "--location=global",
-        "--recommender=google.compute.instance.IdleResourceRecommender",
-        "--format=json"
-    ]
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        if result.returncode != 0:
-            return []
-        recs = json.loads(result.stdout)
-        idle = []
-        for rec in recs:
-            vm_name = rec.get("primaryResourceId", "unknown")
-            idle.append({
-                "name": vm_name,
-                "type": "VM",
-                "scope": "compute",
-                "status": "warning",
-                "cpu": "N/A",
-                "recommendation": "Stop or resize if idle"
-            })
-        return idle[:12]
-    except Exception as e:
-        print(f"Error getting idle resources: {e}", file=sys.stderr)
+        print(f"Error fetching CPU utilization: {e}", file=sys.stderr)
         return []
 
 # Increased TTL to 1 hour
@@ -546,6 +513,39 @@ def get_rightsizing_recommendations():
         return recommendations[:12]
     except Exception as e:
         print(f"Error getting rightsizing recommendations: {e}", file=sys.stderr)
+        return []
+
+@ttl_cache(seconds=3600)
+def get_idle_resources():
+    """Return idle resources in the shape expected by the frontend."""
+    project_id = get_metadata("project/project-id")
+    if project_id == "unknown":
+        return []
+    cmd = [
+        "gcloud", "recommender", "recommendations", "list",
+        "--project", project_id, "--location=global",
+        "--recommender=google.compute.instance.IdleResourceRecommender",
+        "--format=json"
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        if result.returncode != 0:
+            return []
+        recs = json.loads(result.stdout)
+        idle = []
+        for rec in recs:
+            vm_name = rec.get("primaryResourceId", "unknown")
+            idle.append({
+                "name": vm_name,
+                "type": "VM",
+                "scope": "compute",
+                "status": "warning",
+                "cpu": "N/A",
+                "recommendation": "Stop or resize if idle"
+            })
+        return idle[:12]
+    except Exception as e:
+        print(f"Error getting idle resources: {e}", file=sys.stderr)
         return []
 
 # Increased TTL to 1 hour

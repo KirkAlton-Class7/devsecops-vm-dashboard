@@ -359,6 +359,49 @@ def load_quotes():
         pass
     return [{"text": "Welcome to DevSecOps!", "author": "System"}]
 
+@ttl_cache(seconds=10)   # cache for 10 seconds
+def get_system_logs(limit=30):
+    """Fetch real system logs using journalctl."""
+    cmd = ["journalctl", "-n", str(limit), "--no-pager", "-o", "json"]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        if result.returncode != 0 or not result.stdout.strip():
+            return []
+        logs = []
+        for line in result.stdout.strip().split("\n"):
+            try:
+                entry = json.loads(line)
+                # Extract fields: timestamp, priority, MESSAGE
+                # Priority: 0-3: error, 4-6: warning, else info
+                priority = int(entry.get("PRIORITY", 6))
+                if priority <= 3:
+                    level = "ERROR"
+                elif priority <= 6:
+                    level = "WARN"
+                else:
+                    level = "INFO"
+                # Use __REALTIME_TIMESTAMP (microseconds) or _SOURCE_REALTIME_TIMESTAMP
+                ts_micro = int(entry.get("__REALTIME_TIMESTAMP", 0))
+                if ts_micro:
+                    dt = datetime.fromtimestamp(ts_micro / 1_000_000)
+                    time_str = dt.strftime("%H:%M:%S")
+                else:
+                    time_str = datetime.now().strftime("%H:%M:%S")
+                message = entry.get("MESSAGE", "").strip()
+                scope = entry.get("SYSLOG_IDENTIFIER", "system")
+                logs.append({
+                    "time": time_str,
+                    "level": level,
+                    "scope": scope[:20],   # truncate
+                    "message": message[:150]   # truncate
+                })
+            except json.JSONDecodeError:
+                continue
+        return logs
+    except Exception as e:
+        print(f"Error fetching journalctl logs: {e}", file=sys.stderr)
+        return []
+
 # -------------------------------
 # Real cost data from BigQuery
 # -------------------------------
@@ -642,12 +685,21 @@ def build_dashboard_data():
     disk_details = get_disk_details()
     cpu_info = get_cpu_info(cpu)
 
-    # Logs (sample – you can later make them dynamic)
-    logs = [
-        {"time": datetime.now().strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "Dashboard initialized (live API)"},
-        {"time": (datetime.now() - timedelta(minutes=5)).strftime("%H:%M:%S"), "level": "info", "scope": "metrics", "message": "Metrics collection active"},
-        {"time": (datetime.now() - timedelta(minutes=10)).strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "System health check passed"},
-    ]
+    # # Logs (sample – you can later make them dynamic)
+    # logs = [
+    #     {"time": datetime.now().strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "Dashboard initialized (live API)"},
+    #     {"time": (datetime.now() - timedelta(minutes=5)).strftime("%H:%M:%S"), "level": "info", "scope": "metrics", "message": "Metrics collection active"},
+    #     {"time": (datetime.now() - timedelta(minutes=10)).strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "System health check passed"},
+    # ]
+    
+    # Logs – fetch real system logs (fallback to sample if none)
+    logs = get_system_logs()
+    if not logs:
+        logs = [
+            {"time": datetime.now().strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "Dashboard initialized (live API)"},
+            {"time": (datetime.now() - timedelta(minutes=5)).strftime("%H:%M:%S"), "level": "info", "scope": "metrics", "message": "Metrics collection active"},
+            {"time": (datetime.now() - timedelta(minutes=10)).strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "System health check passed"},
+            ]
 
     resource_table = [
         {"name": "nginx", "type": "service", "scope": "system",

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ChevronRight, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import Card from "./Card";
 import StatusDot from "./StatusDot";
 
@@ -68,13 +68,9 @@ export default function SectionList({ title, subtitle, items, limit, onLimitChan
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
-              whileHover={{ 
-                scale: 1.02,
-                transition: { duration: 0.2 }
-              }}
               className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-slate-900/50 to-slate-950/50 backdrop-blur-sm border border-slate-800 hover:border-slate-700 transition-all duration-300"
             >
-              {/* Hover gradient effect */}
+              {/* Hover gradient effect (visual only, not clickable) */}
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/5 to-purple-600/0"
                 initial={{ x: '-100%' }}
@@ -85,7 +81,7 @@ export default function SectionList({ title, subtitle, items, limit, onLimitChan
               <div className="relative px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-200 group-hover:text-slate-100 transition-colors">
+                    <p className="text-sm font-medium text-slate-200">
                       {item.label}
                     </p>
                     <p className="truncate text-sm text-slate-400 mt-1 font-mono">
@@ -105,7 +101,7 @@ export default function SectionList({ title, subtitle, items, limit, onLimitChan
                         {item.status}
                       </span>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                    {/* ChevronRight removed */}
                   </div>
                 </div>
               </div>
