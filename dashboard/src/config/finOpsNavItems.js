@@ -1,4 +1,3 @@
-// src/config/finopsNavItems.jsx
 import {
   LayoutDashboard,
   BarChart3,
