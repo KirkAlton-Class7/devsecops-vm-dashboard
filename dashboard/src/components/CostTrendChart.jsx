@@ -8,7 +8,7 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
   const [currentCost, setCurrentCost] = useState("0.00");
   const [maxCost, setMaxCost] = useState(10.0);
   const [hasData, setHasData] = useState(false);
-  const [activeBarIndex, setActiveBarIndex] = useState(null); // null or index
+  const [activeBarIndex, setActiveBarIndex] = useState(null);
 
   const fetchCostData = async () => {
     try {
@@ -20,7 +20,6 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
           setHasData(true);
           const latestCost = costValues[costValues.length - 1];
           setCurrentCost(latestCost.toFixed(2));
-          
           const lastTen = costValues.slice(-10);
           setHistoricalCost(lastTen);
           const peak = Math.max(...lastTen, 1.0);
@@ -62,7 +61,6 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
     }
   };
 
-  // Helper: compute stats for popup
   const getPopupStats = (index) => {
     if (index === null || historicalCost.length === 0) return null;
     const cost = historicalCost[index];
@@ -70,25 +68,26 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
     const windowAvg = historicalCost.reduce((a,b) => a + b, 0) / N;
     const peak = Math.max(...historicalCost);
     const low = Math.min(...historicalCost);
-    const yesterday = index > 0 ? historicalCost[index - 1] : null;
-    const vsYesterday = yesterday !== null ? ((cost - yesterday) / yesterday) * 100 : null;
-    const vsAvg = ((cost - windowAvg) / windowAvg) * 100;
-    const vsPeak = ((cost - peak) / peak) * 100;
-    const vsLow = ((cost - low) / low) * 100;
+    const previousDay = index > 0 ? historicalCost[index - 1] : null;
+    const vsPrevAbs = previousDay !== null ? cost - previousDay : null;
+    const vsAvgPercent = ((cost - windowAvg) / windowAvg) * 100;
+    const vsHighPercent = ((cost - peak) / peak) * 100;   // vs Peak = vs High
+    const vsLowPercent = ((cost - low) / low) * 100;
     let position = "";
     if (cost > windowAvg * 1.1) position = "Above Average";
     else if (cost < windowAvg * 0.9) position = "Below Average";
     else position = "Average";
+
     return {
       total: cost,
-      yesterday,
-      vsYesterday,
+      previousDay,
+      vsPrevAbs,
       windowAvg,
-      vsAvg,
+      vsAvgPercent,
       peak,
-      vsPeak,
+      vsHighPercent,
       low,
-      vsLow,
+      vsLowPercent,
       position,
       rangeLow: low,
       rangeHigh: peak,
@@ -96,23 +95,17 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
   };
 
   const handleBarClick = (index) => {
-    if (activeBarIndex === index) {
-      setActiveBarIndex(null); // close if same bar clicked
-    } else {
-      setActiveBarIndex(index);
-    }
+    setActiveBarIndex(activeBarIndex === index ? null : index);
   };
-
   const handleBarMouseEnter = (index) => {
-    if (activeBarIndex !== null) {
-      setActiveBarIndex(index);
-    }
+    if (activeBarIndex !== null) setActiveBarIndex(index);
   };
 
   const popupStats = getPopupStats(activeBarIndex);
   const lowValue = historicalCost.length ? Math.min(...historicalCost) : 0;
   const peakValue = historicalCost.length ? Math.max(...historicalCost) : 0;
   const avgValue = historicalCost.length ? historicalCost.reduce((a,b) => a + b, 0) / historicalCost.length : 0;
+  const N = historicalCost.length;
 
   if (!hasData) {
     return (
@@ -159,7 +152,7 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
             </div>
           </div>
 
-          {/* Bars container with click/hover detection */}
+          {/* Bars container */}
           <div className="flex items-end gap-1.5 h-48 mt-4">
             {historicalCost.map((value, index) => {
               const daysAgo = historicalCost.length - 1 - index;
@@ -167,7 +160,6 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
               const barHeightPercent = (value / maxCost) * 100;
               const barHeight = `${Math.min(barHeightPercent, 100)}%`;
               const barColor = getCostColor(value, dailyBudget);
-              
               return (
                 <div
                   key={index}
@@ -191,44 +183,30 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </motion.div>
                   </div>
-                  <div className="text-[10px] text-slate-500 whitespace-nowrap">
-                    {timeLabel}
-                  </div>
+                  <div className="text-[10px] text-slate-500 whitespace-nowrap">{timeLabel}</div>
                 </div>
               );
             })}
           </div>
-          
+
           {/* Scale indicators */}
           <div className="flex justify-between text-[10px] text-slate-500 mt-1 px-1">
             <span>$0</span>
             <span>${(maxCost * 0.5).toFixed(1)}</span>
             <span>${maxCost.toFixed(1)}</span>
           </div>
-          
-          {/* Budget‑based explanation */}
+
+          {/* Budget legend */}
           <div className="mt-2 pt-2 border-t border-white/10">
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-                <span className="text-slate-400">&lt; 50% of budget = Low</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-                <span className="text-slate-400">50% – 80% = Moderate</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                <span className="text-slate-400">80% – 100% = High</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <span className="text-slate-400">&gt; 100% = Critical</span>
-              </div>
+              <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-400"></div><span className="text-slate-400">&lt; 50% of budget = Low</span></div>
+              <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-yellow-400"></div><span className="text-slate-400">50% – 80% = Moderate</span></div>
+              <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-orange-500"></div><span className="text-slate-400">80% – 100% = High</span></div>
+              <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500"></div><span className="text-slate-400">&gt; 100% = Critical</span></div>
             </div>
           </div>
-          
-          {/* Stats with Low added */}
+
+          {/* Stats row with Low */}
           <div className="mt-2 pt-2 border-t border-white/10">
             <div className="flex justify-between items-center text-xs">
               <div className="flex items-center gap-4">
@@ -237,38 +215,41 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
                 <span className="text-slate-500">Low: <span className="text-purple-400 font-mono">${lowValue.toFixed(2)}</span></span>
                 <span className="text-slate-500">Current: <span className="text-white font-mono">${currentCost}</span></span>
               </div>
-              <div className="text-slate-400">
-                Daily Budget: ${dailyBudget.toFixed(2)}
-              </div>
+              <div className="text-slate-400">Daily Budget: ${dailyBudget.toFixed(2)}</div>
             </div>
           </div>
         </div>
       </Card>
 
-      {/* Popup overlay when a bar is clicked */}
+      {/* Popup overlay - restructured as two blocks */}
       {activeBarIndex !== null && popupStats && (
         <div
-          className="fixed z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-3 text-xs text-slate-300 space-y-1"
-          style={{
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            minWidth: '220px',
-          }}
+          className="fixed z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-3 text-xs text-slate-300"
+          style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', minWidth: '220px' }}
         >
           <div className="flex justify-between items-center border-b border-slate-700 pb-1 mb-1">
             <span className="font-semibold text-cyan-400">Usage in Context</span>
-            <button onClick={() => setActiveBarIndex(null)} className="text-slate-400 hover:text-white">
-              <X className="w-3 h-3" />
-            </button>
+            <button onClick={() => setActiveBarIndex(null)} className="text-slate-400 hover:text-white"><X className="w-3 h-3" /></button>
           </div>
-          <div>Total: <span className="text-white font-mono">${popupStats.total.toFixed(2)}</span></div>
-          <div>vs Yesterday: {popupStats.yesterday !== null ? `${popupStats.vsYesterday > 0 ? '+' : ''}${popupStats.vsYesterday.toFixed(1)}%` : 'N/A'}</div>
-          <div>vs {historicalCost.length}-Day Avg: {popupStats.vsAvg > 0 ? '+' : ''}{popupStats.vsAvg.toFixed(1)}%</div>
-          <div>Range ({historicalCost.length}d): ${popupStats.rangeLow.toFixed(2)} – ${popupStats.rangeHigh.toFixed(2)}</div>
-          <div>vs Peak: {popupStats.vsPeak > 0 ? '+' : ''}{popupStats.vsPeak.toFixed(1)}%</div>
-          <div>vs Low: {popupStats.vsLow > 0 ? '+' : ''}{popupStats.vsLow.toFixed(1)}%</div>
-          <div>Position: {popupStats.position}</div>
+          {/* First block */}
+          <div className="space-y-0.5">
+            <div>Total: <span className="text-white font-mono">${popupStats.total.toFixed(2)}</span></div>
+            <div>
+              Day-over-Day: {popupStats.previousDay !== null ? (
+                <span className="text-white font-mono">${popupStats.vsPrevAbs > 0 ? '+' : ''}{popupStats.vsPrevAbs.toFixed(2)}</span>
+              ) : 'N/A'}
+            </div>
+            <div>vs {N}-Day Avg: <span className="text-white font-mono">{popupStats.vsAvgPercent > 0 ? '+' : ''}{popupStats.vsAvgPercent.toFixed(1)}%</span></div>
+            <div>Position: <span className="text-white">{popupStats.position}</span></div>
+          </div>
+          {/* Spacer */}
+          <div className="mt-2 pt-1 border-t border-slate-700/50"></div>
+          {/* Second block */}
+          <div className="mt-1 space-y-0.5">
+            <div>Range ({N}d): <span className="text-white font-mono">${popupStats.rangeLow.toFixed(2)} – ${popupStats.rangeHigh.toFixed(2)}</span></div>
+            <div>vs High: <span className="text-white font-mono">{popupStats.vsHighPercent > 0 ? '+' : ''}{popupStats.vsHighPercent.toFixed(1)}%</span></div>
+            <div>vs Low: <span className="text-white font-mono">{popupStats.vsLowPercent > 0 ? '+' : ''}{popupStats.vsLowPercent.toFixed(1)}%</span></div>
+          </div>
         </div>
       )}
     </motion.div>
