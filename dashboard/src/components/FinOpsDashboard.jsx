@@ -9,7 +9,7 @@ import {
   Server,
   Sparkles,
   Shrink,
-  SquarePause
+  Pause
 } from "lucide-react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";

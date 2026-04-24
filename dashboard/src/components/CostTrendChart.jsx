@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { DollarSign } from "lucide-react";
+import { DollarSign, X } from "lucide-react";
 import Card from "./Card";
 
 export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget = 10 }) {
@@ -8,6 +8,7 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
   const [currentCost, setCurrentCost] = useState("0.00");
   const [maxCost, setMaxCost] = useState(10.0);
   const [hasData, setHasData] = useState(false);
+  const [activeBarIndex, setActiveBarIndex] = useState(null); // null or index
 
   const fetchCostData = async () => {
     try {
@@ -61,6 +62,58 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
     }
   };
 
+  // Helper: compute stats for popup
+  const getPopupStats = (index) => {
+    if (index === null || historicalCost.length === 0) return null;
+    const cost = historicalCost[index];
+    const N = historicalCost.length;
+    const windowAvg = historicalCost.reduce((a,b) => a + b, 0) / N;
+    const peak = Math.max(...historicalCost);
+    const low = Math.min(...historicalCost);
+    const yesterday = index > 0 ? historicalCost[index - 1] : null;
+    const vsYesterday = yesterday !== null ? ((cost - yesterday) / yesterday) * 100 : null;
+    const vsAvg = ((cost - windowAvg) / windowAvg) * 100;
+    const vsPeak = ((cost - peak) / peak) * 100;
+    const vsLow = ((cost - low) / low) * 100;
+    let position = "";
+    if (cost > windowAvg * 1.1) position = "Above Average";
+    else if (cost < windowAvg * 0.9) position = "Below Average";
+    else position = "Average";
+    return {
+      total: cost,
+      yesterday,
+      vsYesterday,
+      windowAvg,
+      vsAvg,
+      peak,
+      vsPeak,
+      low,
+      vsLow,
+      position,
+      rangeLow: low,
+      rangeHigh: peak,
+    };
+  };
+
+  const handleBarClick = (index) => {
+    if (activeBarIndex === index) {
+      setActiveBarIndex(null); // close if same bar clicked
+    } else {
+      setActiveBarIndex(index);
+    }
+  };
+
+  const handleBarMouseEnter = (index) => {
+    if (activeBarIndex !== null) {
+      setActiveBarIndex(index);
+    }
+  };
+
+  const popupStats = getPopupStats(activeBarIndex);
+  const lowValue = historicalCost.length ? Math.min(...historicalCost) : 0;
+  const peakValue = historicalCost.length ? Math.max(...historicalCost) : 0;
+  const avgValue = historicalCost.length ? historicalCost.reduce((a,b) => a + b, 0) / historicalCost.length : 0;
+
   if (!hasData) {
     return (
       <Card title={title} subtitle="Cost data will appear once BigQuery export runs">
@@ -81,6 +134,7 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
+      className="relative"
     >
       <Card title={title} subtitle="Last 10 days • Cost in USD">
         <div className="space-y-4">
@@ -105,7 +159,7 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
             </div>
           </div>
 
-          {/* Bars container */}
+          {/* Bars container with click/hover detection */}
           <div className="flex items-end gap-1.5 h-48 mt-4">
             {historicalCost.map((value, index) => {
               const daysAgo = historicalCost.length - 1 - index;
@@ -115,10 +169,17 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
               const barColor = getCostColor(value, dailyBudget);
               
               return (
-                <div key={index} className="flex-1 flex flex-col items-center gap-1 h-full">
+                <div
+                  key={index}
+                  className="flex-1 flex flex-col items-center gap-1 h-full"
+                  onClick={() => handleBarClick(index)}
+                  onMouseEnter={() => handleBarMouseEnter(index)}
+                >
                   <div className="relative w-full flex-1 flex items-end" style={{ height: 'calc(100% - 32px)' }}>
                     <motion.div
-                      className={`w-full bg-gradient-to-t ${barColor} rounded-t-md cursor-pointer group relative`}
+                      className={`w-full bg-gradient-to-t ${barColor} rounded-t-md cursor-pointer group relative ${
+                        activeBarIndex === index ? 'ring-2 ring-cyan-400' : ''
+                      }`}
                       style={{ height: barHeight, minHeight: value > 0 ? '4px' : '0px' }}
                       initial={{ height: 0 }}
                       animate={{ height: barHeight }}
@@ -145,7 +206,7 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
             <span>${maxCost.toFixed(1)}</span>
           </div>
           
-          {/* Budget‑based explanation (dynamic) – removed the inline budget display, kept legend */}
+          {/* Budget‑based explanation */}
           <div className="mt-2 pt-2 border-t border-white/10">
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="flex items-center gap-2">
@@ -167,12 +228,13 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
             </div>
           </div>
           
-          {/* Stats + Daily Budget (bottom-right) */}
+          {/* Stats with Low added */}
           <div className="mt-2 pt-2 border-t border-white/10">
             <div className="flex justify-between items-center text-xs">
               <div className="flex items-center gap-4">
-                <span className="text-slate-500">Peak: <span className="text-cyan-400 font-mono">${Math.max(...historicalCost).toFixed(2)}</span></span>
-                <span className="text-slate-500">Avg (10 days): <span className="text-emerald-400 font-mono">${(historicalCost.reduce((a,b) => a + b, 0) / historicalCost.length).toFixed(2)}</span></span>
+                <span className="text-slate-500">Peak: <span className="text-cyan-400 font-mono">${peakValue.toFixed(2)}</span></span>
+                <span className="text-slate-500">Avg: <span className="text-emerald-400 font-mono">${avgValue.toFixed(2)}</span></span>
+                <span className="text-slate-500">Low: <span className="text-purple-400 font-mono">${lowValue.toFixed(2)}</span></span>
                 <span className="text-slate-500">Current: <span className="text-white font-mono">${currentCost}</span></span>
               </div>
               <div className="text-slate-400">
@@ -182,6 +244,33 @@ export default function CostTrendChart({ title = "Daily Cost Trend", dailyBudget
           </div>
         </div>
       </Card>
+
+      {/* Popup overlay when a bar is clicked */}
+      {activeBarIndex !== null && popupStats && (
+        <div
+          className="fixed z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-3 text-xs text-slate-300 space-y-1"
+          style={{
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            minWidth: '220px',
+          }}
+        >
+          <div className="flex justify-between items-center border-b border-slate-700 pb-1 mb-1">
+            <span className="font-semibold text-cyan-400">Usage in Context</span>
+            <button onClick={() => setActiveBarIndex(null)} className="text-slate-400 hover:text-white">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+          <div>Total: <span className="text-white font-mono">${popupStats.total.toFixed(2)}</span></div>
+          <div>vs Yesterday: {popupStats.yesterday !== null ? `${popupStats.vsYesterday > 0 ? '+' : ''}${popupStats.vsYesterday.toFixed(1)}%` : 'N/A'}</div>
+          <div>vs {historicalCost.length}-Day Avg: {popupStats.vsAvg > 0 ? '+' : ''}{popupStats.vsAvg.toFixed(1)}%</div>
+          <div>Range ({historicalCost.length}d): ${popupStats.rangeLow.toFixed(2)} – ${popupStats.rangeHigh.toFixed(2)}</div>
+          <div>vs Peak: {popupStats.vsPeak > 0 ? '+' : ''}{popupStats.vsPeak.toFixed(1)}%</div>
+          <div>vs Low: {popupStats.vsLow > 0 ? '+' : ''}{popupStats.vsLow.toFixed(1)}%</div>
+          <div>Position: {popupStats.position}</div>
+        </div>
+      )}
     </motion.div>
   );
 }

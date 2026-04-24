@@ -9,7 +9,7 @@ import {
   Info,
   AlertTriangle,
   RefreshCw,
-  SquarePause,
+  Pause,
 } from "lucide-react";
 import Card from "./Card";
 import StatusDot from "./StatusDot";
@@ -118,7 +118,7 @@ export default function ResourceTable({
       >
         <Card title={title} subtitle={subtitle}>
           <div className="py-12 text-center text-slate-400">
-            <SquarePause className="w-12 h-12 mx-auto mb-2 opacity-40" />
+            <Pause className="w-12 h-12 mx-auto mb-2 opacity-40" />
             <p>No idle resources available yet.</p>
             <p className="text-xs mt-1">
               GCP Recommender API may take up to 48 hours to generate insights.
