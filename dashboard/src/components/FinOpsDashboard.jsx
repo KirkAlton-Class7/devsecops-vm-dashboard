@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3,
-  ChartNoAxesGantt,
+  ChartBarDecreasing,
   Cpu,
   Gauge,
   RefreshCw,
@@ -21,7 +21,6 @@ import BudgetCard from "./BudgetCard";
 import RecommendationItem from "./RecommendationItem";
 import UtilizationChart from "./UtilizationChart";
 import CostBreakdownChart from "./CostBreakdownChart";
-import SavingsSummary from "./SavingsSummary";
 import QuoteCard from "./QuoteCard";
 import NetworkParticles from "./NetworkParticles";
 import ImageGallery from "./ImageGallery";
@@ -253,13 +252,6 @@ export default function FinOpsDashboard({
             ))}
           </section>
 
-          <section id="savings" className="grid grid-cols-1 gap-4">
-            <SavingsSummary
-              realized={data.realizedSavings || 0}
-              potential={data.potentialSavings || 0}
-            />
-          </section>
-
           <section
             id="cost-trends"
             className="grid grid-cols-1 gap-6 lg:grid-cols-2"
@@ -276,7 +268,7 @@ export default function FinOpsDashboard({
             <CostBreakdownChart
               data={top10Services}
               title={
-                <WidgetTitle icon={ChartNoAxesGantt} tone="violet">
+                <WidgetTitle icon={ChartBarDecreasing} tone="violet">
                   Top Services by Cost
                 </WidgetTitle>
               }
@@ -380,7 +372,8 @@ export default function FinOpsDashboard({
                     {utilizationRows.map((vm, idx) => (
                       <div
                         key={`${vm.instance}-${idx}`}
-                        className="flex items-center justify-between gap-2 rounded-lg bg-white/5 p-2"
+                        className="flex items-center justify-between gap-2 rounded-lg bg-white/5 p-2 cursor-pointer hover:bg-white/10 transition-colors"
+                        onClick={() => window.open("https://console.cloud.google.com/compute/instances", "_blank")}
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-3">
                           <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 text-cyan-400">
@@ -460,7 +453,6 @@ export default function FinOpsDashboard({
                     <p className="text-xs mt-1">GCP Recommender API may take up to 48 hours to generate insights.</p>
                   </div>
                 )}
-      
               </div>
             </Card>
           </section>
@@ -468,11 +460,7 @@ export default function FinOpsDashboard({
           <section id="idle-resources">
             <ResourceTable
               rows={idleResourceRows}
-              title={
-                <WidgetTitle icon={Server} tone="amber">
-                  Idle Resources
-                </WidgetTitle>
-              }
+              title={<WidgetTitle icon={Server} tone="amber">Idle Resources</WidgetTitle>}
               subtitle="Resources with low usage or cleanup opportunities"
               isLogs={false}
               limit={idleResourceLimit}
@@ -482,6 +470,7 @@ export default function FinOpsDashboard({
                   getNextLimit(current, data.idleResources?.length || 0)
                 )
               }
+              onRowClick="https://console.cloud.google.com/home/dashboard"
             />
           </section>
         </main>

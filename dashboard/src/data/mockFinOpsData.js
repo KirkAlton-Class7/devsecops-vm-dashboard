@@ -20,7 +20,17 @@ export const finopsNavItems = [
   { id: "savings", label: "Savings", icon: DollarSign },
 ];
 
-export const mockFinOpsData = {
+// ------------------------------------------------------------
+// TOGGLE SWITCHES – set to true to show empty placeholder
+// ------------------------------------------------------------
+const EMPTY_COST_TREND = true;      // true → no cost trend data
+const EMPTY_TOP_SERVICES = true;    // true → no top services data
+const EMPTY_UTILIZATION = true;     // true → no CPU utilization data
+const EMPTY_RIGHTSIZING = true;     // true → no rightsizing recommendations
+const EMPTY_IDLE_RESOURCES = true;  // true → no idle resources data
+// ------------------------------------------------------------
+
+const fullMock = {
   summaryCards: [
     { label: "Total Cost (MTD)", value: "124.50", status: "info" },
     { label: "Forecast (EOM)", value: "158.20", status: "warning" },
@@ -297,9 +307,20 @@ export const mockFinOpsData = {
   realizedSavings: 15.3,
   potentialSavings: 67,
 
-  // Identity for Optimize button
   identity: {
     project: "mock-project-123",
     billingAccountId: "mock-billing-id"
   },
+};
+
+// ------------------------------------------------------------
+// Apply toggles (comment/uncomment or change flags above)
+// ------------------------------------------------------------
+export const mockFinOpsData = {
+  ...fullMock,
+  costTrend: EMPTY_COST_TREND ? [] : fullMock.costTrend,
+  topServices: EMPTY_TOP_SERVICES ? [] : fullMock.topServices,
+  utilization: EMPTY_UTILIZATION ? [] : fullMock.utilization,
+  recommendations: EMPTY_RIGHTSIZING ? [] : fullMock.recommendations,
+  idleResources: EMPTY_IDLE_RESOURCES ? [] : fullMock.idleResources,
 };

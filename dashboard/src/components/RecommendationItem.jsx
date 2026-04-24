@@ -1,12 +1,10 @@
-import { TrendingUp, ExternalLink } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 
 export default function RecommendationItem({
   resource,
   description,
   monthlySavings,
   impact = "MEDIUM",
-  actionUrl,
-  onAction,
 }) {
   const impactColor = {
     HIGH: "text-red-400 bg-red-500/10",
@@ -15,12 +13,14 @@ export default function RecommendationItem({
   }[impact] || "text-blue-400 bg-blue-500/10";
 
   const handleClick = () => {
-    if (actionUrl) window.open(actionUrl, "_blank");
-    else if (onAction) onAction();
+    window.open("https://console.cloud.google.com/cloud-hub/optimization", "_blank");
   };
 
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+    <div
+      className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+      onClick={handleClick}
+    >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-white truncate">{resource}</p>
@@ -37,13 +37,6 @@ export default function RecommendationItem({
             <span className="text-sm font-mono">${monthlySavings}/mo</span>
           </div>
         </div>
-        <button
-          onClick={handleClick}
-          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-          title="Apply recommendation"
-        >
-          <ExternalLink className="w-4 h-4 text-cyan-400" />
-        </button>
       </div>
     </div>
   );

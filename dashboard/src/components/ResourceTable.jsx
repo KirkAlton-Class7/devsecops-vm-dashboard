@@ -9,6 +9,7 @@ import {
   Info,
   AlertTriangle,
   RefreshCw,
+  SquarePause,
 } from "lucide-react";
 import Card from "./Card";
 import StatusDot from "./StatusDot";
@@ -28,21 +29,17 @@ const getScopeIcon = (scope) => {
 
 const getLogIcon = (type) => {
   const typeLower = type?.toLowerCase() || "";
-
   if (typeLower.includes("error")) {
     return <AlertCircle className="w-3 h-3 text-red-400" />;
   }
-
   if (typeLower.includes("warning")) {
     return <AlertTriangle className="w-3 h-3 text-amber-400" />;
   }
-
   return <Info className="w-3 h-3 text-cyan-400" />;
 };
 
 const getStatusDotStatus = (rowStatus) => {
   const status = rowStatus?.toLowerCase() || "";
-
   if (
     status === "running" ||
     status === "installed" ||
@@ -56,11 +53,9 @@ const getStatusDotStatus = (rowStatus) => {
   ) {
     return "success";
   }
-
   if (status === "warning" || status === "pending" || status === "degraded") {
     return "warning";
   }
-
   if (
     status === "critical" ||
     status === "error" ||
@@ -71,7 +66,6 @@ const getStatusDotStatus = (rowStatus) => {
   ) {
     return "critical";
   }
-
   return "healthy";
 };
 
@@ -83,9 +77,10 @@ export default function ResourceTable({
   limit,
   onLimitChange,
   cycleLabel,
+  onRowClick,
 }) {
   const totalRows = rows.length;
-  const resolvedCycleLabel = cycleLabel || (isLogs ? "logs" : "services");
+  const resolvedCycleLabel = cycleLabel || (isLogs ? "logs" : "resources");
 
   const getIncrements = () =>
     isLogs
@@ -94,21 +89,45 @@ export default function ResourceTable({
 
   const cycleLimit = () => {
     const increments = getIncrements();
-
     if (limit >= totalRows) {
       onLimitChange?.(increments[0]);
       return;
     }
-
     const currentIndex = increments.indexOf(limit);
     const nextIndex = (currentIndex + 1) % increments.length;
-
     onLimitChange?.(increments[nextIndex]);
   };
 
   const displayedRows = rows.slice(0, limit);
-  const isShowingAll = limit >= totalRows;
-  const displayText = isShowingAll ? `all ${totalRows}` : `${limit} of ${totalRows}`;
+  const displayText = limit >= totalRows ? `all ${totalRows}` : `${limit} of ${totalRows}`;
+
+  const handleRowClick = () => {
+    if (onRowClick) {
+      const url = typeof onRowClick === "string" ? onRowClick : onRowClick();
+      if (url) window.open(url, "_blank");
+    }
+  };
+
+  // Empty state for idle resources (non‑logs)
+  if (!isLogs && totalRows === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card title={title} subtitle={subtitle}>
+          <div className="py-12 text-center text-slate-400">
+            <SquarePause className="w-12 h-12 mx-auto mb-2 opacity-40" />
+            <p>No idle resources available yet.</p>
+            <p className="text-xs mt-1">
+              GCP Recommender API may take up to 48 hours to generate insights.
+            </p>
+          </div>
+        </Card>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -121,22 +140,19 @@ export default function ResourceTable({
           <div className="text-xs text-slate-500">
             Showing {displayText} {isLogs ? "log entries" : "resources"}
           </div>
-
           <button
             onClick={cycleLimit}
             className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
             title={`Cycle ${resolvedCycleLabel} (${isLogs ? "5-30 step 5" : "3-30 step 3"})`}
           >
             <RefreshCw className="w-3 h-3" />
-            <span className="hidden sm:inline">
-              Cycle {resolvedCycleLabel}
-            </span>
+            <span className="hidden sm:inline">Cycle {resolvedCycleLabel}</span>
           </button>
         </div>
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="text-slate-400">
+            <thead>
               <tr className="border-b border-slate-800">
                 {isLogs ? (
                   <>
@@ -156,7 +172,6 @@ export default function ResourceTable({
                 )}
               </tr>
             </thead>
-
             <tbody>
               {displayedRows.map((row, idx) => {
                 if (isLogs) {
@@ -181,36 +196,30 @@ export default function ResourceTable({
                           </span>
                         </div>
                       </td>
-
                       <td className="px-4 py-3">
                         <span
                           className={`text-xs px-2 py-1 rounded-full ${
                             row.type === "error"
                               ? "bg-red-500/20 text-red-400"
                               : row.type === "warning"
-                                ? "bg-amber-500/20 text-amber-400"
-                                : "bg-cyan-500/20 text-cyan-400"
+                              ? "bg-amber-500/20 text-amber-400"
+                              : "bg-cyan-500/20 text-cyan-400"
                           }`}
                         >
                           {row.type}
                         </span>
                       </td>
-
                       <td className="px-4 py-3">
                         <span className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-300">
                           {row.scope}
                         </span>
                       </td>
-
-                      <td className="px-4 py-3 text-slate-300">
-                        {row.status}
-                      </td>
+                      <td className="px-4 py-3 text-slate-300">{row.status}</td>
                     </motion.tr>
                   );
                 }
 
                 const statusDotStatus = getStatusDotStatus(row.status);
-
                 return (
                   <motion.tr
                     key={`${row.name}-${row.type}-${idx}`}
@@ -223,44 +232,30 @@ export default function ResourceTable({
                       transition: { duration: 0.2 },
                     }}
                     className="border-b border-slate-800/50 transition-all duration-200 cursor-pointer group"
+                    onClick={handleRowClick}
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center group-hover:scale-110 transition-transform">
                           {getScopeIcon(row.scope)}
                         </div>
-
                         <span className="text-slate-200 font-medium group-hover:text-cyan-400 transition-colors">
                           {row.name}
                         </span>
                       </div>
                     </td>
-
                     <td className="px-4 py-3">
                       <span className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">
                         {row.type}
                       </span>
                     </td>
-
-                    <td className="px-4 py-3 text-slate-400">
-                      {row.scope}
-                    </td>
-
+                    <td className="px-4 py-3 text-slate-400">{row.scope}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <StatusDot
-                          status={statusDotStatus}
-                          size="sm"
-                          showTooltip={true}
-                          animated={true}
-                        />
-
-                        <span className="text-sm text-slate-300">
-                          {row.status}
-                        </span>
+                        <StatusDot status={statusDotStatus} size="sm" showTooltip animated />
+                        <span className="text-sm text-slate-300">{row.status}</span>
                       </div>
                     </td>
-
                     <td className="px-4 py-3">
                       <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-cyan-400 transition-colors" />
                     </td>

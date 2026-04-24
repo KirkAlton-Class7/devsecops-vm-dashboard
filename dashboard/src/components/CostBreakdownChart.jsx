@@ -7,20 +7,28 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import { DollarSign } from "lucide-react";
 import Card from "./Card";
 
 const COLORS = ["#06b6d4", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#ec4899"];
 
 export default function CostBreakdownChart({ data, title = "Cost by Service", dataKey = "value", nameKey = "name" }) {
-  if (!data || data.length === 0) {
+  const hasData = data && data.length > 0;
+
+  if (!hasData) {
     return (
       <Card title={title}>
-        <div className="text-center text-slate-400 py-8">No cost data available</div>
+        <div className="p-8 text-center text-slate-400">
+          <DollarSign className="w-12 h-12 mx-auto mb-2 opacity-40" />
+          <p>No cost data available.</p>
+          <p className="text-xs mt-1">
+            Billing export is initializing. Please wait up to 24 hours.
+          </p>
+        </div>
       </Card>
     );
   }
 
-  // Increase per-bar height to 48px to use more vertical space
   const barHeight = 48;
   const chartHeight = Math.max(350, data.length * barHeight);
 
@@ -32,7 +40,7 @@ export default function CostBreakdownChart({ data, title = "Cost by Service", da
             layout="vertical"
             data={data}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            barSize={30}          // thicker bars
+            barSize={30}
             barGap={2}
             barCategoryGap="10%"
           >
@@ -41,7 +49,7 @@ export default function CostBreakdownChart({ data, title = "Cost by Service", da
               type="category"
               dataKey={nameKey}
               tick={{ fill: "#94a3b8", fontSize: 12 }}
-              width={130}          // slightly wider for longer names
+              width={130}
             />
             <Tooltip
               contentStyle={{ backgroundColor: "#1e293b", border: "none" }}
