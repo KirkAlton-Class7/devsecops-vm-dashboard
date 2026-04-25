@@ -12,6 +12,38 @@ import Card from "./Card";
 
 const COLORS = ["#06b6d4", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#ec4899"];
 
+// Custom tooltip – no arrow, dynamic width, matches CostTrendChart style
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const value = payload[0].value;
+    return (
+      <div
+        className="rounded-lg border border-slate-700 bg-slate-800 p-3 text-xs shadow-xl"
+        style={{
+          backgroundColor: "#1e293b",
+          borderRadius: "0.5rem",
+          minWidth: "180px",
+          maxWidth: "320px",
+          width: "max-content",
+        }}
+      >
+        <div className="space-y-1 text-slate-300">
+          <div className="border-b border-slate-700 pb-1 font-semibold text-cyan-400">
+            {label}
+          </div>
+          <div>
+            Cost:{" "}
+            <span className="font-mono text-white">
+              ${value.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function CostBreakdownChart({ data, title = "Cost by Service", dataKey = "value", nameKey = "name" }) {
   const hasData = data && data.length > 0;
 
@@ -32,11 +64,10 @@ export default function CostBreakdownChart({ data, title = "Cost by Service", da
   const barHeight = 48;
   const chartHeight = Math.max(350, data.length * barHeight);
 
-  // Format currency for Y‑axis (optional, but X‑axis uses it)
   const formatUSD = (value) => `$${value.toFixed(0)}`;
 
   return (
-    <Card title={title} subtitle="Cost breakdown by service – USD">
+    <Card title={title} subtitle="Cost breakdown by service (USD)">
       <div className="w-full" style={{ minHeight: `${chartHeight}px` }}>
         <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart
@@ -56,17 +87,11 @@ export default function CostBreakdownChart({ data, title = "Cost by Service", da
               type="category"
               dataKey={nameKey}
               tick={{ fill: "#94a3b8", fontSize: 13 }}
-              width={140} // Slightly wider to prevent truncation
+              width={140}
             />
             <Tooltip
-              contentStyle={{
-                backgroundColor: "#1e293b",
-                border: "none",
-                borderRadius: "0.5rem",
-                fontSize: "12px",
-              }}
-              labelStyle={{ color: "#cbd5e1" }}
-              formatter={(value) => [`$${value.toFixed(2)}`, "Cost"]}
+              content={<CustomTooltip />}
+              cursor={{ fill: "rgba(255,255,255,0.05)" }}
             />
             <Bar dataKey={dataKey}>
               {data.map((entry, index) => (

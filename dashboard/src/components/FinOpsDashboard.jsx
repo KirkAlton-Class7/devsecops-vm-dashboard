@@ -264,6 +264,7 @@ export default function FinOpsDashboard({
                 </WidgetTitle>
               }
               dailyBudget={dailyBudget}
+              data={data.costTrend || []}        // <-- passes the trend data from API/mock
             />
 
             <CostBreakdownChart
