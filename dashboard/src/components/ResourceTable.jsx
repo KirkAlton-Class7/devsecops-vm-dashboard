@@ -145,7 +145,7 @@ export default function ResourceTable({
     setAllLogs([]);
     setCopiedLogId(null);
     try {
-      const url = '/api/logs?limit=200';
+      const url = '/api/logs?limit=500';
       console.log('[Modal] Fetching logs from:', url);
       const res = await fetch(url);
       console.log('[Modal] Response status:', res.status);
