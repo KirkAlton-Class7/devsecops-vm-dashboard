@@ -14,7 +14,8 @@ import {
   Eye,
   Copy,
   Check,
-  X
+  X,
+  Plus
 } from "lucide-react";
 import Card from "./Card";
 import StatusDot from "./StatusDot";
@@ -87,18 +88,22 @@ export default function ResourceTable({
   const [showAllLogsModal, setShowAllLogsModal] = useState(false);
   const [allLogs, setAllLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [logError, setLogError] = useState(null);
   const [copiedLogId, setCopiedLogId] = useState(null);
+  const [offset, setOffset] = useState(0);
+  const [totalLogs, setTotalLogs] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const PAGE_SIZE = 200;
 
-  const totalRows = rows.length;
+  const totalRowsCount = rows.length;
   const resolvedCycleLabel = cycleLabel || (isLogs ? "logs" : "resources");
-
   const getIncrements = () =>
     isLogs ? [5, 10, 15, 20, 25, 30] : [3, 6, 9, 12, 15, 18, 21, 24, 27, 30];
 
   const cycleLimit = () => {
     const increments = getIncrements();
-    if (limit >= totalRows) {
+    if (limit >= totalRowsCount) {
       onLimitChange?.(increments[0]);
       return;
     }
@@ -109,7 +114,7 @@ export default function ResourceTable({
 
   const displayedRows = rows.slice(0, limit);
   const displayText =
-    limit >= totalRows ? `all ${totalRows}` : `${limit} of ${totalRows}`;
+    limit >= totalRowsCount ? `all ${totalRowsCount}` : `${limit} of ${totalRowsCount}`;
 
   const handleRowClick = () => {
     if (onRowClick) {
@@ -118,65 +123,54 @@ export default function ResourceTable({
     }
   };
 
-  // const fetchAllLogs = async () => {
-  //   setLoadingLogs(true);
-  //   setLogError(null);
-  //   setAllLogs([]);          // clear old data immediately
-  //   setCopiedLogId(null);    // reset copy indicator
-  //   try {
-  //     const res = await fetch('/api/logs?limit=500');
-  //     if (res.ok) {
-  //       const logs = await res.json();
-  //       setAllLogs(logs);
-  //     } else {
-  //       setLogError(`Failed to fetch logs (status ${res.status})`);
-  //     }
-  //   } catch (err) {
-  //     console.error(err);
-  //     setLogError(err.message);
-  //   } finally {
-  //     setLoadingLogs(false);
-  //   }
-  // };
-
   const fetchAllLogs = async () => {
     setLoadingLogs(true);
     setLogError(null);
     setAllLogs([]);
+    setOffset(0);
+    setHasMore(false);
     setCopiedLogId(null);
     try {
-      const url = '/api/logs?limit=500';
-      console.log('[Modal] Fetching logs from:', url);
-      const res = await fetch(url);
-      console.log('[Modal] Response status:', res.status);
-      if (!res.ok) {
-        setLogError(`HTTP ${res.status}: ${res.statusText}`);
-        setLoadingLogs(false);
-        return;
-      }
-      const text = await res.text();
-      console.log('[Modal] Raw response (first 200 chars):', text.substring(0, 200));
-      let logs;
-      try {
-        logs = JSON.parse(text);
-      } catch (e) {
-        console.error('[Modal] JSON parse error:', e);
-        setLogError('Invalid JSON response from server');
-        setLoadingLogs(false);
-        return;
-      }
-      if (Array.isArray(logs)) {
-        console.log('[Modal] Received array of length', logs.length);
-        setAllLogs(logs);
+      const res = await fetch(`/api/logs?limit=${PAGE_SIZE}&offset=0`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.logs && Array.isArray(data.logs)) {
+        setAllLogs(data.logs);
+        setTotalLogs(data.total);
+        const nextOffset = data.offset + data.logs.length;
+        setHasMore(nextOffset < data.total);
+        setOffset(nextOffset);
       } else {
-        console.error('[Modal] Response is not an array:', logs);
-        setLogError('Unexpected data format (expected array)');
+        setLogError("Invalid response format");
       }
     } catch (err) {
-      console.error('[Modal] Fetch error:', err);
+      console.error(err);
       setLogError(err.message);
     } finally {
       setLoadingLogs(false);
+    }
+  };
+
+  const loadMoreLogs = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/logs?limit=${PAGE_SIZE}&offset=${offset}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.logs && Array.isArray(data.logs)) {
+        setAllLogs((prev) => [...prev, ...data.logs]);
+        const nextOffset = data.offset + data.logs.length;
+        setHasMore(nextOffset < data.total);
+        setOffset(nextOffset);
+      } else {
+        setLogError("Invalid response format while loading more");
+      }
+    } catch (err) {
+      console.error(err);
+      setLogError(err.message);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -192,13 +186,9 @@ export default function ResourceTable({
     setShowAllLogsModal(true);
   };
 
-  const closeModal = () => {
-    setShowAllLogsModal(false);
-    // optionally reset state after modal closes (but not necessary)
-  };
+  const closeModal = () => setShowAllLogsModal(false);
 
-  // Empty state for idle resources (non‑logs)
-  if (!isLogs && totalRows === 0) {
+  if (!isLogs && totalRowsCount === 0) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -244,7 +234,7 @@ export default function ResourceTable({
               <button
                 onClick={cycleLimit}
                 className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
-                title={`Cycle ${resolvedCycleLabel} (${isLogs ? "5-30 step 5" : "3-30 step 3"})`}
+                title={`Cycle ${resolvedCycleLabel}`}
               >
                 <RefreshCw className="w-3 h-3" />
                 <span className="hidden sm:inline">Cycle {resolvedCycleLabel}</span>
@@ -368,13 +358,13 @@ export default function ResourceTable({
           <div className="mt-4 pt-3 border-t border-slate-800">
             <p className="text-xs text-slate-500">
               Showing {displayText} {isLogs ? "log entry" : "resource"}
-              {totalRows !== 1 ? "s" : ""}
+              {totalRowsCount !== 1 ? "s" : ""}
             </p>
           </div>
         </Card>
       </motion.div>
 
-      {/* All Logs Modal */}
+      {/* All Logs Modal with Load More */}
       <AnimatePresence>
         {showAllLogsModal && (
           <motion.div
@@ -394,7 +384,7 @@ export default function ResourceTable({
               <div className="flex items-center justify-between p-4 border-b border-white/10">
                 <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-cyan-400" />
-                  System Logs (last 500)
+                  System Logs {totalLogs > 0 && `(${allLogs.length} / ${totalLogs})`}
                 </h2>
                 <button
                   onClick={closeModal}
@@ -422,49 +412,72 @@ export default function ResourceTable({
                 ) : allLogs.length === 0 ? (
                   <p className="text-center text-slate-400 py-8">No logs found.</p>
                 ) : (
-                  <div className="space-y-2">
-                    {allLogs.map((log, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => handleCopyLog(log, idx)}
-                        className={`group p-3 rounded-xl border border-white/5 transition-all cursor-pointer ${
-                          log.level === "ERROR"
-                            ? "hover:bg-red-500/10"
-                            : log.level === "WARN"
-                            ? "hover:bg-amber-500/10"
-                            : "hover:bg-cyan-500/10"
-                        }`}
-                      >
-                        <div className="flex items-start gap-2 text-sm">
-                          <div className="flex-shrink-0 mt-0.5">
-                            {log.level === "ERROR" && <AlertCircle className="w-4 h-4 text-red-400" />}
-                            {log.level === "WARN" && <AlertTriangle className="w-4 h-4 text-amber-400" />}
-                            {log.level === "INFO" && <Info className="w-4 h-4 text-cyan-400" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-mono text-xs text-slate-500">{log.time}</span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${getLevelBadgeStyle(log.level)}`}>
-                                {log.level}
-                              </span>
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                                {log.source}
-                              </span>
-                              {copiedLogId === idx && (
-                                <span className="text-emerald-400 text-xs flex items-center gap-1">
-                                  <Check className="w-3 h-3" /> Copied!
-                                </span>
-                              )}
+                  <>
+                    <div className="space-y-2">
+                      {allLogs.map((log, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleCopyLog(log, idx)}
+                          className={`group p-3 rounded-xl border border-white/5 transition-all cursor-pointer ${
+                            log.level === "ERROR"
+                              ? "hover:bg-red-500/10"
+                              : log.level === "WARN"
+                              ? "hover:bg-amber-500/10"
+                              : "hover:bg-cyan-500/10"
+                          }`}
+                        >
+                          <div className="flex items-start gap-2 text-sm">
+                            <div className="flex-shrink-0 mt-0.5">
+                              {log.level === "ERROR" && <AlertCircle className="w-4 h-4 text-red-400" />}
+                              {log.level === "WARN" && <AlertTriangle className="w-4 h-4 text-amber-400" />}
+                              {log.level === "INFO" && <Info className="w-4 h-4 text-cyan-400" />}
                             </div>
-                            <p className="text-slate-300 text-sm mt-1 break-words">{log.message}</p>
-                          </div>
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Copy className="w-4 h-4 text-slate-400" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-mono text-xs text-slate-500">{log.time}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${getLevelBadgeStyle(log.level)}`}>
+                                  {log.level}
+                                </span>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                                  {log.source}
+                                </span>
+                                {copiedLogId === idx && (
+                                  <span className="text-emerald-400 text-xs flex items-center gap-1">
+                                    <Check className="w-3 h-3" /> Copied!
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-slate-300 text-sm mt-1 break-words">{log.message}</p>
+                            </div>
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Copy className="w-4 h-4 text-slate-400" />
+                            </div>
                           </div>
                         </div>
+                      ))}
+                    </div>
+                    {hasMore && (
+                      <div className="flex justify-center mt-6 pt-2">
+                        <button
+                          onClick={loadMoreLogs}
+                          disabled={loadingMore}
+                          className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors px-4 py-2 rounded-lg border border-slate-700 hover:border-cyan-500/50 disabled:opacity-50"
+                        >
+                          {loadingMore ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4" />
+                              Load More
+                            </>
+                          )}
+                        </button>
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
             </motion.div>

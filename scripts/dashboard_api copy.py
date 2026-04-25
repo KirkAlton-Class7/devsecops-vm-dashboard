@@ -45,6 +45,7 @@ import os
 import random
 import subprocess
 import urllib.request
+import concurrent.futures
 from google.cloud import monitoring_v3
 from google.cloud.monitoring_v3 import Aggregation
 from datetime import datetime, timedelta
@@ -64,6 +65,9 @@ STUDENT_NAME = "Kirk Alton"
 
 # Your billing account ID (hardcoded for reliability)
 BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"
+
+# Log Limit (max number of logs to save)
+LOG_LIMIT = 500
 
 # ---------------------------------------------------------------------------------------------
 # !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
@@ -400,6 +404,49 @@ def get_system_logs(limit=30):
     except Exception as e:
         print(f"Error fetching journalctl logs: {e}", file=sys.stderr)
         return []
+
+
+# Get all logs (with limit)
+def get_all_logs(limit=LOG_LIMIT):
+    """Fetch the last `limit` system logs from journalctl."""
+    cmd = ["journalctl", "-n", str(limit), "--no-pager", "-o", "json"]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        print(f"journalctl exit code: {result.returncode}, stdout length: {len(result.stdout)}", file=sys.stderr)
+        if result.returncode != 0 or not result.stdout.strip():
+            return []
+        logs = []
+        for line in result.stdout.strip().split("\n"):
+            try:
+                entry = json.loads(line)
+                priority = int(entry.get("PRIORITY", 6))
+                if priority <= 3:
+                    level = "ERROR"
+                elif priority == 4:
+                    level = "WARN"
+                else:
+                    level = "INFO"
+                ts_micro = int(entry.get("__REALTIME_TIMESTAMP", 0))
+                if ts_micro:
+                    dt = datetime.fromtimestamp(ts_micro / 1_000_000)
+                    time_str = dt.strftime("%H:%M:%S")
+                else:
+                    time_str = datetime.now().strftime("%H:%M:%S")
+                message = entry.get("MESSAGE", "").strip()
+                source = entry.get("SYSLOG_IDENTIFIER", "system")
+                logs.append({
+                    "time": time_str,
+                    "level": level,
+                    "source": source[:20],
+                    "message": message[:300]
+                })
+            except json.JSONDecodeError:
+                continue
+        return logs
+    except Exception as e:
+        print(f"Error fetching full logs: {e}", file=sys.stderr)
+        return []
+
 
 # -------------------------------
 # Real cost data from BigQuery
@@ -778,8 +825,6 @@ def build_dashboard_data():
 # Cached FinOps data assembly (30 seconds)
 # -------------------------------
 
-import concurrent.futures
-
 @ttl_cache(seconds=30)
 def get_cached_finops_data():
     """Assemble FinOps data with parallel fetching for speed."""
@@ -845,11 +890,11 @@ class MonitoringHandler(BaseHTTPRequestHandler):
         # Metadata endpoint
         if self.path == '/metadata':    
             try:
+                # ----- IDENTITY -----
                 student_name = get_metadata("instance/attributes/STUDENT_NAME")
                 if student_name in ("unknown", ""):
                     print(f"WARNING: STUDENT_NAME metadata not found (got '{student_name}'), using hardcoded fallback '{STUDENT_NAME}'", file=sys.stderr)
                     student_name = STUDENT_NAME
-                # else keep student_name as retrieved
 
                 project_id    = get_metadata("project/project-id")
                 instance_id   = get_metadata("instance/id")
@@ -857,32 +902,30 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 hostname      = get_metadata("instance/hostname")
                 machine_type_full = get_metadata("instance/machine-type")
                 machine_type = safe_basename(machine_type_full)
-
+                
+                # ----- NETWORK -----
                 vpc_full   = get_metadata("instance/network-interfaces/0/network")
                 vpc        = safe_basename(vpc_full)
                 subnet = get_subnet_name()
 
                 internal_ip   = get_metadata("instance/network-interfaces/0/ip")
                 external_ip   = get_metadata("instance/network-interfaces/0/access-configs/0/external-ip")
-
+                
+                # ----- LOCATION -----
                 zone_full = get_metadata("instance/zone")
                 zone = safe_basename(zone_full)
                 region = zone.rsplit('-', 1)[0] if '-' in zone else "unknown"
                 startup_utc = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
                 uptime = get_uptime()
 
-                # ----- Health data (required by instructor's gates) -----
+                # ----- HEALTH -----
                 load_avg_str = get_load_avg_string()
-
-                # RAM in MB (using your existing get_memory_details)
                 mem = get_memory_details()
                 ram_mb = {
                     "used": mem.get("used", 0),
                     "free": mem.get("free", 0),
                     "total": mem.get("total", 0)
                 }
-
-                # Disk root in human‑readable format
                 disk = get_disk_details()
                 disk_root = {
                     "size": format_bytes_human(disk.get("total", 0)),
@@ -891,24 +934,31 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                     "use_pct": f"{get_disk_percent()}%"
                 }
                 
-                # Metadata dictionary
+                # ----- BUILD RESPONSE -----
                 metadata = {
+                    # Identity
                     "STUDENT_NAME": student_name,
                     "project_id": project_id,
                     "instance_id": instance_id,
                     "instance_name": instance_name,
                     "hostname": hostname,
                     "machine_type": machine_type,
+                    
+                    # Network
                     "network": {
                         "vpc": vpc,
                         "subnet": subnet,
                         "internal_ip": internal_ip,
                         "external_ip": external_ip,
                     },
+                    
+                    # Location & Uptime
                     "region": region,
                     "zone": zone,
                     "startup_utc": startup_utc,
                     "uptime": uptime,
+                    
+                    # Health status
                     "health": {
                         "uptime": uptime,
                         "load_avg": load_avg_str,
@@ -916,19 +966,57 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                         "disk_root": disk_root
                     }
                 }
-
+                
+                # ----- SEND SUCCESS RESPONSE -----
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps(metadata).encode())
+
             except Exception as e:
+                # ----- SEND ERROR RESPONSE -----
                 self.send_response(500)
                 self.send_header('Content-type', 'text/plain')
                 self.end_headers()
                 self.wfile.write(f"Error fetching metadata: {e}".encode())
             return
 
-        # Dashboard API endpoint (cached)
+        # API Configuration endpoint (static settings)
+        if self.path == '/api/config':
+            try:
+                config = {
+                    "logLimit": LOG_LIMIT
+                }
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(config).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(f"Error: {e}".encode())
+            return
+
+        # Logs API endpoint (raw journalctl)
+        if self.path.startswith('/api/logs'):
+            try:
+                from urllib.parse import urlparse, parse_qs
+                query = parse_qs(urlparse(self.path).query)
+                limit = int(query.get('limit', [500])[0])
+                logs = get_all_logs(limit)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(logs).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(f"Error fetching logs: {e}".encode())
+            return
+
+        # Dashboard API endpoint (cached system data)
         if self.path == '/api/dashboard':
             try:
                 data = build_dashboard_data()
@@ -943,7 +1031,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f"Error building dashboard data: {e}".encode())
             return
 
-        # FinOps API endpoint with cached assembly
+        # FinOps API endpoint (cached cost data)
         if self.path == '/api/finops':
             try:
                 finops_data = get_cached_finops_data()
@@ -952,7 +1040,6 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps(finops_data).encode())
             except Exception as e:
-                # Catch-all for any other errors
                 self.send_response(500)
                 self.send_header('Content-type', 'text/plain')
                 self.end_headers()
@@ -962,7 +1049,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
         # Not found
         self.send_response(404)
         self.end_headers()
-
+        
     def log_message(self, format, *args):
         """Suppress default HTTP server logging."""
         return
