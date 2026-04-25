@@ -21,35 +21,44 @@ export default function BudgetCard({ name, amount, spent }) {
 
   const barColor = getGradientColors();
 
+  const handleClick = () => {
+    window.open("https://console.cloud.google.com/billing/budgets", "_blank", "noopener,noreferrer");
+  };
+
   return (
-    <Card title={name} subtitle="Budget status">
-      <div className="space-y-3">
-        <div className="flex justify-between text-sm">
-          <span className="text-slate-400">Spent</span>
-          <span className={`font-mono ${isOverBudget ? "text-red-400" : "text-white"}`}>
-            ${spent.toFixed(2)} / ${amount.toFixed(2)}
-          </span>
+    <div
+      onClick={handleClick}
+      className="cursor-pointer transition-transform duration-200 hover:scale-[1.02]"
+    >
+      <Card title={name} subtitle="Budget status">
+        <div className="space-y-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-slate-400">Spent</span>
+            <span className={`font-mono ${isOverBudget ? "text-red-400" : "text-white"}`}>
+              ${spent.toFixed(2)} / ${amount.toFixed(2)}
+            </span>
+          </div>
+          <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className={`h-full bg-gradient-to-r ${barColor} rounded-full transition-all duration-500`}
+              style={{ width: `${Math.min(percentUsed, 100)}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-slate-500">{Math.floor(percentUsed)}% used</span>
+          </div>
+          {isNearLimit && !isOverBudget && (
+            <p className="text-xs text-orange-400 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" /> Approaching budget limit
+            </p>
+          )}
+          {isOverBudget && (
+            <p className="text-xs text-red-400 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" /> Budget exceeded!
+            </p>
+          )}
         </div>
-        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-          <div
-            className={`h-full bg-gradient-to-r ${barColor} rounded-full transition-all duration-500`}
-            style={{ width: `${Math.min(percentUsed, 100)}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-xs">
-          <span className="text-slate-500">{Math.floor(percentUsed)}% used</span>
-        </div>
-        {isNearLimit && !isOverBudget && (
-          <p className="text-xs text-orange-400 flex items-center gap-1">
-            <AlertTriangle className="w-3 h-3" /> Approaching budget limit
-          </p>
-        )}
-        {isOverBudget && (
-          <p className="text-xs text-red-400 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" /> Budget exceeded!
-          </p>
-        )}
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
