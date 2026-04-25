@@ -127,24 +127,33 @@ export default function ResourceTable({
     setLoadingLogs(true);
     setLogError(null);
     setAllLogs([]);
-    setOffset(0);
-    setHasMore(false);
     setCopiedLogId(null);
     try {
-      const res = await fetch(`/api/logs?limit=${PAGE_SIZE}&offset=0`);
+      const url = '/api/logs?limit=500';
+      console.log('[Modal] Fetching', url);
+      const res = await fetch(url);
+      console.log('[Modal] Status', res.status);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.logs && Array.isArray(data.logs)) {
-        setAllLogs(data.logs);
-        setTotalLogs(data.total);
-        const nextOffset = data.offset + data.logs.length;
-        setHasMore(nextOffset < data.total);
-        setOffset(nextOffset);
+      const text = await res.text();
+      console.log('[Modal] Raw response (first 500 chars)', text.substring(0, 500));
+      let logs;
+      try {
+        logs = JSON.parse(text);
+      } catch (e) {
+        console.error('[Modal] JSON parse error', e);
+        setLogError('Invalid JSON from server');
+        setLoadingLogs(false);
+        return;
+      }
+      if (Array.isArray(logs)) {
+        console.log('[Modal] Received', logs.length, 'logs');
+        setAllLogs(logs);
       } else {
-        setLogError("Invalid response format");
+        console.error('[Modal] Not an array', logs);
+        setLogError('Unexpected response format');
       }
     } catch (err) {
-      console.error(err);
+      console.error('[Modal] Fetch error', err);
       setLogError(err.message);
     } finally {
       setLoadingLogs(false);

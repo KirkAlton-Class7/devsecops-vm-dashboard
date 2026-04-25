@@ -66,8 +66,8 @@ STUDENT_NAME = "Kirk Alton"
 # Your billing account ID (hardcoded for reliability)
 BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"
 
-# Log Limit (max number of logs to fetch from journalctl)
-LOG_LIMIT = 2000  # increased to allow pagination
+# Log Limit (max number of logs to save)
+LOG_LIMIT = 500
 
 # ---------------------------------------------------------------------------------------------
 # !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
@@ -83,7 +83,6 @@ WARN_THRESHOLD = 70
 # Global caches
 _SUBNET_CACHE = None
 _BILLING_ACCOUNT_CACHE = None
-_FULL_LOGS_CACHE = {"data": [], "timestamp": 0, "total": 0}
 
 # -------------------------------
 # Helper Functions
@@ -406,15 +405,14 @@ def get_system_logs(limit=30):
         print(f"Error fetching journalctl logs: {e}", file=sys.stderr)
         return []
 
-# -------------------------------
-# Paginated logs with caching
-# -------------------------------
 
-def _fetch_full_logs():
-    """Fetch up to LOG_LIMIT logs from journalctl and return as list."""
-    cmd = ["journalctl", "-n", str(LOG_LIMIT), "--no-pager", "-o", "json"]
+# Get all logs (with limit)
+def get_all_logs(limit=LOG_LIMIT):
+    """Fetch the last `limit` system logs from journalctl."""
+    cmd = ["journalctl", "-n", str(limit), "--no-pager", "-o", "json"]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        print(f"journalctl exit code: {result.returncode}, stdout length: {len(result.stdout)}", file=sys.stderr)
         if result.returncode != 0 or not result.stdout.strip():
             return []
         logs = []
@@ -449,16 +447,6 @@ def _fetch_full_logs():
         print(f"Error fetching full logs: {e}", file=sys.stderr)
         return []
 
-def get_cached_full_logs():
-    """Return cached full logs list (cache TTL = 30 seconds)."""
-    global _FULL_LOGS_CACHE
-    now = time.time()
-    if not _FULL_LOGS_CACHE["data"] or (now - _FULL_LOGS_CACHE["timestamp"]) > 30:
-        _FULL_LOGS_CACHE["data"] = _fetch_full_logs()
-        _FULL_LOGS_CACHE["timestamp"] = now
-        _FULL_LOGS_CACHE["total"] = len(_FULL_LOGS_CACHE["data"])
-        print(f"Refreshed logs cache, total {_FULL_LOGS_CACHE['total']} entries", file=sys.stderr)
-    return _FULL_LOGS_CACHE["data"], _FULL_LOGS_CACHE["total"]
 
 # -------------------------------
 # Real cost data from BigQuery
@@ -1010,26 +998,17 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f"Error: {e}".encode())
             return
 
-        # Paginated Logs API endpoint
+        # Logs API endpoint (raw journalctl)
         if self.path.startswith('/api/logs'):
             try:
                 from urllib.parse import urlparse, parse_qs
                 query = parse_qs(urlparse(self.path).query)
-                limit = int(query.get('limit', [200])[0])
-                offset = int(query.get('offset', [0])[0])
-                full_logs, total = get_cached_full_logs()
-                # Slice the full list
-                logs = full_logs[offset:offset+limit]
-                response = {
-                    "logs": logs,
-                    "total": total,
-                    "offset": offset,
-                    "limit": limit
-                }
+                limit = int(query.get('limit', [500])[0])
+                logs = get_all_logs(limit)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(json.dumps(response).encode())
+                self.wfile.write(json.dumps(logs).encode())
             except Exception as e:
                 self.send_response(500)
                 self.send_header('Content-type', 'text/plain')
