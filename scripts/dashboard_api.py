@@ -411,7 +411,8 @@ def get_all_logs(limit=LOG_LIMIT):
     """Fetch the last `limit` system logs from journalctl."""
     cmd = ["journalctl", "-n", str(limit), "--no-pager", "-o", "json"]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        print(f"journalctl exit code: {result.returncode}, stdout length: {len(result.stdout)}", file=sys.stderr)
         if result.returncode != 0 or not result.stdout.strip():
             return []
         logs = []
