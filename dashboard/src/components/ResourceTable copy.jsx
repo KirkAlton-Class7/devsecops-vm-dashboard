@@ -27,19 +27,15 @@ const getScopeIcon = (scope) => {
   }
 };
 
-// Explicit INFO / ERROR / WARN
-const getLogIcon = (level) => {
-  const lvl = level?.toUpperCase() || "";
-  if (lvl === "ERROR") return <AlertCircle className="w-3 h-3 text-red-400" />;
-  if (lvl === "WARN") return <AlertTriangle className="w-3 h-3 text-amber-400" />;
+const getLogIcon = (type) => {
+  const typeLower = type?.toLowerCase() || "";
+  if (typeLower.includes("error")) {
+    return <AlertCircle className="w-3 h-3 text-red-400" />;
+  }
+  if (typeLower.includes("warning")) {
+    return <AlertTriangle className="w-3 h-3 text-amber-400" />;
+  }
   return <Info className="w-3 h-3 text-cyan-400" />;
-};
-
-const getLevelBadgeStyle = (level) => {
-  const lvl = level?.toUpperCase() || "";
-  if (lvl === "ERROR") return "bg-red-500/20 text-red-400";
-  if (lvl === "WARN") return "bg-amber-500/20 text-amber-400";
-  return "bg-cyan-500/20 text-cyan-400";
 };
 
 const getStatusDotStatus = (rowStatus) => {
@@ -54,10 +50,12 @@ const getStatusDotStatus = (rowStatus) => {
     status === "serving" ||
     status === "completed" ||
     status === "healthy"
-  )
+  ) {
     return "success";
-  if (status === "warning" || status === "pending" || status === "degraded")
+  }
+  if (status === "warning" || status === "pending" || status === "degraded") {
     return "warning";
+  }
   if (
     status === "critical" ||
     status === "error" ||
@@ -65,8 +63,9 @@ const getStatusDotStatus = (rowStatus) => {
     status === "unreachable" ||
     status === "unavailable" ||
     status === "stopped"
-  )
+  ) {
     return "critical";
+  }
   return "healthy";
 };
 
@@ -84,7 +83,9 @@ export default function ResourceTable({
   const resolvedCycleLabel = cycleLabel || (isLogs ? "logs" : "resources");
 
   const getIncrements = () =>
-    isLogs ? [5, 10, 15, 20, 25, 30] : [3, 6, 9, 12, 15, 18, 21, 24, 27, 30];
+    isLogs
+      ? [5, 10, 15, 20, 25, 30]
+      : [3, 6, 9, 12, 15, 18, 21, 24, 27, 30];
 
   const cycleLimit = () => {
     const increments = getIncrements();
@@ -98,8 +99,7 @@ export default function ResourceTable({
   };
 
   const displayedRows = rows.slice(0, limit);
-  const displayText =
-    limit >= totalRows ? `all ${totalRows}` : `${limit} of ${totalRows}`;
+  const displayText = limit >= totalRows ? `all ${totalRows}` : `${limit} of ${totalRows}`;
 
   const handleRowClick = () => {
     if (onRowClick) {
@@ -143,7 +143,7 @@ export default function ResourceTable({
           <button
             onClick={cycleLimit}
             className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
-            title={`Cycle ${resolvedCycleLabel}`}
+            title={`Cycle ${resolvedCycleLabel} (${isLogs ? "5-30 step 5" : "3-30 step 3"})`}
           >
             <RefreshCw className="w-3 h-3" />
             <span className="hidden sm:inline">Cycle {resolvedCycleLabel}</span>
@@ -175,13 +175,9 @@ export default function ResourceTable({
             <tbody>
               {displayedRows.map((row, idx) => {
                 if (isLogs) {
-                  const timestamp = row.timestamp || row.name || "";
-                  const level = (row.level || row.type || "INFO").toUpperCase();
-                  const source = row.source || row.scope || "";
-                  const message = row.message || row.status || "";
                   return (
                     <motion.tr
-                      key={`log-${idx}`}
+                      key={`${row.name}-${idx}`}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.03 }}
@@ -191,29 +187,34 @@ export default function ResourceTable({
                         transition: { duration: 0.2 },
                       }}
                       className="border-b border-slate-800/50 transition-all duration-200 cursor-pointer group"
-                      onClick={handleRowClick}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          {getLogIcon(level)}
+                          {getLogIcon(row.type)}
                           <span className="text-xs font-mono text-slate-400">
-                            {timestamp}
+                            {row.name}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`text-xs px-2 py-1 rounded-full ${getLevelBadgeStyle(level)}`}
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            row.type === "error"
+                              ? "bg-red-500/20 text-red-400"
+                              : row.type === "warning"
+                              ? "bg-amber-500/20 text-amber-400"
+                              : "bg-cyan-500/20 text-cyan-400"
+                          }`}
                         >
-                          {level}
+                          {row.type}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-300">
-                          {source}
+                          {row.scope}
                         </span>
-                       </td>
-                      <td className="px-4 py-3 text-slate-300">{message}</td>
+                      </td>
+                      <td className="px-4 py-3 text-slate-300">{row.status}</td>
                     </motion.tr>
                   );
                 }
