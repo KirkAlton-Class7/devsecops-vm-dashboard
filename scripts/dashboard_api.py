@@ -371,16 +371,15 @@ def get_system_logs(limit=30):
         for line in result.stdout.strip().split("\n"):
             try:
                 entry = json.loads(line)
-                # Extract fields: timestamp, priority, MESSAGE
-                # Priority: 0-3: error, 4-6: warning, else info
                 priority = int(entry.get("PRIORITY", 6))
+                # Correct mapping:
+                # 0-3 -> ERROR, 4 -> WARN, 5-7 -> INFO/DEBUG
                 if priority <= 3:
                     level = "ERROR"
-                elif priority <= 6:
+                elif priority == 4:
                     level = "WARN"
-                else:
+                else:   # priority 5,6,7 -> INFO or DEBUG
                     level = "INFO"
-                # Use __REALTIME_TIMESTAMP (microseconds) or _SOURCE_REALTIME_TIMESTAMP
                 ts_micro = int(entry.get("__REALTIME_TIMESTAMP", 0))
                 if ts_micro:
                     dt = datetime.fromtimestamp(ts_micro / 1_000_000)
@@ -392,8 +391,8 @@ def get_system_logs(limit=30):
                 logs.append({
                     "time": time_str,
                     "level": level,
-                    "scope": scope[:20],   # truncate
-                    "message": message[:150]   # truncate
+                    "scope": scope[:20],
+                    "message": message[:150]
                 })
             except json.JSONDecodeError:
                 continue
