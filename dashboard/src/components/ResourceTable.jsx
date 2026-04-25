@@ -118,21 +118,62 @@ export default function ResourceTable({
     }
   };
 
+  // const fetchAllLogs = async () => {
+  //   setLoadingLogs(true);
+  //   setLogError(null);
+  //   setAllLogs([]);          // clear old data immediately
+  //   setCopiedLogId(null);    // reset copy indicator
+  //   try {
+  //     const res = await fetch('/api/logs?limit=500');
+  //     if (res.ok) {
+  //       const logs = await res.json();
+  //       setAllLogs(logs);
+  //     } else {
+  //       setLogError(`Failed to fetch logs (status ${res.status})`);
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+  //     setLogError(err.message);
+  //   } finally {
+  //     setLoadingLogs(false);
+  //   }
+  // };
+
   const fetchAllLogs = async () => {
     setLoadingLogs(true);
     setLogError(null);
-    setAllLogs([]);          // clear old data immediately
-    setCopiedLogId(null);    // reset copy indicator
+    setAllLogs([]);
+    setCopiedLogId(null);
     try {
-      const res = await fetch('/api/logs?limit=500');
-      if (res.ok) {
-        const logs = await res.json();
+      const url = '/api/logs?limit=500';
+      console.log('[Modal] Fetching logs from:', url);
+      const res = await fetch(url);
+      console.log('[Modal] Response status:', res.status);
+      if (!res.ok) {
+        setLogError(`HTTP ${res.status}: ${res.statusText}`);
+        setLoadingLogs(false);
+        return;
+      }
+      const text = await res.text();
+      console.log('[Modal] Raw response (first 200 chars):', text.substring(0, 200));
+      let logs;
+      try {
+        logs = JSON.parse(text);
+      } catch (e) {
+        console.error('[Modal] JSON parse error:', e);
+        setLogError('Invalid JSON response from server');
+        setLoadingLogs(false);
+        return;
+      }
+      if (Array.isArray(logs)) {
+        console.log('[Modal] Received array of length', logs.length);
         setAllLogs(logs);
       } else {
-        setLogError(`Failed to fetch logs (status ${res.status})`);
+        console.error('[Modal] Response is not an array:', logs);
+        setLogError('Unexpected data format (expected array)');
       }
     } catch (err) {
-      console.error(err);
+      console.error('[Modal] Fetch error:', err);
       setLogError(err.message);
     } finally {
       setLoadingLogs(false);
