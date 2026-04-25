@@ -166,32 +166,32 @@ The `/metadata` endpoint returns a structured JSON object describing:
 
 ### Metadata Structure
 
-```text
-student_name
-project_id
-instance_id
-instance_name
-hostname
-machine_type
-network
-region
-zone
-startup_utc
-uptime
-health
-```
+```JSON
+"STUDENT_NAME": student_name,
+"project_id": project_id,
+"instance_id": instance_id,
+"instance_name": instance_name,
+"hostname": hostname,
+"machine_type": machine_type,
 
----
+"network": {
+    "vpc": vpc,
+    "subnet": subnet,
+    "internal_ip": internal_ip,
+    "external_ip": external_ip,
+},
 
-### Health Block
-
-The `health` object includes:
-
-```text
-uptime
-load_avg
-ram_mb
-disk_root
+"region": region,
+"zone": zone,
+"startup_utc": startup_utc,
+"uptime": uptime,
+                    
+"health": {
+    "uptime": uptime,
+    "load_avg": load_avg_str,
+    "ram_mb": ram_mb,
+    "disk_root": disk_root
+}
 ```
 
 These values are derived from system-level helper functions and formatted for readability.

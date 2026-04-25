@@ -684,13 +684,6 @@ def build_dashboard_data():
     memory_details = get_memory_details()
     disk_details = get_disk_details()
     cpu_info = get_cpu_info(cpu)
-
-    # # Logs (sample – you can later make them dynamic)
-    # logs = [
-    #     {"time": datetime.now().strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "Dashboard initialized (live API)"},
-    #     {"time": (datetime.now() - timedelta(minutes=5)).strftime("%H:%M:%S"), "level": "info", "scope": "metrics", "message": "Metrics collection active"},
-    #     {"time": (datetime.now() - timedelta(minutes=10)).strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "System health check passed"},
-    # ]
     
     # Logs – fetch real system logs (fallback to sample if none)
     logs = get_system_logs()
