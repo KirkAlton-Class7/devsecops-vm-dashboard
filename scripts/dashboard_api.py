@@ -65,6 +65,9 @@ STUDENT_NAME = "Kirk Alton"
 # Your billing account ID (hardcoded for reliability)
 BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"
 
+# Log Limit (max number of logs to save)
+LOG_LIMIT = 500
+
 # ---------------------------------------------------------------------------------------------
 # !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
 # ---------------------------------------------------------------------------------------------
@@ -400,6 +403,48 @@ def get_system_logs(limit=30):
     except Exception as e:
         print(f"Error fetching journalctl logs: {e}", file=sys.stderr)
         return []
+
+
+# Get all logs (with limit)
+def get_all_logs(limit=LOG_LIMIT):
+    """Fetch the last `limit` system logs from journalctl."""
+    cmd = ["journalctl", "-n", str(limit), "--no-pager", "-o", "json"]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        if result.returncode != 0 or not result.stdout.strip():
+            return []
+        logs = []
+        for line in result.stdout.strip().split("\n"):
+            try:
+                entry = json.loads(line)
+                priority = int(entry.get("PRIORITY", 6))
+                if priority <= 3:
+                    level = "ERROR"
+                elif priority == 4:
+                    level = "WARN"
+                else:
+                    level = "INFO"
+                ts_micro = int(entry.get("__REALTIME_TIMESTAMP", 0))
+                if ts_micro:
+                    dt = datetime.fromtimestamp(ts_micro / 1_000_000)
+                    time_str = dt.strftime("%H:%M:%S")
+                else:
+                    time_str = datetime.now().strftime("%H:%M:%S")
+                message = entry.get("MESSAGE", "").strip()
+                source = entry.get("SYSLOG_IDENTIFIER", "system")
+                logs.append({
+                    "time": time_str,
+                    "level": level,
+                    "source": source[:20],
+                    "message": message[:300]
+                })
+            except json.JSONDecodeError:
+                continue
+        return logs
+    except Exception as e:
+        print(f"Error fetching full logs: {e}", file=sys.stderr)
+        return []
+
 
 # -------------------------------
 # Real cost data from BigQuery
@@ -957,6 +1002,25 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.send_header('Content-type', 'text/plain')
                 self.end_headers()
                 self.wfile.write(f"Error building FinOps data: {e}".encode())
+            return
+
+
+        # Logs API endpoint
+        if self.path.startswith('/api/logs'):
+            try:
+                from urllib.parse import urlparse, parse_qs
+                query = parse_qs(urlparse(self.path).query)
+                limit = int(query.get('limit', [500])[0])
+                logs = get_all_logs(limit)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(logs).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(f"Error fetching logs: {e}".encode())
             return
 
         # Not found

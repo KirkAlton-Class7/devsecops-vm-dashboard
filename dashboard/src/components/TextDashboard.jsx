@@ -439,7 +439,7 @@ export default function TextDashboard({
             <div className="text-white/40 text-xs uppercase tracking-wide">
               LOGS{" "}
               {logLimit >= (dashboard.logs?.length || 0)
-                ? `(all ${dashboard.logs?.length || 0})`
+                ? `(last ${dashboard.logs?.length || 0})`
                 : `(last ${logLimit})`}
             </div>
           </div>
@@ -586,7 +586,7 @@ ${dashboard.monitoringEndpoints?.map((ep) => `${ep.name}: ${ep.url} [${ep.status
 SERVICES (${serviceLimit >= serviceStats.total ? `all ${serviceStats.total}` : `${serviceLimit} of ${serviceStats.total}`})
 ${dashboard.services?.slice(0, serviceLimit).map((s) => `${s.label} [${s.status}]`).join("\n")}
 
-LOGS ${logLimit >= totalLogs ? `(all ${totalLogs})` : `(last ${logLimit})`}
+LOGS ${logLimit >= totalLogs ? `(last ${totalLogs})` : `(last ${logLimit})`}
 ${dashboard.logs?.slice(0, logLimit).map((log) => `[${log.time}] ${log.level}: ${log.message}`).join("\n")}
 `;
 }

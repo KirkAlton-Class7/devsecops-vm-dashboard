@@ -99,7 +99,7 @@ export default function ResourceTable({
 
   const displayedRows = rows.slice(0, limit);
   const displayText =
-    limit >= totalRows ? `all ${totalRows}` : `${limit} of ${totalRows}`;
+    limit >= totalRows ? `last ${totalRows}` : `${limit} of ${totalRows}`;
 
   const handleRowClick = () => {
     if (onRowClick) {

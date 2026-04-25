@@ -372,12 +372,13 @@ def get_system_logs(limit=30):
             try:
                 entry = json.loads(line)
                 priority = int(entry.get("PRIORITY", 6))
-                # Map systemd priority to log levels
+                # Correct mapping:
+                # 0-3 -> ERROR, 4 -> WARN, 5-7 -> INFO/DEBUG
                 if priority <= 3:
                     level = "ERROR"
                 elif priority == 4:
                     level = "WARN"
-                else:   # priority 5,6,7 -> INFO (notice/info/debug)
+                else:   # priority 5,6,7 -> INFO or DEBUG
                     level = "INFO"
                 ts_micro = int(entry.get("__REALTIME_TIMESTAMP", 0))
                 if ts_micro:
@@ -389,7 +390,7 @@ def get_system_logs(limit=30):
                 scope = entry.get("SYSLOG_IDENTIFIER", "system")
                 logs.append({
                     "time": time_str,
-                    "level": level,          # now "INFO"/"WARN"/"ERROR"
+                    "level": level,
                     "scope": scope[:20],
                     "message": message[:150]
                 })
