@@ -407,12 +407,12 @@ def get_system_logs(limit=30):
 
 
 # Get all logs (with limit)
-def get_all_logs(limit=LOG_LIMIT):
+def get_all_logs(limit=500):
     """Fetch the last `limit` system logs from journalctl."""
-    cmd = ["journalctl", "-n", str(limit), "--no-pager", "-o", "json"]
+    journalctl_path = "/usr/bin/journalctl"
+    cmd = [journalctl_path, "-n", str(limit), "--no-pager", "-o", "json"]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        print(f"journalctl exit code: {result.returncode}, stdout length: {len(result.stdout)}", file=sys.stderr)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         if result.returncode != 0 or not result.stdout.strip():
             return []
         logs = []
@@ -420,6 +420,7 @@ def get_all_logs(limit=LOG_LIMIT):
             try:
                 entry = json.loads(line)
                 priority = int(entry.get("PRIORITY", 6))
+                # Map priority to level
                 if priority <= 3:
                     level = "ERROR"
                 elif priority == 4:
@@ -432,8 +433,17 @@ def get_all_logs(limit=LOG_LIMIT):
                     time_str = dt.strftime("%H:%M:%S")
                 else:
                     time_str = datetime.now().strftime("%H:%M:%S")
-                message = entry.get("MESSAGE", "").strip()
-                source = entry.get("SYSLOG_IDENTIFIER", "system")
+                # Safely extract fields – they may be strings, lists, or None
+                message_val = entry.get("MESSAGE", "")
+                if isinstance(message_val, str):
+                    message = message_val.strip()
+                else:
+                    message = str(message_val)[:300]
+                source_val = entry.get("SYSLOG_IDENTIFIER", "system")
+                if isinstance(source_val, str):
+                    source = source_val.strip()
+                else:
+                    source = str(source_val)[:20]
                 logs.append({
                     "time": time_str,
                     "level": level,
