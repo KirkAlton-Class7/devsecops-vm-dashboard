@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import {
   ChevronRight,
   Server,
@@ -87,6 +87,7 @@ export default function ResourceTable({
   const [showAllLogsModal, setShowAllLogsModal] = useState(false);
   const [allLogs, setAllLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [logError, setLogError] = useState(null);
   const [copiedLogId, setCopiedLogId] = useState(null);
 
   const totalRows = rows.length;
@@ -119,16 +120,20 @@ export default function ResourceTable({
 
   const fetchAllLogs = async () => {
     setLoadingLogs(true);
+    setLogError(null);
+    setAllLogs([]);          // clear old data immediately
+    setCopiedLogId(null);    // reset copy indicator
     try {
       const res = await fetch('/api/logs?limit=500');
       if (res.ok) {
         const logs = await res.json();
         setAllLogs(logs);
       } else {
-        console.error('Failed to fetch logs');
+        setLogError(`Failed to fetch logs (status ${res.status})`);
       }
     } catch (err) {
       console.error(err);
+      setLogError(err.message);
     } finally {
       setLoadingLogs(false);
     }
@@ -144,6 +149,11 @@ export default function ResourceTable({
   const openModal = () => {
     fetchAllLogs();
     setShowAllLogsModal(true);
+  };
+
+  const closeModal = () => {
+    setShowAllLogsModal(false);
+    // optionally reset state after modal closes (but not necessary)
   };
 
   // Empty state for idle resources (non‑logs)
@@ -331,7 +341,7 @@ export default function ResourceTable({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-            onClick={() => setShowAllLogsModal(false)}
+            onClick={closeModal}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -346,7 +356,7 @@ export default function ResourceTable({
                   System Logs (last 500)
                 </h2>
                 <button
-                  onClick={() => setShowAllLogsModal(false)}
+                  onClick={closeModal}
                   className="p-1 rounded-lg hover:bg-white/10 transition-colors"
                 >
                   <X className="w-5 h-5 text-slate-400" />
@@ -356,6 +366,17 @@ export default function ResourceTable({
                 {loadingLogs ? (
                   <div className="flex justify-center py-12">
                     <RefreshCw className="w-6 h-6 text-cyan-400 animate-spin" />
+                  </div>
+                ) : logError ? (
+                  <div className="text-center py-12">
+                    <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-2" />
+                    <p className="text-red-400">Error: {logError}</p>
+                    <button
+                      onClick={fetchAllLogs}
+                      className="mt-4 text-cyan-400 hover:text-cyan-300 text-sm"
+                    >
+                      Retry
+                    </button>
                   </div>
                 ) : allLogs.length === 0 ? (
                   <p className="text-center text-slate-400 py-8">No logs found.</p>
