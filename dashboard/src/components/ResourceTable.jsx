@@ -124,7 +124,7 @@ export default function ResourceTable({
     }
   };
 
-  // Fetch initial logs (newest first, offset=0)
+  // Fetch initial logs – always store newest first
   const fetchInitialLogs = async () => {
     setLoadingLogs(true);
     setLogError(null);
@@ -134,14 +134,13 @@ export default function ResourceTable({
     setOffset(0);
     try {
       const url = `/api/logs?limit=${PAGE_SIZE}&offset=0`;
-      console.log('[Modal] Fetching', url);
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const logs = data.logs || [];
       const hasMore = data.hasMore || false;
       if (logs.length) {
-        // Reverse to make newest first (descending)
+        // Ensure newest first (descending order)
         const reversedLogs = [...logs].reverse();
         setAllLogs(reversedLogs);
         setOffset(logs.length);
@@ -150,14 +149,14 @@ export default function ResourceTable({
         setAllLogs([]);
       }
     } catch (err) {
-      console.error('[Modal] Fetch error', err);
+      console.error(err);
       setLogError(err.message);
     } finally {
       setLoadingLogs(false);
     }
   };
 
-  // Load older logs (append to the end, increase offset)
+  // Load older logs (append to the end) – each batch is also reversed to keep newest‑first order overall
   const loadOlderLogs = async () => {
     if (loadingOlder || !hasOlder) return;
     setLoadingOlder(true);
@@ -169,7 +168,6 @@ export default function ResourceTable({
       const newLogs = data.logs || [];
       const more = data.hasMore || false;
       if (newLogs.length) {
-        // Reverse each new batch to maintain newest‑first order in the overall list
         const reversedNew = [...newLogs].reverse();
         setAllLogs((prev) => [...prev, ...reversedNew]);
         setOffset(offset + newLogs.length);
@@ -219,9 +217,9 @@ export default function ResourceTable({
     );
   }
 
-  // For the main table, newest logs at the top when isLogs is true
+  // Main table: newest logs first
   const logsToDisplay = isLogs ? [...displayedRows].reverse() : displayedRows;
-  // In the modal, allLogs is already newest-first (from API)
+  // Modal: allLogs is already stored newest‑first
   const displayLogs = allLogs;
 
   return (
@@ -380,7 +378,7 @@ export default function ResourceTable({
         </Card>
       </motion.div>
 
-      {/* All Logs Modal with offset‑based pagination */}
+      {/* All Logs Modal with offset‑based pagination and refresh button */}
       <AnimatePresence>
         {showAllLogsModal && (
           <motion.div
@@ -402,12 +400,21 @@ export default function ResourceTable({
                   <AlertCircle className="w-5 h-5 text-cyan-400" />
                   System Logs ({allLogs.length} shown)
                 </h2>
-                <button
-                  onClick={closeModal}
-                  className="p-1 rounded-lg hover:bg-white/10 transition-colors"
-                >
-                  <X className="w-5 h-5 text-slate-400" />
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={fetchInitialLogs}
+                    className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+                    title="Refresh logs (show newest)"
+                  >
+                    <RefreshCw className="w-5 h-5 text-slate-400" />
+                  </button>
+                  <button
+                    onClick={closeModal}
+                    className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    <X className="w-5 h-5 text-slate-400" />
+                  </button>
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto p-4">
                 {loadingLogs ? (
@@ -429,7 +436,7 @@ export default function ResourceTable({
                   <p className="text-center text-slate-400 py-8">No logs found.</p>
                 ) : (
                   <>
-                    {/* Log entries (already sorted newest first) */}
+                    {/* Log entries – already sorted newest first */}
                     <div className="space-y-2">
                       {displayLogs.map((log, idx) => (
                         <div
