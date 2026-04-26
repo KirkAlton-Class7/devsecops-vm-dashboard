@@ -75,16 +75,18 @@ const getStatusDotStatus = (rowStatus) => {
   return "healthy";
 };
 
+const getLogRawTime = (log) =>
+  log.timestamp ||
+  log.datetime ||
+  log.isoTime ||
+  log.iso_time ||
+  log.createdAt ||
+  log.created_at ||
+  log.time ||
+  "";
+
 const getLogSortValue = (log) => {
-  const raw =
-    log.timestamp ||
-    log.datetime ||
-    log.isoTime ||
-    log.iso_time ||
-    log.createdAt ||
-    log.created_at ||
-    log.time ||
-    "";
+  const raw = getLogRawTime(log);
 
   if (typeof raw === "number") return raw;
 
@@ -105,14 +107,81 @@ const getLogSortValue = (log) => {
   return ((hours * 60 + minutes) * 60 + seconds) * 1000 + millis;
 };
 
+const getLogRecentTimestamp = (log) => {
+  const raw = getLogRawTime(log);
+
+  if (typeof raw === "number") return raw;
+
+  const value = String(raw).trim();
+  if (!value) return 0;
+
+  const parsedDate = Date.parse(value);
+  if (!Number.isNaN(parsedDate)) return parsedDate;
+
+  const timeMatch = value.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?$/);
+  if (!timeMatch) return 0;
+
+  const now = new Date();
+  const logDate = new Date(now);
+
+  logDate.setHours(
+    Number(timeMatch[1]),
+    Number(timeMatch[2]),
+    Number(timeMatch[3] || 0),
+    Number((timeMatch[4] || "0").padEnd(3, "0").slice(0, 3))
+  );
+
+  if (logDate.getTime() > now.getTime() + 60000) {
+    logDate.setDate(logDate.getDate() - 1);
+  }
+
+  return logDate.getTime();
+};
+
+const isLogWithinLastMinutes = (log, minutes) => {
+  const timestamp = getLogRecentTimestamp(log);
+  if (!timestamp) return true;
+  return Date.now() - timestamp <= minutes * 60 * 1000;
+};
+
+const getLogDedupeKey = (log) =>
+  [
+    getLogRawTime(log),
+    log.level || "",
+    log.source || log.scope || "",
+    log.message || log.status || log.name || "",
+  ]
+    .map((value) => String(value).trim().toLowerCase())
+    .join("|");
+
+const dedupeLogs = (logs) => {
+  const seen = new Set();
+
+  return logs.filter((log) => {
+    const key = getLogDedupeKey(log);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 const orderLogsNewestFirst = (logs) =>
-  logs
+  dedupeLogs(logs)
     .map((log, index) => ({ log, index }))
     .sort((a, b) => {
       const timeDiff = getLogSortValue(b.log) - getLogSortValue(a.log);
       return timeDiff || a.index - b.index;
     })
     .map(({ log }) => log);
+
+const getLiveDashboardLogs = (rows, minutes) => {
+  const logs = rows || [];
+  const filteredLogs = minutes
+    ? logs.filter((log) => isLogWithinLastMinutes(log, minutes))
+    : logs;
+
+  return orderLogsNewestFirst(filteredLogs);
+};
 
 const fetchLogsJson = async ({ limit, offset = 0, minutes } = {}) => {
   const params = new URLSearchParams({
@@ -203,13 +272,16 @@ export default function ResourceTable({
     setCopiedLogId(null);
     setHasOlder(false);
     setOffset(0);
+
     try {
       const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: 0 });
-      const logs = data.logs || [];
+      const fetchedLogs = data.logs || [];
       const hasMore = data.hasMore || false;
+      const liveLogs = getLiveDashboardLogs(rows);
+      const mergedLogs = orderLogsNewestFirst([...liveLogs, ...fetchedLogs]);
 
-      setAllLogs(orderLogsNewestFirst(logs));
-      setOffset(logs.length);
+      setAllLogs(mergedLogs);
+      setOffset(fetchedLogs.length);
       setHasOlder(hasMore);
       scrollLogsToTop();
     } catch (err) {
@@ -261,26 +333,6 @@ export default function ResourceTable({
     }
   };
 
-
-    try {
-      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: 0 });
-      const logs = data.logs || [];
-      const hasMore = data.hasMore || false;
-
-      setAllLogs(orderLogsNewestFirst(logs));
-      setOffset(logs.length);
-      setHasOlder(hasMore);
-      setRefreshMessage(logs.length ? "Newest logs loaded" : "No logs found");
-      setTimeout(() => setRefreshMessage(null), 2000);
-      scrollLogsToTop();
-    } catch (err) {
-      console.error(err);
-      setLogError(err.message);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
   const fetchLogsByTimeRange = async () => {
     const raw = timeRangeMinutes.trim();
     const minutes = raw === "" ? 0 : parseInt(raw, 10);
@@ -302,14 +354,16 @@ export default function ResourceTable({
 
     try {
       const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: 0, minutes });
-      const logs = data.logs || [];
+      const fetchedLogs = data.logs || [];
       const hasMore = data.hasMore || false;
+      const liveLogs = getLiveDashboardLogs(rows, minutes);
+      const mergedLogs = orderLogsNewestFirst([...liveLogs, ...fetchedLogs]);
 
-      setAllLogs(orderLogsNewestFirst(logs));
-      setOffset(logs.length);
+      setAllLogs(mergedLogs);
+      setOffset(fetchedLogs.length);
       setHasOlder(hasMore);
       setRefreshMessage(
-        logs.length ? `Newest logs from last ${minutes} min` : `No logs in last ${minutes} min`
+        mergedLogs.length ? `Newest logs from last ${minutes} min` : `No logs in last ${minutes} min`
       );
       setTimeout(() => setRefreshMessage(null), 3000);
       scrollLogsToTop();
@@ -324,6 +378,7 @@ export default function ResourceTable({
   const loadOlderLogs = async () => {
     if (loadingOlder || !hasOlder) return;
     setLoadingOlder(true);
+
     try {
       const data = await fetchLogsJson({ limit: PAGE_SIZE, offset });
       const newLogs = data.logs || [];
@@ -444,6 +499,7 @@ export default function ResourceTable({
                     const level = (row.level || "INFO").toUpperCase();
                     const source = row.scope || row.source || "";
                     const message = row.message || row.status || "";
+
                     return (
                       <motion.tr
                         key={`log-${idx}`}
@@ -482,6 +538,7 @@ export default function ResourceTable({
                   }
 
                   const statusDotStatus = getStatusDotStatus(row.status);
+
                   return (
                     <motion.tr
                       key={`${row.name}-${row.type}-${idx}`}
@@ -609,6 +666,7 @@ export default function ResourceTable({
                   </button>
                 </div>
               </div>
+
               <div ref={logsContainerRef} className="flex-1 overflow-y-auto p-4">
                 {loadingLogs ? (
                   <div className="flex justify-center py-12">
