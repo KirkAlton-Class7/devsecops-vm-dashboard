@@ -2,6 +2,10 @@
 # COMPUTE
 # ----------------------------------------------------------------
 
+# ----------------------------------------------------------------
+# COMPUTE INSTANCE - VM Dashboard
+# ----------------------------------------------------------------
+
 resource "google_compute_instance" "vm_dashboard" {
   name         = "devsecops-dashboard"
   machine_type = "e2-medium"
