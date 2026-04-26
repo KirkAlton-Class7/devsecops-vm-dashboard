@@ -75,6 +75,8 @@ const getStatusDotStatus = (rowStatus) => {
   return "healthy";
 };
 
+const orderLogsNewestFirst = (logs) => [...logs].reverse();
+
 export default function ResourceTable({
   rows = [],
   title = "Resources",
@@ -91,13 +93,12 @@ export default function ResourceTable({
   const [logError, setLogError] = useState(null);
   const [copiedLogId, setCopiedLogId] = useState(null);
   const [refreshMessage, setRefreshMessage] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);   // small spinner near refresh button
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isFetchingRange, setIsFetchingRange] = useState(false);
   const [isRangeFetchFlashing, setIsRangeFetchFlashing] = useState(false);
   const [timeRangeMinutes, setTimeRangeMinutes] = useState("10");
   const rangeFetchTimeoutRef = useRef(null);
 
-  // Pagination states (offset‑based, older logs only)
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasOlder, setHasOlder] = useState(false);
   const [offset, setOffset] = useState(0);
@@ -130,7 +131,6 @@ export default function ResourceTable({
     }
   };
 
-  // Initial load (modal opened) – shows loading spinner
   const fetchInitialLogs = async () => {
     setLoadingLogs(true);
     setLogError(null);
@@ -145,13 +145,10 @@ export default function ResourceTable({
       const data = await res.json();
       const logs = data.logs || [];
       const hasMore = data.hasMore || false;
-      if (logs.length) {
-        setAllLogs(logs);
-        setOffset(logs.length);
-        setHasOlder(hasMore);
-      } else {
-        setAllLogs([]);
-      }
+
+      setAllLogs(orderLogsNewestFirst(logs));
+      setOffset(logs.length);
+      setHasOlder(hasMore);
     } catch (err) {
       console.error(err);
       setLogError(err.message);
@@ -160,7 +157,6 @@ export default function ResourceTable({
     }
   };
 
-  // Refresh – does NOT clear logs, only updates in background
   const refreshLogs = async () => {
     setIsRefreshing(true);
     setLogError(null);
@@ -171,15 +167,12 @@ export default function ResourceTable({
       const data = await res.json();
       const logs = data.logs || [];
       const hasMore = data.hasMore || false;
-      if (logs.length) {
-        setAllLogs(logs);           // replace existing logs smoothly
-        setOffset(logs.length);
-        setHasOlder(hasMore);
-        setRefreshMessage("Logs refreshed");
-        setTimeout(() => setRefreshMessage(null), 2000);
-      } else {
-        setAllLogs([]);
-      }
+
+      setAllLogs(orderLogsNewestFirst(logs));
+      setOffset(logs.length);
+      setHasOlder(hasMore);
+      setRefreshMessage("Logs refreshed");
+      setTimeout(() => setRefreshMessage(null), 2000);
     } catch (err) {
       console.error(err);
       setLogError(err.message);
@@ -188,7 +181,6 @@ export default function ResourceTable({
     }
   };
 
-  // Fetch logs from the last N minutes
   const fetchLogsByTimeRange = async () => {
     const raw = timeRangeMinutes.trim();
     const minutes = raw === "" ? 0 : parseInt(raw, 10);
@@ -216,7 +208,7 @@ export default function ResourceTable({
       const logs = data.logs || [];
       const hasMore = data.hasMore || false;
 
-      setAllLogs(logs);
+      setAllLogs(orderLogsNewestFirst(logs));
       setOffset(logs.length);
       setHasOlder(hasMore);
       setRefreshMessage(
@@ -231,7 +223,6 @@ export default function ResourceTable({
     }
   };
 
-  // Load older logs (append to the end)
   const loadOlderLogs = async () => {
     if (loadingOlder || !hasOlder) return;
     setLoadingOlder(true);
@@ -242,9 +233,10 @@ export default function ResourceTable({
       const data = await res.json();
       const newLogs = data.logs || [];
       const more = data.hasMore || false;
+
       if (newLogs.length) {
-        setAllLogs((prev) => [...prev, ...newLogs]);
-        setOffset(offset + newLogs.length);
+        setAllLogs((prev) => [...prev, ...orderLogsNewestFirst(newLogs)]);
+        setOffset((prevOffset) => prevOffset + newLogs.length);
         setHasOlder(more);
       } else {
         setHasOlder(false);
@@ -291,9 +283,7 @@ export default function ResourceTable({
     );
   }
 
-  // Main table: newest logs first (reverse for consistent display)
-  const logsToDisplay = isLogs ? [...displayedRows].reverse() : displayedRows;
-  // Modal: allLogs is already newest‑first from API
+  const logsToDisplay = isLogs ? orderLogsNewestFirst(displayedRows) : displayedRows;
   const displayLogs = allLogs;
 
   return (
@@ -452,7 +442,6 @@ export default function ResourceTable({
         </Card>
       </motion.div>
 
-      {/* All Logs Modal – smooth refresh */}
       <AnimatePresence>
         {showAllLogsModal && (
           <motion.div
@@ -509,7 +498,7 @@ export default function ResourceTable({
                     onClick={refreshLogs}
                     disabled={isRefreshing}
                     className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
-                    title="Refresh logs (show newest)"
+                    title="Refresh logs"
                   >
                     {isRefreshing ? (
                       <RefreshCw className="w-5 h-5 text-cyan-400 animate-spin" />
@@ -545,11 +534,10 @@ export default function ResourceTable({
                   <p className="text-center text-slate-400 py-8">No logs found.</p>
                 ) : (
                   <>
-                    {/* Log entries – already newest first */}
                     <div className="space-y-2">
                       {displayLogs.map((log, idx) => (
                         <div
-                          key={idx}
+                          key={`${log.time}-${log.source}-${idx}`}
                           onClick={() => handleCopyLog(log, idx)}
                           className={`group p-3 rounded-xl border border-white/5 transition-all cursor-pointer ${
                             log.level === "ERROR"
@@ -561,9 +549,7 @@ export default function ResourceTable({
                         >
                           <div className="flex items-start gap-2 text-sm">
                             <div className="flex-shrink-0 mt-0.5">
-                              {log.level === "ERROR" && <AlertCircle className="w-4 h-4 text-red-400" />}
-                              {log.level === "WARN" && <AlertTriangle className="w-4 h-4 text-amber-400" />}
-                              {log.level === "INFO" && <Info className="w-4 h-4 text-cyan-400" />}
+                              {getLogIcon(log.level)}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
@@ -590,7 +576,6 @@ export default function ResourceTable({
                       ))}
                     </div>
 
-                    {/* Button: Show Older Logs (at the bottom) */}
                     {hasOlder && (
                       <div className="flex justify-center pt-3">
                         <button
