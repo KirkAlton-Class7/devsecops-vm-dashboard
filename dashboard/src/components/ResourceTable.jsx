@@ -15,7 +15,8 @@ import {
   Copy,
   Check,
   X,
-  Plus
+  ArrowDown,
+  ArrowUp
 } from "lucide-react";
 import Card from "./Card";
 import StatusDot from "./StatusDot";
@@ -88,12 +89,16 @@ export default function ResourceTable({
   const [showAllLogsModal, setShowAllLogsModal] = useState(false);
   const [allLogs, setAllLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [logError, setLogError] = useState(null);
   const [copiedLogId, setCopiedLogId] = useState(null);
-  const [offset, setOffset] = useState(0);
-  const [totalLogs, setTotalLogs] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
+
+  // Pagination states (two‑way)
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [loadingNewer, setLoadingNewer] = useState(false);
+  const [hasOlder, setHasOlder] = useState(false);
+  const [hasNewer, setHasNewer] = useState(false);
+  const [firstLogTimestamp, setFirstLogTimestamp] = useState(null);
+  const [lastLogTimestamp, setLastLogTimestamp] = useState(null);
   const PAGE_SIZE = 200;
 
   const totalRowsCount = rows.length;
@@ -123,34 +128,39 @@ export default function ResourceTable({
     }
   };
 
-  const fetchAllLogs = async () => {
+  // Fetch initial logs (newest first)
+  const fetchInitialLogs = async () => {
     setLoadingLogs(true);
     setLogError(null);
     setAllLogs([]);
     setCopiedLogId(null);
+    setHasOlder(false);
+    setHasNewer(false);
+    setFirstLogTimestamp(null);
+    setLastLogTimestamp(null);
     try {
-      const url = '/api/logs?limit=500';
+      const url = `/api/logs?limit=${PAGE_SIZE}`;
       console.log('[Modal] Fetching', url);
       const res = await fetch(url);
-      console.log('[Modal] Status', res.status);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      console.log('[Modal] Raw response (first 500 chars)', text.substring(0, 500));
-      let logs;
-      try {
-        logs = JSON.parse(text);
-      } catch (e) {
-        console.error('[Modal] JSON parse error', e);
-        setLogError('Invalid JSON from server');
-        setLoadingLogs(false);
-        return;
-      }
-      if (Array.isArray(logs)) {
-        console.log('[Modal] Received', logs.length, 'logs');
-        setAllLogs(logs);
+      const data = await res.json();
+      // Expecting { logs: [...], hasMore: boolean } or just an array
+      let logs, hasMore;
+      if (Array.isArray(data)) {
+        logs = data;
+        hasMore = logs.length === PAGE_SIZE; // assume if full page there might be more
       } else {
-        console.error('[Modal] Not an array', logs);
-        setLogError('Unexpected response format');
+        logs = data.logs || [];
+        hasMore = data.hasMore || false;
+      }
+      if (logs.length) {
+        setAllLogs(logs);
+        setFirstLogTimestamp(logs[0].time);
+        setLastLogTimestamp(logs[logs.length-1].time);
+        setHasOlder(hasMore);
+        setHasNewer(false); // cannot go newer than the most recent
+      } else {
+        setAllLogs([]);
       }
     } catch (err) {
       console.error('[Modal] Fetch error', err);
@@ -160,26 +170,56 @@ export default function ResourceTable({
     }
   };
 
-  const loadMoreLogs = async () => {
-    if (loadingMore || !hasMore) return;
-    setLoadingMore(true);
+  // Load older logs (append to the end, i.e., older than current last)
+  const loadOlderLogs = async () => {
+    if (loadingOlder || !hasOlder) return;
+    setLoadingOlder(true);
     try {
-      const res = await fetch(`/api/logs?limit=${PAGE_SIZE}&offset=${offset}`);
+      // Use offset or timestamp-based query. Here we'll use a timestamp parameter "before"
+      const url = `/api/logs?limit=${PAGE_SIZE}&before=${lastLogTimestamp}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      if (data.logs && Array.isArray(data.logs)) {
-        setAllLogs((prev) => [...prev, ...data.logs]);
-        const nextOffset = data.offset + data.logs.length;
-        setHasMore(nextOffset < data.total);
-        setOffset(nextOffset);
+      const logs = Array.isArray(data) ? data : (data.logs || []);
+      const more = Array.isArray(data) ? (logs.length === PAGE_SIZE) : (data.hasMore || false);
+      if (logs.length) {
+        setAllLogs(prev => [...prev, ...logs]);
+        setLastLogTimestamp(logs[logs.length-1].time);
+        setHasOlder(more);
       } else {
-        setLogError("Invalid response format while loading more");
+        setHasOlder(false);
       }
     } catch (err) {
       console.error(err);
       setLogError(err.message);
     } finally {
-      setLoadingMore(false);
+      setLoadingOlder(false);
+    }
+  };
+
+  // Load newer logs (prepend to the front, i.e., more recent than first)
+  const loadNewerLogs = async () => {
+    if (loadingNewer || !hasNewer) return;
+    setLoadingNewer(true);
+    try {
+      const url = `/api/logs?limit=${PAGE_SIZE}&after=${firstLogTimestamp}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const logs = Array.isArray(data) ? data : (data.logs || []);
+      const more = Array.isArray(data) ? (logs.length === PAGE_SIZE) : (data.hasMore || false);
+      if (logs.length) {
+        setAllLogs(prev => [...logs, ...prev]);
+        setFirstLogTimestamp(logs[0].time);
+        setHasNewer(more);
+      } else {
+        setHasNewer(false);
+      }
+    } catch (err) {
+      console.error(err);
+      setLogError(err.message);
+    } finally {
+      setLoadingNewer(false);
     }
   };
 
@@ -191,7 +231,7 @@ export default function ResourceTable({
   };
 
   const openModal = () => {
-    fetchAllLogs();
+    fetchInitialLogs();
     setShowAllLogsModal(true);
   };
 
@@ -216,6 +256,13 @@ export default function ResourceTable({
       </motion.div>
     );
   }
+
+  // Reverse logs for display (newest first)
+  const logsToDisplay = isLogs ? [...displayedRows].reverse() : displayedRows;
+  const modalLogsToDisplay = [...allLogs].reverse(); // allLogs is stored newest first, reverse for visual? Actually we want newest first, so no need to reverse again.
+  // Wait – we store allLogs as newest first (from API). For display we want newest at top, so we can leave as is.
+  // But earlier we used modalLogsToDisplay = [...allLogs].reverse() which would put oldest first. Let's fix.
+  const displayLogs = allLogs; // because allLogs is already newest first
 
   return (
     <>
@@ -274,7 +321,7 @@ export default function ResourceTable({
                 </tr>
               </thead>
               <tbody>
-                {displayedRows.map((row, idx) => {
+                {logsToDisplay.map((row, idx) => {
                   if (isLogs) {
                     const timestamp = row.time || row.name || "";
                     const level = (row.level || "INFO").toUpperCase();
@@ -373,7 +420,7 @@ export default function ResourceTable({
         </Card>
       </motion.div>
 
-      {/* All Logs Modal with Load More */}
+      {/* All Logs Modal with two‑way buttons */}
       <AnimatePresence>
         {showAllLogsModal && (
           <motion.div
@@ -393,7 +440,7 @@ export default function ResourceTable({
               <div className="flex items-center justify-between p-4 border-b border-white/10">
                 <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-cyan-400" />
-                  System Logs {totalLogs > 0 && `(${allLogs.length} / ${totalLogs})`}
+                  System Logs ({allLogs.length} shown)
                 </h2>
                 <button
                   onClick={closeModal}
@@ -412,7 +459,7 @@ export default function ResourceTable({
                     <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-2" />
                     <p className="text-red-400">Error: {logError}</p>
                     <button
-                      onClick={fetchAllLogs}
+                      onClick={fetchInitialLogs}
                       className="mt-4 text-cyan-400 hover:text-cyan-300 text-sm"
                     >
                       Retry
@@ -422,8 +469,32 @@ export default function ResourceTable({
                   <p className="text-center text-slate-400 py-8">No logs found.</p>
                 ) : (
                   <>
+                    {/* Button: Show Newer Logs (at the top) */}
+                    {hasNewer && (
+                      <div className="flex justify-center pb-3">
+                        <button
+                          onClick={loadNewerLogs}
+                          disabled={loadingNewer}
+                          className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors px-4 py-2 rounded-lg border border-slate-700 hover:border-cyan-500/50 disabled:opacity-50"
+                        >
+                          {loadingNewer ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <ArrowUp className="w-4 h-4" />
+                              SHOW NEWER LOGS
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Log entries (already sorted newest first) */}
                     <div className="space-y-2">
-                      {allLogs.map((log, idx) => (
+                      {displayLogs.map((log, idx) => (
                         <div
                           key={idx}
                           onClick={() => handleCopyLog(log, idx)}
@@ -465,22 +536,24 @@ export default function ResourceTable({
                         </div>
                       ))}
                     </div>
-                    {hasMore && (
-                      <div className="flex justify-center mt-6 pt-2">
+
+                    {/* Button: Show Older Logs (at the bottom) */}
+                    {hasOlder && (
+                      <div className="flex justify-center pt-3">
                         <button
-                          onClick={loadMoreLogs}
-                          disabled={loadingMore}
+                          onClick={loadOlderLogs}
+                          disabled={loadingOlder}
                           className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors px-4 py-2 rounded-lg border border-slate-700 hover:border-cyan-500/50 disabled:opacity-50"
                         >
-                          {loadingMore ? (
+                          {loadingOlder ? (
                             <>
                               <RefreshCw className="w-4 h-4 animate-spin" />
                               Loading...
                             </>
                           ) : (
                             <>
-                              <Plus className="w-4 h-4" />
-                              Load More
+                              <ArrowDown className="w-4 h-4" />
+                              SHOW OLDER LOGS
                             </>
                           )}
                         </button>

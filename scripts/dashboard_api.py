@@ -407,55 +407,75 @@ def get_system_logs(limit=30):
 
 
 # Get all logs (with limit)
-def get_all_logs(limit=500):
-    """Fetch the last `limit` system logs from journalctl."""
-    journalctl_path = "/usr/bin/journalctl"
-    cmd = [journalctl_path, "-n", str(limit), "--no-pager", "-o", "json"]
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        if result.returncode != 0 or not result.stdout.strip():
-            return []
-        logs = []
-        for line in result.stdout.strip().split("\n"):
-            try:
-                entry = json.loads(line)
-                priority = int(entry.get("PRIORITY", 6))
-                # Map priority to level
-                if priority <= 3:
-                    level = "ERROR"
-                elif priority == 4:
-                    level = "WARN"
-                else:
-                    level = "INFO"
-                ts_micro = int(entry.get("__REALTIME_TIMESTAMP", 0))
-                if ts_micro:
-                    dt = datetime.fromtimestamp(ts_micro / 1_000_000)
-                    time_str = dt.strftime("%H:%M:%S")
-                else:
-                    time_str = datetime.now().strftime("%H:%M:%S")
-                # Safely extract fields – they may be strings, lists, or None
-                message_val = entry.get("MESSAGE", "")
-                if isinstance(message_val, str):
-                    message = message_val.strip()
-                else:
-                    message = str(message_val)[:300]
-                source_val = entry.get("SYSLOG_IDENTIFIER", "system")
-                if isinstance(source_val, str):
-                    source = source_val.strip()
-                else:
-                    source = str(source_val)[:20]
-                logs.append({
-                    "time": time_str,
-                    "level": level,
-                    "source": source[:20],
-                    "message": message[:300]
-                })
-            except json.JSONDecodeError:
-                continue
-        return logs
-    except Exception as e:
-        print(f"Error fetching full logs: {e}", file=sys.stderr)
-        return []
+from functools import lru_cache
+import time
+
+# Simple time-based cache (can also use @ttl_cache)
+_all_logs_cache = None
+_all_logs_cache_time = 0
+_all_logs_max_lines = 5000
+
+def get_all_logs(limit=100, offset=0):
+    global _all_logs_cache, _all_logs_cache_time
+    # Cache for 10 seconds
+    if not _all_logs_cache or time.time() - _all_logs_cache_time > 10:
+        journalctl_path = "/usr/bin/journalctl"
+        cmd = [journalctl_path, "-n", str(_all_logs_max_lines), "--no-pager", "-o", "json"]
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            if result.returncode != 0 or not result.stdout.strip():
+                _all_logs_cache = []
+            else:
+                logs = []
+                for line in result.stdout.strip().split("\n"):
+                    try:
+                        entry = json.loads(line)
+                        priority = int(entry.get("PRIORITY", 6))
+                        if priority <= 3:
+                            level = "ERROR"
+                        elif priority == 4:
+                            level = "WARN"
+                        else:
+                            level = "INFO"
+                        ts_micro = int(entry.get("__REALTIME_TIMESTAMP", 0))
+                        if ts_micro:
+                            dt = datetime.fromtimestamp(ts_micro / 1_000_000)
+                            time_str = dt.strftime("%H:%M:%S")
+                        else:
+                            time_str = datetime.now().strftime("%H:%M:%S")
+                        message_val = entry.get("MESSAGE", "")
+                        if isinstance(message_val, str):
+                            message = message_val.strip()
+                        else:
+                            message = str(message_val)[:300]
+                        source_val = entry.get("SYSLOG_IDENTIFIER", "system")
+                        if isinstance(source_val, str):
+                            source = source_val.strip()
+                        else:
+                            source = str(source_val)[:20]
+                        logs.append({
+                            "time": time_str,
+                            "level": level,
+                            "source": source[:20],
+                            "message": message[:300]
+                        })
+                    except json.JSONDecodeError:
+                        continue
+                _all_logs_cache = logs
+                _all_logs_cache_time = time.time()
+        except Exception as e:
+            print(f"Error fetching full logs: {e}", file=sys.stderr)
+            _all_logs_cache = []
+            _all_logs_cache_time = time.time()
+    
+    total = len(_all_logs_cache)
+    start = offset
+    end = offset + limit
+    sliced = _all_logs_cache[start:end] if start < total else []
+    return {
+        "logs": sliced,
+        "total": total
+    }
 
 
 # -------------------------------
@@ -1007,18 +1027,31 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(f"Error: {e}".encode())
             return
-
-        # Logs API endpoint (raw journalctl)
+        
+        # Logs API endpoint with pagination
         if self.path.startswith('/api/logs'):
             try:
                 from urllib.parse import urlparse, parse_qs
                 query = parse_qs(urlparse(self.path).query)
-                limit = int(query.get('limit', [500])[0])
-                logs = get_all_logs(limit)
+                limit = int(query.get('limit', [100])[0])
+                offset = int(query.get('offset', [0])[0])
+                
+                # Fetch logs (including offset) – returns {'logs': list, 'total': int}
+                result = get_all_logs(limit=limit, offset=offset)
+                logs = result['logs']
+                total = result['total']
+                has_more = offset + len(logs) < total
+                
+                response = {
+                    "logs": logs,
+                    "offset": offset + len(logs),
+                    "hasMore": has_more,
+                    "total": total
+                }
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(json.dumps(logs).encode())
+                self.wfile.write(json.dumps(response).encode())
             except Exception as e:
                 self.send_response(500)
                 self.send_header('Content-type', 'text/plain')
