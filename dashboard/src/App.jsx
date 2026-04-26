@@ -149,6 +149,33 @@ export default function App() {
     loadQuotes();
   }, []);
 
+  // ✅ NEW: Intercept /api/logs in development mode to return mock paginated logs
+  useEffect(() => {
+    // Only intercept in development mode (optional – you can also remove the condition to always use mock)
+    if (import.meta.env.DEV) {
+      const originalFetch = window.fetch;
+      window.fetch = async (input, init) => {
+        const url = typeof input === 'string' ? input : input.url;
+        if (url.startsWith('/api/logs')) {
+          const urlObj = new URL(url, window.location.origin);
+          const limit = parseInt(urlObj.searchParams.get('limit') || '200', 10);
+          const offset = parseInt(urlObj.searchParams.get('offset') || '0', 10);
+          const { getPaginatedMockLogs } = await import('./mockLogs');
+          const { logs, hasMore, offset: nextOffset } = getPaginatedMockLogs(limit, offset);
+          const responseBody = JSON.stringify({ logs, hasMore, offset: nextOffset });
+          return new Response(responseBody, {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return originalFetch(input, init);
+      };
+      return () => {
+        window.fetch = originalFetch;
+      };
+    }
+  }, []);
+
   const featuredQuote = useMemo(() => getRandomQuote(quotes), [quotes]);
 
   const instanceName = dashboard?.identity?.instanceName || "";
