@@ -114,6 +114,27 @@ const orderLogsNewestFirst = (logs) =>
     })
     .map(({ log }) => log);
 
+const fetchLogsJson = async ({ limit, offset = 0, minutes } = {}) => {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+    _: String(Date.now()),
+  });
+
+  if (minutes) params.set("minutes", String(minutes));
+
+  const res = await fetch(`/api/logs?${params.toString()}`, {
+    cache: "no-store",
+    headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+  });
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+};
+
 export default function ResourceTable({
   rows = [],
   title = "Resources",
@@ -135,6 +156,7 @@ export default function ResourceTable({
   const [isRangeFetchFlashing, setIsRangeFetchFlashing] = useState(false);
   const [timeRangeMinutes, setTimeRangeMinutes] = useState("10");
   const rangeFetchTimeoutRef = useRef(null);
+  const logsContainerRef = useRef(null);
 
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasOlder, setHasOlder] = useState(false);
@@ -145,6 +167,12 @@ export default function ResourceTable({
   const resolvedCycleLabel = cycleLabel || (isLogs ? "logs" : "resources");
   const getIncrements = () =>
     isLogs ? [5, 10, 15, 20, 25, 30] : [3, 6, 9, 12, 15, 18, 21, 24, 27, 30];
+
+  const scrollLogsToTop = () => {
+    requestAnimationFrame(() => {
+      logsContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
 
   const cycleLimit = () => {
     const increments = getIncrements();
@@ -176,16 +204,14 @@ export default function ResourceTable({
     setHasOlder(false);
     setOffset(0);
     try {
-      const url = `/api/logs?limit=${PAGE_SIZE}&offset=0`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: 0 });
       const logs = data.logs || [];
       const hasMore = data.hasMore || false;
 
       setAllLogs(orderLogsNewestFirst(logs));
       setOffset(logs.length);
       setHasOlder(hasMore);
+      scrollLogsToTop();
     } catch (err) {
       console.error(err);
       setLogError(err.message);
@@ -197,19 +223,21 @@ export default function ResourceTable({
   const refreshLogs = async () => {
     setIsRefreshing(true);
     setLogError(null);
+    setCopiedLogId(null);
+    setHasOlder(false);
+    setOffset(0);
+
     try {
-      const url = `/api/logs?limit=${PAGE_SIZE}&offset=0`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: 0 });
       const logs = data.logs || [];
       const hasMore = data.hasMore || false;
 
       setAllLogs(orderLogsNewestFirst(logs));
       setOffset(logs.length);
       setHasOlder(hasMore);
-      setRefreshMessage("Logs refreshed");
+      setRefreshMessage(logs.length ? "Newest logs loaded" : "No logs found");
       setTimeout(() => setRefreshMessage(null), 2000);
+      scrollLogsToTop();
     } catch (err) {
       console.error(err);
       setLogError(err.message);
@@ -238,10 +266,7 @@ export default function ResourceTable({
     setOffset(0);
 
     try {
-      const url = `/api/logs?limit=${PAGE_SIZE}&offset=0&minutes=${minutes}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: 0, minutes });
       const logs = data.logs || [];
       const hasMore = data.hasMore || false;
 
@@ -249,9 +274,10 @@ export default function ResourceTable({
       setOffset(logs.length);
       setHasOlder(hasMore);
       setRefreshMessage(
-        logs.length ? `Last ${minutes} min` : `No logs in last ${minutes} min`
+        logs.length ? `Newest logs from last ${minutes} min` : `No logs in last ${minutes} min`
       );
       setTimeout(() => setRefreshMessage(null), 3000);
+      scrollLogsToTop();
     } catch (err) {
       console.error(err);
       setLogError(err.message);
@@ -264,10 +290,7 @@ export default function ResourceTable({
     if (loadingOlder || !hasOlder) return;
     setLoadingOlder(true);
     try {
-      const url = `/api/logs?limit=${PAGE_SIZE}&offset=${offset}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset });
       const newLogs = data.logs || [];
       const more = data.hasMore || false;
 
@@ -551,7 +574,7 @@ export default function ResourceTable({
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-4">
+              <div ref={logsContainerRef} className="flex-1 overflow-y-auto p-4">
                 {loadingLogs ? (
                   <div className="flex justify-center py-12">
                     <RefreshCw className="w-6 h-6 text-cyan-400 animate-spin" />
