@@ -237,8 +237,8 @@ export default function ResourceTable({
   const logsContainerRef = useRef(null);
 
   const [loadingOlder, setLoadingOlder] = useState(false);
-  const [hasOlder, setHasOlder] = useState(false);
-  const [offset, setOffset] = useState(0);
+  const [hasOlder, setHasOlder] = useState(true);
+  const [olderOffset, setOlderOffset] = useState(0);
   const PAGE_SIZE = 200;
 
   const totalRowsCount = rows.length;
@@ -295,13 +295,13 @@ export default function ResourceTable({
     if (initialLoad) {
       setLoadingLogs(true);
       setAllLogs([]);
+      setOlderOffset(0);
+      setHasOlder(true);
     }
 
     setIsFetchingRange(true);
     setLogError(null);
     setCopiedLogId(null);
-    setHasOlder(false);
-    setOffset(0);
 
     try {
       const data = await fetchLogsJson({
@@ -311,12 +311,11 @@ export default function ResourceTable({
       });
 
       const fetchedLogs = data.logs || [];
-      const hasMore = data.hasMore || false;
       const mergedLogs = mergeFetchedAndLiveLogs(fetchedLogs, minutes);
 
       setAllLogs(mergedLogs);
-      setOffset(fetchedLogs.length);
-      setHasOlder(hasMore || fetchedLogs.length >= PAGE_SIZE);
+      setOlderOffset(0);
+      setHasOlder(true);
       setRefreshMessage(
         mergedLogs.length ? `Updated last ${minutes} min` : `No logs in last ${minutes} min`
       );
@@ -336,13 +335,13 @@ export default function ResourceTable({
     setLoadingOlder(true);
 
     try {
-      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset });
+      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: olderOffset });
       const newLogs = data.logs || [];
       const more = data.hasMore || false;
 
       if (newLogs.length) {
         setAllLogs((prev) => dedupeLogs([...prev, ...newLogs]));
-        setOffset((prevOffset) => prevOffset + newLogs.length);
+        setOlderOffset((prevOffset) => prevOffset + newLogs.length);
         setHasOlder(more || newLogs.length >= PAGE_SIZE);
       } else {
         setHasOlder(false);
