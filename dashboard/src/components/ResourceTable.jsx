@@ -76,13 +76,13 @@ const getStatusDotStatus = (rowStatus) => {
 };
 
 const getLogRawTime = (log) =>
-  log.timestamp ||
-  log.datetime ||
-  log.isoTime ||
-  log.iso_time ||
-  log.createdAt ||
-  log.created_at ||
-  log.time ||
+  log?.timestamp ||
+  log?.datetime ||
+  log?.isoTime ||
+  log?.iso_time ||
+  log?.createdAt ||
+  log?.created_at ||
+  log?.time ||
   "";
 
 const getLogSortValue = (log) => {
@@ -147,9 +147,9 @@ const isLogWithinLastMinutes = (log, minutes) => {
 const getLogDedupeKey = (log) =>
   [
     getLogRawTime(log),
-    log.level || "",
-    log.source || log.scope || "",
-    log.message || log.status || log.name || "",
+    log?.level || "",
+    log?.source || log?.scope || "",
+    log?.message || log?.status || log?.name || "",
   ]
     .map((value) => String(value).trim().toLowerCase())
     .join("|");
@@ -157,9 +157,12 @@ const getLogDedupeKey = (log) =>
 const dedupeLogs = (logs) => {
   const seen = new Set();
 
-  return logs.filter((log) => {
+  return (logs || []).filter((log) => {
+    if (!log) return false;
+
     const key = getLogDedupeKey(log);
     if (seen.has(key)) return false;
+
     seen.add(key);
     return true;
   });
@@ -220,11 +223,8 @@ export default function ResourceTable({
   const [logError, setLogError] = useState(null);
   const [copiedLogId, setCopiedLogId] = useState(null);
   const [refreshMessage, setRefreshMessage] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isFetchingRange, setIsFetchingRange] = useState(false);
-  const [isRangeFetchFlashing, setIsRangeFetchFlashing] = useState(false);
   const [timeRangeMinutes, setTimeRangeMinutes] = useState("10");
-  const rangeFetchTimeoutRef = useRef(null);
   const logsContainerRef = useRef(null);
 
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -241,6 +241,17 @@ export default function ResourceTable({
     requestAnimationFrame(() => {
       logsContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     });
+  };
+
+  const getRequestedMinutes = () => {
+    const raw = timeRangeMinutes.trim();
+    const minutes = raw === "" ? 10 : parseInt(raw, 10);
+    return isNaN(minutes) || minutes <= 0 ? 10 : minutes;
+  };
+
+  const mergeFetchedAndLiveLogs = (fetchedLogs, minutes) => {
+    const liveLogs = getLiveDashboardLogs(rows, minutes);
+    return orderLogsNewestFirst([...liveLogs, ...fetchedLogs]);
   };
 
   const cycleLimit = () => {
@@ -265,103 +276,34 @@ export default function ResourceTable({
     }
   };
 
-  const fetchInitialLogs = async () => {
-    setLoadingLogs(true);
-    setLogError(null);
-    setAllLogs([]);
-    setCopiedLogId(null);
-    setHasOlder(false);
-    setOffset(0);
+  const updateLogs = async ({ initialLoad = false } = {}) => {
+    const minutes = getRequestedMinutes();
 
-    try {
-      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: 0 });
-      const fetchedLogs = data.logs || [];
-      const hasMore = data.hasMore || false;
-      const liveLogs = getLiveDashboardLogs(rows);
-      const mergedLogs = orderLogsNewestFirst([...liveLogs, ...fetchedLogs]);
-
-      setAllLogs(mergedLogs);
-      setOffset(fetchedLogs.length);
-      setHasOlder(hasMore);
-      scrollLogsToTop();
-    } catch (err) {
-      console.error(err);
-      setLogError(err.message);
-    } finally {
-      setLoadingLogs(false);
+    if (initialLoad) {
+      setLoadingLogs(true);
+      setAllLogs([]);
     }
-  };
 
-  const refreshLogs = async () => {
-    setIsRefreshing(true);
+    setIsFetchingRange(true);
     setLogError(null);
     setCopiedLogId(null);
     setHasOlder(false);
     setOffset(0);
-
-    const raw = timeRangeMinutes.trim();
-    const minutes = raw === "" ? 10 : parseInt(raw, 10);
-    const refreshMinutes = isNaN(minutes) || minutes <= 0 ? 10 : minutes;
 
     try {
       const data = await fetchLogsJson({
         limit: PAGE_SIZE,
         offset: 0,
-        minutes: refreshMinutes,
+        minutes,
       });
 
       const fetchedLogs = data.logs || [];
       const hasMore = data.hasMore || false;
-      const liveLogs = getLiveDashboardLogs(rows, refreshMinutes);
-      const mergedLogs = orderLogsNewestFirst([...liveLogs, ...fetchedLogs]);
+      const mergedLogs = mergeFetchedAndLiveLogs(fetchedLogs, minutes);
 
       setAllLogs(mergedLogs);
       setOffset(fetchedLogs.length);
-      setHasOlder(hasMore);
-      setRefreshMessage(
-        mergedLogs.length
-          ? `Newest logs from last ${refreshMinutes} min`
-          : `No logs in last ${refreshMinutes} min`
-      );
-      setTimeout(() => setRefreshMessage(null), 2000);
-      scrollLogsToTop();
-    } catch (err) {
-      console.error(err);
-      setLogError(err.message);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  const fetchLogsByTimeRange = async () => {
-    const raw = timeRangeMinutes.trim();
-    const minutes = raw === "" ? 0 : parseInt(raw, 10);
-    if (isNaN(minutes) || minutes <= 0) return;
-
-    if (rangeFetchTimeoutRef.current) clearTimeout(rangeFetchTimeoutRef.current);
-    setIsRangeFetchFlashing(true);
-    rangeFetchTimeoutRef.current = setTimeout(() => {
-      setIsRangeFetchFlashing(false);
-      rangeFetchTimeoutRef.current = null;
-    }, 200);
-
-    setIsFetchingRange(true);
-    setLogError(null);
-    setAllLogs([]);
-    setCopiedLogId(null);
-    setHasOlder(false);
-    setOffset(0);
-
-    try {
-      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: 0, minutes });
-      const fetchedLogs = data.logs || [];
-      const hasMore = data.hasMore || false;
-      const liveLogs = getLiveDashboardLogs(rows, minutes);
-      const mergedLogs = orderLogsNewestFirst([...liveLogs, ...fetchedLogs]);
-
-      setAllLogs(mergedLogs);
-      setOffset(fetchedLogs.length);
-      setHasOlder(hasMore);
+      setHasOlder(hasMore || fetchedLogs.length >= PAGE_SIZE || mergedLogs.length > 0);
       setRefreshMessage(
         mergedLogs.length ? `Newest logs from last ${minutes} min` : `No logs in last ${minutes} min`
       );
@@ -372,6 +314,7 @@ export default function ResourceTable({
       setLogError(err.message);
     } finally {
       setIsFetchingRange(false);
+      setLoadingLogs(false);
     }
   };
 
@@ -387,7 +330,7 @@ export default function ResourceTable({
       if (newLogs.length) {
         setAllLogs((prev) => orderLogsNewestFirst([...prev, ...newLogs]));
         setOffset((prevOffset) => prevOffset + newLogs.length);
-        setHasOlder(more);
+        setHasOlder(more || newLogs.length >= PAGE_SIZE);
       } else {
         setHasOlder(false);
       }
@@ -407,8 +350,8 @@ export default function ResourceTable({
   };
 
   const openModal = () => {
-    fetchInitialLogs();
     setShowAllLogsModal(true);
+    updateLogs({ initialLoad: true });
   };
 
   const closeModal = () => setShowAllLogsModal(false);
@@ -601,14 +544,12 @@ export default function ResourceTable({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-            onClick={closeModal}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col"
-              onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between p-4 border-b border-white/10 flex-wrap gap-2">
                 <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
@@ -635,29 +576,13 @@ export default function ResourceTable({
                     />
                     <span className="text-xs text-slate-300">minutes.</span>
                     <button
-                      onClick={fetchLogsByTimeRange}
+                      onClick={() => updateLogs()}
                       disabled={isFetchingRange}
-                      className={`px-2 py-1 text-xs rounded transition-all disabled:opacity-50 ${
-                        isRangeFetchFlashing
-                          ? "bg-cyan-500/30 text-white shadow-[0_0_8px_cyan] border-cyan-400"
-                          : "border border-cyan-500/50 text-cyan-400 hover:text-cyan-300 hover:border-cyan-400"
-                      }`}
+                      className="px-3 py-1 text-xs rounded border border-cyan-500/50 text-cyan-400 hover:text-cyan-300 hover:border-cyan-400 transition-colors disabled:opacity-50"
                     >
-                      {isFetchingRange ? "Fetching..." : "Fetch"}
+                      {isFetchingRange ? "Updating..." : "Update"}
                     </button>
                   </div>
-                  <button
-                    onClick={refreshLogs}
-                    disabled={isRefreshing}
-                    className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
-                    title="Refresh logs"
-                  >
-                    {isRefreshing ? (
-                      <RefreshCw className="w-5 h-5 text-cyan-400 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-5 h-5 text-slate-400" />
-                    )}
-                  </button>
                   <button
                     onClick={closeModal}
                     className="p-1 rounded-lg hover:bg-white/10 transition-colors"
@@ -677,7 +602,7 @@ export default function ResourceTable({
                     <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-2" />
                     <p className="text-red-400">Error: {logError}</p>
                     <button
-                      onClick={fetchInitialLogs}
+                      onClick={() => updateLogs({ initialLoad: true })}
                       className="mt-4 text-cyan-400 hover:text-cyan-300 text-sm"
                     >
                       Retry
@@ -693,7 +618,7 @@ export default function ResourceTable({
 
                         return (
                           <div
-                            key={`${log.time}-${log.source}-${idx}`}
+                            key={`${getLogRawTime(log)}-${log.source || log.scope || ""}-${idx}`}
                             onClick={() => handleCopyLog(log, idx)}
                             className={`group p-3 rounded-xl border border-white/5 transition-all cursor-pointer ${
                               level === "ERROR"
@@ -714,7 +639,7 @@ export default function ResourceTable({
                                     {level}
                                   </span>
                                   <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                                    {log.source}
+                                    {log.source || log.scope}
                                   </span>
                                   {copiedLogId === idx && (
                                     <span className="text-emerald-400 text-xs flex items-center gap-1">
@@ -722,7 +647,9 @@ export default function ResourceTable({
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-slate-300 text-sm mt-1 break-words">{log.message}</p>
+                                <p className="text-slate-300 text-sm mt-1 break-words">
+                                  {log.message || log.status || log.name}
+                                </p>
                               </div>
                               <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Copy className="w-4 h-4 text-slate-400" />
