@@ -138,11 +138,12 @@ export default function ResourceTable({
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      // Expecting { logs: [...], hasMore: boolean, offset: number }
       const logs = data.logs || [];
       const hasMore = data.hasMore || false;
       if (logs.length) {
-        setAllLogs(logs);
+        // Reverse to make newest first (descending)
+        const reversedLogs = [...logs].reverse();
+        setAllLogs(reversedLogs);
         setOffset(logs.length);
         setHasOlder(hasMore);
       } else {
@@ -168,7 +169,9 @@ export default function ResourceTable({
       const newLogs = data.logs || [];
       const more = data.hasMore || false;
       if (newLogs.length) {
-        setAllLogs((prev) => [...prev, ...newLogs]);
+        // Reverse each new batch to maintain newest‑first order in the overall list
+        const reversedNew = [...newLogs].reverse();
+        setAllLogs((prev) => [...prev, ...reversedNew]);
         setOffset(offset + newLogs.length);
         setHasOlder(more);
       } else {
