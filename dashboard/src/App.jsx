@@ -160,8 +160,10 @@ export default function App() {
           const urlObj = new URL(url, window.location.origin);
           const limit = parseInt(urlObj.searchParams.get('limit') || '200', 10);
           const offset = parseInt(urlObj.searchParams.get('offset') || '0', 10);
+          const minutesParam = urlObj.searchParams.get('minutes');
+          const minutes = minutesParam ? parseInt(minutesParam, 10) : null;
           const { getPaginatedMockLogs } = await import('./mockLogs');
-          const { logs, hasMore, offset: nextOffset } = getPaginatedMockLogs(limit, offset);
+          const { logs, hasMore, offset: nextOffset } = getPaginatedMockLogs(limit, offset, minutes);
           const responseBody = JSON.stringify({ logs, hasMore, offset: nextOffset });
           return new Response(responseBody, {
             status: 200,

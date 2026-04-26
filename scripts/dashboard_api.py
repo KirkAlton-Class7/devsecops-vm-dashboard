@@ -415,7 +415,7 @@ _all_logs_cache = None
 _all_logs_cache_time = 0
 _all_logs_max_lines = 5000
 
-def get_all_logs(limit=100, offset=0):
+def get_all_logs(limit=100, offset=0, minutes=None):
     global _all_logs_cache, _all_logs_cache_time
     # Cache for 10 seconds
     if not _all_logs_cache or time.time() - _all_logs_cache_time > 10:
@@ -442,6 +442,7 @@ def get_all_logs(limit=100, offset=0):
                             dt = datetime.fromtimestamp(ts_micro / 1_000_000)
                             time_str = dt.strftime("%H:%M:%S")
                         else:
+                            ts_micro = int(datetime.now().timestamp() * 1_000_000)
                             time_str = datetime.now().strftime("%H:%M:%S")
                         message_val = entry.get("MESSAGE", "")
                         if isinstance(message_val, str):
@@ -455,6 +456,7 @@ def get_all_logs(limit=100, offset=0):
                             source = str(source_val)[:20]
                         logs.append({
                             "time": time_str,
+                            "_timestamp": ts_micro,
                             "level": level,
                             "source": source[:20],
                             "message": message[:300]
@@ -468,12 +470,20 @@ def get_all_logs(limit=100, offset=0):
             _all_logs_cache = []
             _all_logs_cache_time = time.time()
     
-    total = len(_all_logs_cache)
+    filtered_logs = _all_logs_cache
+    if minutes:
+        cutoff = int((time.time() - minutes * 60) * 1_000_000)
+        filtered_logs = [
+            log for log in _all_logs_cache if log.get("_timestamp", 0) >= cutoff
+        ]
+
+    total = len(filtered_logs)
     start = offset
     end = offset + limit
-    sliced = _all_logs_cache[start:end] if start < total else []
+    sliced = filtered_logs[start:end] if start < total else []
+    sanitized = [{key: value for key, value in log.items() if key != "_timestamp"} for log in sliced]
     return {
-        "logs": sliced,
+        "logs": sanitized,
         "total": total
     }
 
@@ -1035,9 +1045,11 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 query = parse_qs(urlparse(self.path).query)
                 limit = int(query.get('limit', [100])[0])
                 offset = int(query.get('offset', [0])[0])
+                minutes = query.get('minutes', [None])[0]
+                minutes = int(minutes) if minutes else None
                 
                 # Fetch logs (including offset) – returns {'logs': list, 'total': int}
-                result = get_all_logs(limit=limit, offset=offset)
+                result = get_all_logs(limit=limit, offset=offset, minutes=minutes)
                 logs = result['logs']
                 total = result['total']
                 has_more = offset + len(logs) < total

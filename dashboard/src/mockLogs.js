@@ -18,7 +18,7 @@ const generateMockLogs = () => {
     if (level === 'ERROR') message = `Simulated error in ${source}: something went wrong (code ${Math.floor(Math.random() * 1000)})`;
     else if (level === 'WARN') message = `Simulated warning in ${source}: unusual activity detected`;
     else message = `Simulated informational message from ${source}: all good`;
-    logs.push({ time, level, source, message });
+    logs.push({ time, timestamp: date.getTime(), level, source, message });
   }
   return logs;
 };
@@ -26,10 +26,15 @@ const generateMockLogs = () => {
 // Pre‑generate logs once
 const allLogs = generateMockLogs();
 
-export const getPaginatedMockLogs = (limit = 200, offset = 0) => {
+export const getPaginatedMockLogs = (limit = 200, offset = 0, minutes = null) => {
+  const filteredLogs = minutes
+    ? allLogs.filter((log) => log.timestamp >= Date.now() - minutes * 60 * 1000)
+    : allLogs;
   const start = offset;
   const end = offset + limit;
-  const logs = allLogs.slice(start, end);
-  const hasMore = end < allLogs.length;
+  const logs = filteredLogs
+    .slice(start, end)
+    .map(({ timestamp, ...log }) => log);
+  const hasMore = end < filteredLogs.length;
   return { logs, hasMore, offset: end };
 };
