@@ -75,7 +75,44 @@ const getStatusDotStatus = (rowStatus) => {
   return "healthy";
 };
 
-const orderLogsNewestFirst = (logs) => [...logs].reverse();
+const getLogSortValue = (log) => {
+  const raw =
+    log.timestamp ||
+    log.datetime ||
+    log.isoTime ||
+    log.iso_time ||
+    log.createdAt ||
+    log.created_at ||
+    log.time ||
+    "";
+
+  if (typeof raw === "number") return raw;
+
+  const value = String(raw).trim();
+  if (!value) return 0;
+
+  const parsedDate = Date.parse(value);
+  if (!Number.isNaN(parsedDate)) return parsedDate;
+
+  const timeMatch = value.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?$/);
+  if (!timeMatch) return 0;
+
+  const hours = Number(timeMatch[1]);
+  const minutes = Number(timeMatch[2]);
+  const seconds = Number(timeMatch[3] || 0);
+  const millis = Number((timeMatch[4] || "0").padEnd(3, "0").slice(0, 3));
+
+  return ((hours * 60 + minutes) * 60 + seconds) * 1000 + millis;
+};
+
+const orderLogsNewestFirst = (logs) =>
+  logs
+    .map((log, index) => ({ log, index }))
+    .sort((a, b) => {
+      const timeDiff = getLogSortValue(b.log) - getLogSortValue(a.log);
+      return timeDiff || a.index - b.index;
+    })
+    .map(({ log }) => log);
 
 export default function ResourceTable({
   rows = [],
@@ -235,7 +272,7 @@ export default function ResourceTable({
       const more = data.hasMore || false;
 
       if (newLogs.length) {
-        setAllLogs((prev) => [...prev, ...orderLogsNewestFirst(newLogs)]);
+        setAllLogs((prev) => orderLogsNewestFirst([...prev, ...newLogs]));
         setOffset((prevOffset) => prevOffset + newLogs.length);
         setHasOlder(more);
       } else {
@@ -535,45 +572,49 @@ export default function ResourceTable({
                 ) : (
                   <>
                     <div className="space-y-2">
-                      {displayLogs.map((log, idx) => (
-                        <div
-                          key={`${log.time}-${log.source}-${idx}`}
-                          onClick={() => handleCopyLog(log, idx)}
-                          className={`group p-3 rounded-xl border border-white/5 transition-all cursor-pointer ${
-                            log.level === "ERROR"
-                              ? "hover:bg-red-500/10"
-                              : log.level === "WARN"
-                              ? "hover:bg-amber-500/10"
-                              : "hover:bg-cyan-500/10"
-                          }`}
-                        >
-                          <div className="flex items-start gap-2 text-sm">
-                            <div className="flex-shrink-0 mt-0.5">
-                              {getLogIcon(log.level)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-mono text-xs text-slate-500">{log.time}</span>
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${getLevelBadgeStyle(log.level)}`}>
-                                  {log.level}
-                                </span>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                                  {log.source}
-                                </span>
-                                {copiedLogId === idx && (
-                                  <span className="text-emerald-400 text-xs flex items-center gap-1">
-                                    <Check className="w-3 h-3" /> Copied!
-                                  </span>
-                                )}
+                      {displayLogs.map((log, idx) => {
+                        const level = (log.level || "INFO").toUpperCase();
+
+                        return (
+                          <div
+                            key={`${log.time}-${log.source}-${idx}`}
+                            onClick={() => handleCopyLog(log, idx)}
+                            className={`group p-3 rounded-xl border border-white/5 transition-all cursor-pointer ${
+                              level === "ERROR"
+                                ? "hover:bg-red-500/10"
+                                : level === "WARN"
+                                ? "hover:bg-amber-500/10"
+                                : "hover:bg-cyan-500/10"
+                            }`}
+                          >
+                            <div className="flex items-start gap-2 text-sm">
+                              <div className="flex-shrink-0 mt-0.5">
+                                {getLogIcon(level)}
                               </div>
-                              <p className="text-slate-300 text-sm mt-1 break-words">{log.message}</p>
-                            </div>
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Copy className="w-4 h-4 text-slate-400" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="font-mono text-xs text-slate-500">{log.time}</span>
+                                  <span className={`text-xs px-2 py-0.5 rounded-full ${getLevelBadgeStyle(level)}`}>
+                                    {level}
+                                  </span>
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                                    {log.source}
+                                  </span>
+                                  {copiedLogId === idx && (
+                                    <span className="text-emerald-400 text-xs flex items-center gap-1">
+                                      <Check className="w-3 h-3" /> Copied!
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-slate-300 text-sm mt-1 break-words">{log.message}</p>
+                              </div>
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Copy className="w-4 h-4 text-slate-400" />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {hasOlder && (
