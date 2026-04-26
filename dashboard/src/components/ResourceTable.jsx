@@ -15,7 +15,8 @@ import {
   Copy,
   Check,
   X,
-  ArrowDown
+  ArrowDown,
+  ArrowUp
 } from "lucide-react";
 import Card from "./Card";
 import StatusDot from "./StatusDot";
@@ -83,7 +84,12 @@ const getLogRawTime = (log) =>
   log?.createdAt ||
   log?.created_at ||
   log?.time ||
+  log?.name ||
   "";
+
+const getLogLevelValue = (log) => (log?.level || "INFO").toUpperCase();
+const getLogSourceValue = (log) => log?.source || log?.scope || "";
+const getLogMessageValue = (log) => log?.message || log?.status || "";
 
 const getLogSortValue = (log) => {
   const raw = getLogRawTime(log);
@@ -147,9 +153,9 @@ const isLogWithinLastMinutes = (log, minutes) => {
 const getLogDedupeKey = (log) =>
   [
     getLogRawTime(log),
-    log?.level || "",
-    log?.source || log?.scope || "",
-    log?.message || log?.status || log?.name || "",
+    getLogLevelValue(log),
+    getLogSourceValue(log),
+    getLogMessageValue(log),
   ]
     .map((value) => String(value).trim().toLowerCase())
     .join("|");
@@ -168,22 +174,24 @@ const dedupeLogs = (logs) => {
   });
 };
 
-const orderLogsNewestFirst = (logs) =>
+const orderLogs = (logs, direction = "desc") =>
   dedupeLogs(logs)
     .map((log, index) => ({ log, index }))
     .sort((a, b) => {
-      const timeDiff = getLogSortValue(b.log) - getLogSortValue(a.log);
+      const aTime = getLogSortValue(a.log);
+      const bTime = getLogSortValue(b.log);
+      const timeDiff = direction === "asc" ? aTime - bTime : bTime - aTime;
       return timeDiff || a.index - b.index;
     })
     .map(({ log }) => log);
 
-const getLiveDashboardLogs = (rows, minutes) => {
+const getLiveDashboardLogs = (rows, minutes, direction = "desc") => {
   const logs = rows || [];
   const filteredLogs = minutes
     ? logs.filter((log) => isLogWithinLastMinutes(log, minutes))
     : logs;
 
-  return orderLogsNewestFirst(filteredLogs);
+  return orderLogs(filteredLogs, direction);
 };
 
 const fetchLogsJson = async ({ limit, offset = 0, minutes } = {}) => {
@@ -225,6 +233,7 @@ export default function ResourceTable({
   const [refreshMessage, setRefreshMessage] = useState(null);
   const [isFetchingRange, setIsFetchingRange] = useState(false);
   const [timeRangeMinutes, setTimeRangeMinutes] = useState("10");
+  const [sortDirection, setSortDirection] = useState("desc");
   const logsContainerRef = useRef(null);
 
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -243,6 +252,10 @@ export default function ResourceTable({
     });
   };
 
+  const toggleSortDirection = () => {
+    setSortDirection((current) => (current === "desc" ? "asc" : "desc"));
+  };
+
   const getRequestedMinutes = () => {
     const raw = timeRangeMinutes.trim();
     const minutes = raw === "" ? 10 : parseInt(raw, 10);
@@ -250,8 +263,8 @@ export default function ResourceTable({
   };
 
   const mergeFetchedAndLiveLogs = (fetchedLogs, minutes) => {
-    const liveLogs = getLiveDashboardLogs(rows, minutes);
-    return orderLogsNewestFirst([...liveLogs, ...fetchedLogs]);
+    const liveLogs = getLiveDashboardLogs(rows, minutes, sortDirection);
+    return dedupeLogs([...liveLogs, ...fetchedLogs]);
   };
 
   const cycleLimit = () => {
@@ -303,9 +316,9 @@ export default function ResourceTable({
 
       setAllLogs(mergedLogs);
       setOffset(fetchedLogs.length);
-      setHasOlder(hasMore || fetchedLogs.length >= PAGE_SIZE || mergedLogs.length > 0);
+      setHasOlder(hasMore || fetchedLogs.length >= PAGE_SIZE);
       setRefreshMessage(
-        mergedLogs.length ? `Newest logs from last ${minutes} min` : `No logs in last ${minutes} min`
+        mergedLogs.length ? `Updated last ${minutes} min` : `No logs in last ${minutes} min`
       );
       setTimeout(() => setRefreshMessage(null), 3000);
       scrollLogsToTop();
@@ -328,7 +341,7 @@ export default function ResourceTable({
       const more = data.hasMore || false;
 
       if (newLogs.length) {
-        setAllLogs((prev) => orderLogsNewestFirst([...prev, ...newLogs]));
+        setAllLogs((prev) => dedupeLogs([...prev, ...newLogs]));
         setOffset((prevOffset) => prevOffset + newLogs.length);
         setHasOlder(more || newLogs.length >= PAGE_SIZE);
       } else {
@@ -343,7 +356,7 @@ export default function ResourceTable({
   };
 
   const handleCopyLog = (log, index) => {
-    const text = `[${log.time}] ${log.level}: ${log.source} - ${log.message}`;
+    const text = `[${getLogRawTime(log)}] ${getLogLevelValue(log)}: ${getLogSourceValue(log)} - ${getLogMessageValue(log)}`;
     navigator.clipboard.writeText(text);
     setCopiedLogId(index);
     setTimeout(() => setCopiedLogId(null), 2000);
@@ -376,8 +389,13 @@ export default function ResourceTable({
     );
   }
 
-  const logsToDisplay = isLogs ? orderLogsNewestFirst(displayedRows) : displayedRows;
-  const displayLogs = allLogs;
+  const logsToDisplay = isLogs ? orderLogs(displayedRows, sortDirection) : displayedRows;
+  const displayLogs = orderLogs(allLogs, sortDirection);
+  const SortIcon = sortDirection === "desc" ? ArrowDown : ArrowUp;
+  const sortTitle =
+    sortDirection === "desc"
+      ? "Sorted newest first. Click for oldest first."
+      : "Sorted oldest first. Click for newest first.";
 
   return (
     <>
@@ -410,6 +428,16 @@ export default function ResourceTable({
                 <RefreshCw className="w-3 h-3" />
                 <span className="hidden sm:inline">Cycle {resolvedCycleLabel}</span>
               </button>
+              {isLogs && (
+                <button
+                  onClick={toggleSortDirection}
+                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
+                  title={sortTitle}
+                >
+                  <SortIcon className="w-3 h-3" />
+                  <span className="hidden sm:inline">Sort</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -438,10 +466,10 @@ export default function ResourceTable({
               <tbody>
                 {logsToDisplay.map((row, idx) => {
                   if (isLogs) {
-                    const timestamp = row.time || row.name || "";
-                    const level = (row.level || "INFO").toUpperCase();
-                    const source = row.scope || row.source || "";
-                    const message = row.message || row.status || "";
+                    const timestamp = getLogRawTime(row);
+                    const level = getLogLevelValue(row);
+                    const source = getLogSourceValue(row);
+                    const message = getLogMessageValue(row);
 
                     return (
                       <motion.tr
@@ -582,6 +610,14 @@ export default function ResourceTable({
                     >
                       {isFetchingRange ? "Updating..." : "Update"}
                     </button>
+                    <button
+                      onClick={toggleSortDirection}
+                      className="flex items-center gap-1 px-3 py-1 text-xs rounded border border-slate-700 text-slate-300 hover:text-cyan-300 hover:border-cyan-500/50 transition-colors"
+                      title={sortTitle}
+                    >
+                      <SortIcon className="w-3 h-3" />
+                      Sort
+                    </button>
                   </div>
                   <button
                     onClick={closeModal}
@@ -614,11 +650,14 @@ export default function ResourceTable({
                   <>
                     <div className="space-y-2">
                       {displayLogs.map((log, idx) => {
-                        const level = (log.level || "INFO").toUpperCase();
+                        const timestamp = getLogRawTime(log);
+                        const level = getLogLevelValue(log);
+                        const source = getLogSourceValue(log);
+                        const message = getLogMessageValue(log);
 
                         return (
                           <div
-                            key={`${getLogRawTime(log)}-${log.source || log.scope || ""}-${idx}`}
+                            key={`${timestamp}-${source}-${idx}`}
                             onClick={() => handleCopyLog(log, idx)}
                             className={`group p-3 rounded-xl border border-white/5 transition-all cursor-pointer ${
                               level === "ERROR"
@@ -634,12 +673,12 @@ export default function ResourceTable({
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <span className="font-mono text-xs text-slate-500">{log.time}</span>
+                                  <span className="font-mono text-xs text-slate-500">{timestamp}</span>
                                   <span className={`text-xs px-2 py-0.5 rounded-full ${getLevelBadgeStyle(level)}`}>
                                     {level}
                                   </span>
                                   <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                                    {log.source || log.scope}
+                                    {source}
                                   </span>
                                   {copiedLogId === idx && (
                                     <span className="text-emerald-400 text-xs flex items-center gap-1">
@@ -648,7 +687,7 @@ export default function ResourceTable({
                                   )}
                                 </div>
                                 <p className="text-slate-300 text-sm mt-1 break-words">
-                                  {log.message || log.status || log.name}
+                                  {message}
                                 </p>
                               </div>
                               <div className="opacity-0 group-hover:opacity-100 transition-opacity">
