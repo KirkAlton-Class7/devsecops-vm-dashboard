@@ -227,6 +227,41 @@ export default function ResourceTable({
     setHasOlder(false);
     setOffset(0);
 
+    const raw = timeRangeMinutes.trim();
+    const minutes = raw === "" ? 10 : parseInt(raw, 10);
+    const refreshMinutes = isNaN(minutes) || minutes <= 0 ? 10 : minutes;
+
+    try {
+      const data = await fetchLogsJson({
+        limit: PAGE_SIZE,
+        offset: 0,
+        minutes: refreshMinutes,
+      });
+
+      const fetchedLogs = data.logs || [];
+      const hasMore = data.hasMore || false;
+      const liveLogs = getLiveDashboardLogs(rows, refreshMinutes);
+      const mergedLogs = orderLogsNewestFirst([...liveLogs, ...fetchedLogs]);
+
+      setAllLogs(mergedLogs);
+      setOffset(fetchedLogs.length);
+      setHasOlder(hasMore);
+      setRefreshMessage(
+        mergedLogs.length
+          ? `Newest logs from last ${refreshMinutes} min`
+          : `No logs in last ${refreshMinutes} min`
+      );
+      setTimeout(() => setRefreshMessage(null), 2000);
+      scrollLogsToTop();
+    } catch (err) {
+      console.error(err);
+      setLogError(err.message);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+
     try {
       const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: 0 });
       const logs = data.logs || [];
