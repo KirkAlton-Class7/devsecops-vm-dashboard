@@ -621,7 +621,7 @@
     "speaker": "Lennier",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["action", "uncertainty", "courage"]
+    "tags": ["action", "uncertainty", "courage", "trying"]
   },
   {
     "id": 79,
@@ -1181,7 +1181,7 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["action", "risk"]
+    "tags": ["action", "risk", "trying", "failure"]
   },
   {
     "id": 149,
@@ -1197,7 +1197,7 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["action", "failure"]
+    "tags": ["action", "failure", "trying", "determination"]
   },
   {
     "id": 151,
@@ -1309,7 +1309,7 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["resilience", "perseverance"]
+    "tags": ["resilience", "perseverance", "success", "failure"]
   },
   {
     "id": 164,
@@ -1373,7 +1373,7 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["perseverance"]
+    "tags": ["perseverance", "resilience", "determination"]
   },
   {
     "id": 172,
@@ -1437,7 +1437,7 @@
     "speaker": null,
     "author": "The Math Sorcerer",
     "source": null,
-    "tags": ["perseverance", "mindset"]
+    "tags": ["perseverance", "mindset", "resilience"]
   },
   {
     "id": 180,
@@ -1901,7 +1901,7 @@
     "speaker": "Kai Shimada",
     "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
-    "tags": ["perseverance"]
+    "tags": ["perseverance", "resilience", "trying", "determination"]
   },
   {
     "id": 239,
@@ -2158,5 +2158,45 @@
   "author": "Dr. T Hasan Johnson",
   "source": "Canceled, Erased, and Broken: How Allegations Destroyed Justin Fairfax (44:20)",
   "tags": ["impermanence", "change", "time"]
+},
+{
+  "id": 271,
+  "text": "“The impediment to action advances action; what stands in the way becomes the way.",
+  "speaker": null,
+  "author": "Marcus Aurelius",
+  "source": "Meditations 5:20",
+  "tags": ["perseverance", "action", "obstacles", "determination"]
+},
+{
+  "id": 272,
+  "text": "Hate is a necessary emotion. You just have to hate the right things.",
+  "speaker": null,
+  "author": "@HistoryStudent (19:55)",
+  "source": "Views From Other Black Men",
+  "tags": ["justice", "hate", "integrity", "righteousness"]
+},
+{
+  "id": 273,
+  "text": "Only those who dare to fail greatly can ever achieve greatly.",
+  "speaker": null,
+  "author": "Robert F. Kennedy",
+  "source": null,
+  "tags": ["failure", "courage", "risk", "achievement"]
+},
+{
+  "id": 274,
+  "text": "Quitting only extends poverty",
+  "speaker": null,
+  "author": "Theo WAF",
+  "source": null,
+  "tags": ["persistence", "discipline", "resilience", "mindset"]
+},
+{
+  "id": 275,
+  "text": "It's easy to sell your soul, but it's impossible to buy it back.",
+  "speaker": "Andrew Cooper",
+  "author": "Jonathan Trooper",
+  "source": "Your Friends & Neighbors",
+  "tags": ["morality", "consequence", "ethics", "warning"]
 }
 ]
