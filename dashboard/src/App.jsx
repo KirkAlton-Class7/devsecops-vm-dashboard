@@ -322,16 +322,20 @@ export default function App() {
 
   if (mode === "finops") {
     return (
-      <FinOpsDashboard
-        onExit={() => setMode("standard")}
-        githubUrl={githubUrl}
-        linkedinUrl={linkedinUrl}
-        currentMode={mode}
-        onModeChange={handleModeChange}
-        flashMode={flashMode}
-        isSidebarCollapsed={isSidebarCollapsed}
-        onToggleSidebar={toggleSidebarCollapsed}
-      />
+      <>
+        <FinOpsDashboard
+          onExit={() => setMode("standard")}
+          githubUrl={githubUrl}
+          linkedinUrl={linkedinUrl}
+          currentMode={mode}
+          onModeChange={handleModeChange}
+          flashMode={flashMode}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={toggleSidebarCollapsed}
+          onCopyFailure={showCopyFailure}
+        />
+        {copyFailureToast}
+      </>
     );
   }
 
@@ -403,13 +407,19 @@ export default function App() {
 
           {/* VM Information */}
           <motion.section id="vm-information" className="grid grid-cols-1 gap-6 lg:grid-cols-3" variants={itemVariants}>
-            <IdentityCard identity={dashboard.identity || {}} />
-            <NetworkCard network={dashboard.network || {}} />
+            <IdentityCard
+              identity={dashboard.identity || {}}
+              zone={dashboard.location?.zone}
+              projectId={dashboard.identity?.project}
+              onCopyFailure={showCopyFailure}
+            />
+            <NetworkCard network={dashboard.network || {}} onCopyFailure={showCopyFailure} />
             <LocationCard
               location={dashboard.location || {}}
               instanceName={dashboard.identity?.instanceName}
               zone={dashboard.location?.zone}
               projectId={dashboard.identity?.project}
+              onCopyFailure={showCopyFailure}
             />
           </motion.section>
 

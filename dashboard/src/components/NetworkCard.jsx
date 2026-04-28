@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import { Network, Wifi, Lock, Globe, MapPin, Shield } from "lucide-react";
 import Card from "./Card";
+import CopyValueButton from "./CopyValueButton";
 
-export default function NetworkCard({ network }) {
+export default function NetworkCard({ network, onCopyFailure }) {
   const items = [
     { label: "VPC", value: network?.vpc, icon: Shield },
     { label: "Subnet", value: network?.subnet, icon: Wifi },
@@ -28,16 +29,24 @@ export default function NetworkCard({ network }) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 + 0.1 }}
-              className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+              className="group flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={handleClick}
             >
               <div className="flex flex-shrink-0 items-center gap-3">
                 <item.icon className="w-4 h-4 text-purple-400" />
                 <span className="text-sm text-slate-300">{item.label}</span>
               </div>
-              <span className="min-w-0 flex-1 break-all text-right text-sm font-mono text-slate-400">
-                {item.value || "unknown"}
-              </span>
+              <div className="ml-auto flex min-w-0 flex-1 items-start justify-end gap-1">
+                <span className="min-w-0 break-all text-right text-sm font-mono text-slate-400">
+                  {item.value || "unknown"}
+                </span>
+                <CopyValueButton
+                  value={item.value || "unknown"}
+                  label={item.label}
+                  onCopyFailure={onCopyFailure}
+                  hoverOnly
+                />
+              </div>
             </motion.div>
           ))}
         </div>

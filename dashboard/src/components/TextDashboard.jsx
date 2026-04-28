@@ -850,8 +850,8 @@ export default function TextDashboard({
   const serviceSortLabel = getMode(serviceSortMode, SERVICE_SORT_MODES).label;
 
   return (
-    <div className="min-h-screen bg-black text-white font-mono p-4 md:p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-dvh w-full overflow-x-hidden bg-black p-3 font-mono text-white md:p-6">
+      <div className="mx-auto w-full max-w-6xl min-w-0">
         <div className="border-b border-white/20 pb-2 mb-4">
           <div className="flex justify-between items-start flex-wrap gap-2">
             <div>
@@ -875,7 +875,7 @@ export default function TextDashboard({
               </div>
             </div>
 
-            <div className="flex gap-2 text-xs">
+            <div className="flex flex-wrap justify-end gap-2 text-xs">
               {hasMockData && (
                 <motion.button
                   onClick={() => setShowMockDiagnostics(true)}
@@ -1016,7 +1016,7 @@ export default function TextDashboard({
             : "STATUS: All systems operational"}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="grid min-w-0 grid-cols-1 gap-4 mb-4 md:grid-cols-2">
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">
               Identity
@@ -1087,7 +1087,7 @@ export default function TextDashboard({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="grid min-w-0 grid-cols-1 gap-4 mb-4 md:grid-cols-2">
           <div className="p-3 border border-white/10 rounded">
             <div className="text-white/40 text-xs mb-2 uppercase tracking-wide">
               Network
@@ -1173,7 +1173,7 @@ export default function TextDashboard({
               | {serviceStats.critical} critical
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
                 <button
                   onClick={toggleServiceSort}
                   className="px-2 py-1 border border-white/20 rounded text-xs text-white/60 hover:bg-white/10 hover:text-cyan-300"
@@ -1218,7 +1218,7 @@ export default function TextDashboard({
               LOGS (LAST 30)
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <button
                 onClick={toggleLiveLogSort}
                 className="px-2 py-1 border border-white/20 rounded text-xs text-white/60 hover:bg-white/10 hover:text-cyan-300"
@@ -1252,7 +1252,7 @@ export default function TextDashboard({
               return (
               <div
                 key={idx}
-                className="grid grid-cols-[minmax(9rem,12rem)_5rem_minmax(5rem,10rem)_1fr] gap-2 font-mono"
+                className="grid grid-cols-1 gap-1 font-mono sm:grid-cols-[minmax(9rem,12rem)_5rem_minmax(5rem,10rem)_1fr] sm:gap-2"
               >
                 <span className="text-white/30">[{getLogTime(log)}]</span>
                 <span className={getLevelClass(level)}>[{level}]</span>
@@ -1281,7 +1281,7 @@ export default function TextDashboard({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 p-4 md:p-6"
+            className="fixed inset-0 z-50 overflow-x-hidden bg-black/90 p-3 md:p-6"
           >
             <motion.div
               ref={allServicesModalRef}
@@ -1289,7 +1289,7 @@ export default function TextDashboard({
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 12 }}
-              className="mx-auto flex h-full max-w-6xl flex-col border border-white/20 bg-black font-mono text-white shadow-2xl outline-none"
+              className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden border border-white/20 bg-black font-mono text-white shadow-2xl outline-none"
             >
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/20 p-3">
                 <div>
@@ -1329,12 +1329,12 @@ export default function TextDashboard({
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-3 text-xs leading-relaxed">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 text-xs leading-relaxed">
                 {sortedServices.length ? (
                   sortedServices.map((service) => (
                     <div
                       key={service.label}
-                      className="grid grid-cols-[minmax(10rem,1fr)_minmax(8rem,2fr)_7rem] gap-2 border-b border-white/5 py-1"
+                      className="grid grid-cols-1 gap-1 border-b border-white/5 py-1 sm:grid-cols-[minmax(10rem,1fr)_minmax(8rem,2fr)_7rem] sm:gap-2"
                     >
                       <span className={getServiceLabelClass(service.status)}>{service.label}</span>
                       <span className="break-all text-white/60">
@@ -1360,7 +1360,7 @@ export default function TextDashboard({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 p-4 md:p-6"
+            className="fixed inset-0 z-50 overflow-x-hidden bg-black/90 p-3 md:p-6"
           >
             <motion.div
               ref={liveLogsModalRef}
@@ -1368,7 +1368,7 @@ export default function TextDashboard({
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 12 }}
-              className="mx-auto flex h-full max-w-6xl flex-col border border-white/20 bg-black font-mono text-white shadow-2xl outline-none"
+              className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden border border-white/20 bg-black font-mono text-white shadow-2xl outline-none"
             >
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/20 p-3">
                 <div>
@@ -1432,7 +1432,7 @@ export default function TextDashboard({
                 </div>
               )}
 
-              <div className="flex-1 overflow-y-auto p-3 text-xs leading-relaxed">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 text-xs leading-relaxed">
                 {sortedLiveLogs.length ? (
                   sortedLiveLogs.map((log, index) => {
                     const level = getLogLevel(log);
@@ -1442,7 +1442,7 @@ export default function TextDashboard({
                     return (
                       <div
                         key={getLogLineKey(log, index)}
-                        className="grid grid-cols-[minmax(9rem,12rem)_5rem_minmax(5rem,10rem)_1fr] gap-2 border-b border-white/5 py-1"
+                        className="grid grid-cols-1 gap-1 border-b border-white/5 py-1 sm:grid-cols-[minmax(9rem,12rem)_5rem_minmax(5rem,10rem)_1fr] sm:gap-2"
                       >
                         <span className="text-white/30">[{getLogTime(log)}]</span>
                         <span className={getLevelClass(level)}>[{level}]</span>

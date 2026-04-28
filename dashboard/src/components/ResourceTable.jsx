@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
 import {
-  ChevronRight,
   Server,
   Database,
   Shield,
@@ -28,6 +27,7 @@ import FilterOverlay, {
   toggleFilterValue,
 } from "./FilterOverlay";
 import { getPaginatedMockLogs } from "../mockLogs";
+import CopyValueButton from "./CopyValueButton";
 
 const getScopeIcon = (scope) => {
   switch (scope?.toLowerCase()) {
@@ -769,6 +769,7 @@ export default function ResourceTable({
                       <th className="px-4 py-3 font-medium">Level</th>
                       <th className="px-4 py-3 font-medium">Source</th>
                       <th className="px-4 py-3 font-medium">Message</th>
+                      <th className="px-4 py-3 font-medium w-8"></th>
                     </>
                   ) : (
                     <>
@@ -822,6 +823,14 @@ export default function ResourceTable({
                           </span>
                         </td>
                         <td className="px-4 py-3 text-slate-300">{message}</td>
+                        <td className="px-4 py-3">
+                          <CopyValueButton
+                            value={`[${getLogRawTime(row)}] ${level}: ${source} - ${message}`}
+                            label="log entry"
+                            onCopyFailure={onCopyFailure}
+                            hoverOnly
+                          />
+                        </td>
                       </motion.tr>
                     );
                   }
@@ -865,7 +874,12 @@ export default function ResourceTable({
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                        <CopyValueButton
+                          value={row.name}
+                          label="resource name"
+                          onCopyFailure={onCopyFailure}
+                          hoverOnly
+                        />
                       </td>
                     </motion.tr>
                   );
@@ -1199,7 +1213,12 @@ export default function ResourceTable({
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                            <CopyValueButton
+                              value={row.name}
+                              label="resource name"
+                              onCopyFailure={onCopyFailure}
+                              hoverOnly
+                            />
                           </td>
                         </motion.tr>
                       );

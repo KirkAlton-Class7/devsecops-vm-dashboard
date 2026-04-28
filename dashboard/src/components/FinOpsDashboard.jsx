@@ -27,6 +27,7 @@ import CostBreakdownChart from "./CostBreakdownChart";
 import QuoteCard from "./QuoteCard";
 import NetworkParticles from "./NetworkParticles";
 import ImageGallery from "./ImageGallery";
+import CopyValueButton from "./CopyValueButton";
 import FilterOverlay, {
   applyOptionFilters,
   getUniqueOptions,
@@ -220,10 +221,10 @@ function FinOpsModal({
   );
 }
 
-function CpuUtilizationRow({ vm }) {
+function CpuUtilizationRow({ vm, onCopyFailure }) {
   return (
     <div
-      className="flex items-center justify-between gap-2 rounded-lg bg-white/5 p-2 cursor-pointer hover:bg-white/10 transition-colors"
+      className="group flex items-center justify-between gap-2 rounded-lg bg-white/5 p-2 cursor-pointer hover:bg-white/10 transition-colors"
       onClick={() => window.open("https://console.cloud.google.com/compute/instances", "_blank")}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -231,7 +232,14 @@ function CpuUtilizationRow({ vm }) {
           <Cpu className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-white">{vm.instance}</p>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              ID
+            </span>
+            <p className="min-w-0 flex-1 truncate text-sm font-medium text-white">
+              {vm.instance}
+            </p>
+          </div>
           <div className="mt-0.5 flex items-center gap-2">
             <span className="text-xs text-slate-400">P95 CPU:</span>
             <span className="font-mono text-xs text-cyan-400">{vm.cpuP95}%</span>
@@ -256,6 +264,12 @@ function CpuUtilizationRow({ vm }) {
           height={32}
         />
       </div>
+      <CopyValueButton
+        value={vm.instance}
+        label="instance ID"
+        onCopyFailure={onCopyFailure}
+        hoverOnly
+      />
     </div>
   );
 }
@@ -320,11 +334,15 @@ function RecommendationList({ rows }) {
   );
 }
 
-function CpuList({ rows }) {
+function CpuList({ rows, onCopyFailure }) {
   return (
     <div className="space-y-3">
       {rows.map((vm, idx) => (
-        <CpuUtilizationRow key={`${vm.instance}-${idx}`} vm={vm} />
+        <CpuUtilizationRow
+          key={`${vm.instance}-${idx}`}
+          vm={vm}
+          onCopyFailure={onCopyFailure}
+        />
       ))}
     </div>
   );
@@ -434,6 +452,7 @@ export default function FinOpsDashboard({
   flashMode,
   isSidebarCollapsed = false,
   onToggleSidebar,
+  onCopyFailure,
 }) {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -616,7 +635,7 @@ export default function FinOpsDashboard({
     cpuSortField === "candidate"
       ? "Sorted rightsizing candidates first."
       : getSortTitle(cpuSortDirection);
-  const cpuSortFieldLabel = cpuSortField === "candidate" ? "Candidate" : "Name";
+  const cpuSortFieldLabel = cpuSortField === "candidate" ? "Candidate" : "ID";
   const rightsizingSortTitle =
     rightsizingSortField === "level"
       ? rightsizingSortDirection === "asc"
@@ -840,7 +859,7 @@ export default function FinOpsDashboard({
                     onViewAll={() => setShowAllCpu(true)}
                   />
                   {utilizationRows.length ? (
-                    <CpuList rows={utilizationRows} />
+                    <CpuList rows={utilizationRows} onCopyFailure={onCopyFailure} />
                   ) : (
                     <div className="py-6 text-center text-sm text-slate-400">
                       No VMs match the active filters.
@@ -920,11 +939,11 @@ export default function FinOpsDashboard({
           filterActive={hasActiveFilters(cpuFilters)}
           searchValue={cpuSearch}
           onSearchChange={setCpuSearch}
-          searchPlaceholder="Search VMs by instance, CPU range, or candidate status"
+          searchPlaceholder="Search VMs by instance ID, CPU range, or candidate status"
           onClose={() => setShowAllCpu(false)}
         >
           {searchedUtilizationRows.length ? (
-            <CpuList rows={searchedUtilizationRows} />
+            <CpuList rows={searchedUtilizationRows} onCopyFailure={onCopyFailure} />
           ) : (
             <div className="py-8 text-center text-sm text-slate-400">
               No VMs match the active filters or search.

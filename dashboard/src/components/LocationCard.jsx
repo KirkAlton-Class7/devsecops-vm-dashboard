@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import { MapPin, Clock, Activity, Gauge, Navigation, Timer } from "lucide-react";
 import Card from "./Card";
+import CopyValueButton from "./CopyValueButton";
 
-export default function LocationCard({ location, instanceName, zone, projectId }) {
+export default function LocationCard({ location, instanceName, zone, projectId, onCopyFailure }) {
   const handleRegionZoneClick = () => {
     window.open("https://console.cloud.google.com/cloud-hub/", "_blank");
   };
@@ -36,16 +37,24 @@ export default function LocationCard({ location, instanceName, zone, projectId }
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 + 0.2 }}
-              className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+              className="group flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={item.onClick}
             >
               <div className="flex flex-shrink-0 items-center gap-3">
                 <item.icon className="w-4 h-4 text-emerald-400" />
                 <span className="text-sm text-slate-300">{item.label}</span>
               </div>
-              <span className="min-w-0 flex-1 break-all text-right text-sm font-mono text-slate-400">
-                {item.value || "unknown"}
-              </span>
+              <div className="ml-auto flex min-w-0 flex-1 items-start justify-end gap-1">
+                <span className="min-w-0 break-all text-right text-sm font-mono text-slate-400">
+                  {item.value || "unknown"}
+                </span>
+                <CopyValueButton
+                  value={item.value || "unknown"}
+                  label={item.label}
+                  onCopyFailure={onCopyFailure}
+                  hoverOnly
+                />
+              </div>
             </motion.div>
           ))}
         </div>
