@@ -83,8 +83,6 @@ const LOG_SORT_MODES = [
   { key: "name-asc", label: "TIME OLDEST", field: "name", direction: "asc" },
   { key: "level-asc", label: "LEVEL ERROR-DEBUG", field: "level", direction: "asc" },
   { key: "level-desc", label: "LEVEL DEBUG-ERROR", field: "level", direction: "desc" },
-  { key: "source-asc", label: "SOURCE A-Z", field: "source", direction: "asc" },
-  { key: "source-desc", label: "SOURCE Z-A", field: "source", direction: "desc" },
 ];
 
 const SERVICE_SORT_MODES = [

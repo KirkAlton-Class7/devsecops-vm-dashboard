@@ -191,6 +191,8 @@ Text mode filter popups use the same filter options as the graphical dashboard:
 * `Delete` or `Backspace` clears filters
 * `Esc` closes the active popup and returns focus to the previous modal layer
 
+Text mode log sorting cycles through Time Newest, Time Oldest, Level Error-Debug, and Level Debug-Error.
+
 When `ALL SYSTEM LOGS` is open, press `R` to refresh the loaded log window.
 
 > [!TIP]
