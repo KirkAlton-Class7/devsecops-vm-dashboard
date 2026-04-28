@@ -22,10 +22,13 @@ export default function Header({
   onDailyBudgetChange,
   monthlyBudget = 100,
   onMonthlyBudgetChange,
+  mockDataDiagnostics = [],
 }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeButtonRef = useRef(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const diagnosticsButtonRef = useRef(null);
 
   // Budget dropdown state
   const [showBudgetsMenu, setShowBudgetsMenu] = useState(false);
@@ -77,6 +80,7 @@ export default function Header({
     () => modeOptions.find((opt) => opt.value === currentMode) || modeOptions[0],
     [currentMode]
   );
+  const hasMockData = mockDataDiagnostics.length > 0;
 
   const handleModeSelect = (mode) => {
     setShowModeMenu(false);
@@ -120,6 +124,21 @@ export default function Header({
   const toggleBudgetsMenu = () => {
     setShowBudgetsMenu(!showBudgetsMenu);
   };
+
+  useEffect(() => {
+    if (!hasMockData) setShowDiagnostics(false);
+  }, [hasMockData]);
+
+  useEffect(() => {
+    if (!showDiagnostics) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setShowDiagnostics(false);
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [showDiagnostics]);
 
   return (
     <motion.header
@@ -174,6 +193,100 @@ export default function Header({
                 {formattedTime}
               </span>
             </motion.div>
+
+            {/* Mock/fallback data diagnostic */}
+            {hasMockData && (
+              <div className="relative">
+                <motion.button
+                  ref={diagnosticsButtonRef}
+                  onClick={() => setShowDiagnostics((current) => !current)}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  animate={{
+                    boxShadow: [
+                      "0 0 0px rgba(251,191,36,0.20)",
+                      "0 0 16px rgba(251,191,36,0.55)",
+                      "0 0 0px rgba(251,191,36,0.20)",
+                    ],
+                    borderColor: [
+                      "rgba(251,191,36,0.35)",
+                      "rgba(251,191,36,0.85)",
+                      "rgba(251,191,36,0.35)",
+                    ],
+                  }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                  className="flex items-center gap-2 rounded-full border bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-100 backdrop-blur-sm lg:px-3 lg:py-1.5"
+                  aria-expanded={showDiagnostics}
+                  aria-label="Mock data diagnostics"
+                >
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[11px] font-black text-slate-950">
+                    !
+                  </span>
+                  <span className="hidden lg:inline">Mock Data Active</span>
+                </motion.button>
+
+                {showDiagnostics &&
+                  createPortal(
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                      className="fixed z-[9999] w-[min(92vw,34rem)] rounded-xl border border-amber-400/35 bg-slate-950/95 p-4 text-slate-100 shadow-2xl shadow-amber-950/30 backdrop-blur-xl"
+                      style={{
+                        top: diagnosticsButtonRef.current
+                          ? diagnosticsButtonRef.current.getBoundingClientRect().bottom + 10
+                          : 0,
+                        right: diagnosticsButtonRef.current
+                          ? Math.max(
+                              16,
+                              window.innerWidth -
+                                diagnosticsButtonRef.current.getBoundingClientRect().right
+                            )
+                          : 16,
+                      }}
+                      role="dialog"
+                      aria-modal="false"
+                    >
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-amber-200">
+                            The current dashboard is using mock or fallback data.
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setShowDiagnostics(false)}
+                          className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400 hover:border-amber-300/50 hover:text-amber-200"
+                        >
+                          Close
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {mockDataDiagnostics.map((item, index) => (
+                          <div
+                            key={`${item.section}-${index}`}
+                            className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2"
+                          >
+                            <div className="text-sm font-medium text-slate-100">
+                              {item.section}
+                            </div>
+                            {item.route && (
+                              <div className="mt-1 font-mono text-xs text-slate-400">
+                                {item.route}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="mt-4 text-xs leading-relaxed text-slate-300">
+                        Incomplete deployment configuration, missing environment variables, disconnected APIs, or backend startup failures may be preventing live data retrieval. Verify deployment settings, confirm service integrations, and restart or redeploy after resolving issues.
+                      </p>
+                    </motion.div>,
+                    document.body
+                  )}
+              </div>
+            )}
 
             {/* Uptime (optional) */}
             {uptime && (

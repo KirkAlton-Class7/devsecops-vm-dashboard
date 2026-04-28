@@ -199,10 +199,12 @@ export default function TextDashboard({
   flashTitle = false,
   onOpenFinOps,
   onCopyFailure,
+  mockDataDiagnostics = [],
 }) {
   const [copyFlash, setCopyFlash] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [showHelp, setShowHelp] = useState(false);
+  const [showMockDiagnostics, setShowMockDiagnostics] = useState(false);
   const [isTitleFlashing, setIsTitleFlashing] = useState(false);
   const [showLiveLogs, setShowLiveLogs] = useState(false);
   const [liveLogs, setLiveLogs] = useState([]);
@@ -228,6 +230,7 @@ export default function TextDashboard({
   const liveLogsModalRef = useRef(null);
   const logFiltersModalRef = useRef(null);
   const serviceFiltersModalRef = useRef(null);
+  const mockDiagnosticsModalRef = useRef(null);
 
   // Flash effect
   useEffect(() => {
@@ -252,6 +255,7 @@ export default function TextDashboard({
   };
 
   const hasIssues = serviceStats.critical > 0 || serviceStats.warning > 0;
+  const hasMockData = mockDataDiagnostics.length > 0;
 
   const formatMetric = (value) => {
     if (!value && value !== 0) return "N/A";
@@ -484,7 +488,7 @@ export default function TextDashboard({
       copyFlashTimeoutRef.current = setTimeout(() => {
         setCopyFlash(false);
         copyFlashTimeoutRef.current = null;
-      }, 300);
+      }, 2000);
     } catch (error) {
       console.error("Failed to copy snapshot:", error);
       onCopyFailure?.();
@@ -499,7 +503,12 @@ export default function TextDashboard({
   }, []);
 
   useEffect(() => {
+    if (!hasMockData) setShowMockDiagnostics(false);
+  }, [hasMockData]);
+
+  useEffect(() => {
     const activeModal =
+      (showMockDiagnostics && mockDiagnosticsModalRef.current) ||
       (showLogFilters && logFiltersModalRef.current) ||
       (showServiceFilters && serviceFiltersModalRef.current) ||
       (showLiveLogs && liveLogsModalRef.current) ||
@@ -512,7 +521,7 @@ export default function TextDashboard({
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [showLogFilters, showServiceFilters, showLiveLogs, showAllServices]);
+  }, [showMockDiagnostics, showLogFilters, showServiceFilters, showLiveLogs, showAllServices]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -523,6 +532,14 @@ export default function TextDashboard({
         target?.isContentEditable;
 
       if (isTextInput && e.key !== "Escape") {
+        return;
+      }
+
+      if (showMockDiagnostics) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setShowMockDiagnostics(false);
+        }
         return;
       }
 
@@ -799,6 +816,7 @@ export default function TextDashboard({
     showAllServices,
     showLiveLogs,
     showLogFilters,
+    showMockDiagnostics,
     showServiceFilters,
     toggleLiveLogSort,
     toggleServiceSort,
@@ -858,13 +876,27 @@ export default function TextDashboard({
             </div>
 
             <div className="flex gap-2 text-xs">
-              <button
-                onClick={onExitTextDash}
-                className="px-2 py-1 border border-white/20 rounded hover:bg-white/10"
-              >
-                [Esc] EXIT
-              </button>
-
+              {hasMockData && (
+                <motion.button
+                  onClick={() => setShowMockDiagnostics(true)}
+                  animate={{
+                    boxShadow: [
+                      "0 0 0px rgba(251,191,36,0.20)",
+                      "0 0 12px rgba(251,191,36,0.60)",
+                      "0 0 0px rgba(251,191,36,0.20)",
+                    ],
+                    borderColor: [
+                      "rgba(251,191,36,0.35)",
+                      "rgba(251,191,36,0.90)",
+                      "rgba(251,191,36,0.35)",
+                    ],
+                  }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                  className="px-2 py-1 border rounded text-amber-300 hover:bg-amber-500/10"
+                >
+                  [WARNING]
+                </motion.button>
+              )}
               <button
                 onClick={copySnapshot}
                 className={`px-2 py-1 border rounded hover:bg-white/10 ${
@@ -882,11 +914,74 @@ export default function TextDashboard({
               >
                 [H] HELP
               </button>
+
+              <button
+                onClick={onExitTextDash}
+                className="px-2 py-1 border border-white/20 rounded hover:bg-white/10"
+              >
+                [Esc] EXIT
+              </button>
             </div>
           </div>
         </div>
 
         <AnimatePresence>
+          {showMockDiagnostics && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 font-mono text-white"
+            >
+              <motion.div
+                ref={mockDiagnosticsModalRef}
+                tabIndex={-1}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 12 }}
+                className="w-full max-w-4xl border border-amber-400/40 bg-black shadow-2xl shadow-amber-950/40 outline-none"
+              >
+                <div className="flex items-center justify-between border-b border-amber-400/30 p-3">
+                  <div>
+                    <div className="text-sm font-bold text-amber-300">
+                      THE CURRENT DASHBOARD IS USING MOCK OR FALLBACK DATA.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowMockDiagnostics(false)}
+                    className="border border-white/20 px-2 py-1 text-xs text-white/60 hover:bg-white/10 hover:text-red-300"
+                  >
+                    [Esc] CLOSE
+                  </button>
+                </div>
+
+                <div className="max-h-[65vh] overflow-y-auto p-3 text-xs">
+                  <div className="space-y-2">
+                    {mockDataDiagnostics.map((item, index) => (
+                      <div
+                        key={`${item.section}-${index}`}
+                        className="border border-white/10 bg-white/[0.03] px-3 py-2"
+                      >
+                        <div className="text-amber-200">! {item.section}</div>
+                        {item.route && (
+                          <div className="mt-1 font-mono text-white/50">{item.route}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 border border-amber-500/30 bg-amber-500/5 p-3 text-amber-100/90">
+                    Incomplete deployment configuration, missing environment variables, disconnected APIs, or backend startup failures may be preventing live data retrieval. Verify deployment settings, confirm service integrations, and restart or redeploy after resolving issues.
+                  </div>
+                </div>
+
+                <div className="border-t border-white/20 p-2 text-center text-xs text-white/30">
+                  Press Esc to close.
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
           {showHelp && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}

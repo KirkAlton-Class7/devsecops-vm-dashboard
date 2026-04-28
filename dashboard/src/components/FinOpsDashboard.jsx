@@ -37,6 +37,12 @@ import { finopsNavItems } from "../config/finopsNavItems";
 import { mockFinOpsData } from "../data/mockFinOpsDashboard";
 
 const FINOPS_PREVIEW_LIMIT = 10;
+const FINOPS_FALLBACK_DIAGNOSTICS = [
+  {
+    section: "FinOps API unavailable",
+    route: "/api/finops",
+  },
+];
 const IMPACT_SORT_ORDER = {
   LOW: 0,
   MEDIUM: 1,
@@ -442,6 +448,7 @@ export default function FinOpsDashboard({
   const [cpuSortField, setCpuSortField] = useState("name");
   const [rightsizingSortDirection, setRightsizingSortDirection] = useState("asc");
   const [rightsizingSortField, setRightsizingSortField] = useState("name");
+  const [finOpsDiagnostics, setFinOpsDiagnostics] = useState([]);
 
   const [budgetPage, setBudgetPage] = useState(0);
   const BUDGETS_PER_PAGE = 3;
@@ -489,6 +496,7 @@ export default function FinOpsDashboard({
         setCpuSearch("");
         setRightsizingSearch("");
         setFinOpsRefreshKey((current) => current + 1);
+        setFinOpsDiagnostics([]);
       } catch (err) {
         console.error("FinOps API error, using mock data:", err);
         setData(mockFinOpsData);
@@ -497,6 +505,7 @@ export default function FinOpsDashboard({
         setCpuSearch("");
         setRightsizingSearch("");
         setFinOpsRefreshKey((current) => current + 1);
+        setFinOpsDiagnostics(FINOPS_FALLBACK_DIAGNOSTICS);
       } finally {
         setIsLoading(false);
       }
@@ -685,6 +694,7 @@ export default function FinOpsDashboard({
           onDailyBudgetChange={setDailyBudget}
           monthlyBudget={monthlyBudget}
           onMonthlyBudgetChange={setMonthlyBudget}
+          mockDataDiagnostics={finOpsDiagnostics}
         />
 
         <main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6">

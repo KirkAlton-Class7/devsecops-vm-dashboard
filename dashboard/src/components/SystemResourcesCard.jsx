@@ -5,8 +5,17 @@ import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 import Card from "./Card";
 
 export default function SystemResourcesCard({ resources }) {
-  const [cpuHistory, setCpuHistory] = useState([]);
+  const [cpuHistory, setCpuHistory] = useState(() => resources?.cpu?.history || []);
   const [currentCpu, setCurrentCpu] = useState(resources?.cpu?.usage || 0);
+
+  useEffect(() => {
+    if (cpuHistory.length === 0 && resources?.cpu?.history?.length) {
+      setCpuHistory(resources.cpu.history);
+    }
+    if (resources?.cpu?.usage || resources?.cpu?.usage === 0) {
+      setCurrentCpu(resources.cpu.usage);
+    }
+  }, [cpuHistory.length, resources?.cpu?.history, resources?.cpu?.usage]);
 
   // Fetch CPU usage from the VM every 10 seconds
   useEffect(() => {
@@ -46,6 +55,7 @@ export default function SystemResourcesCard({ resources }) {
   const memory = resources?.memory || { total: 0, used: 0, available: 0 };
   const disk = resources?.disk || { total: 0, used: 0, available: 0 };
   const cpu = resources?.cpu || { usage: 0, cores: null, frequency: null, loadAvg: null };
+  const displayedCpuUsage = currentCpu || cpu.usage || 0;
   const memoryPercent = memory.total > 0 ? (memory.used / memory.total) * 100 : 0;
   const diskPercent = disk.total > 0 ? (disk.used / disk.total) * 100 : 0;
 
@@ -71,13 +81,13 @@ export default function SystemResourcesCard({ resources }) {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Current Usage</span>
-                  <span className="text-white font-mono">{cpu.usage}%</span>
+                  <span className="text-white font-mono">{displayedCpuUsage}%</span>
                 </div>
                 <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-gradient-to-r from-amber-500 to-red-500 rounded-full"
                     initial={{ width: 0 }}
-                    animate={{ width: `${cpu.usage}%` }}
+                    animate={{ width: `${displayedCpuUsage}%` }}
                     transition={{ duration: 0.8 }}
                   />
                 </div>

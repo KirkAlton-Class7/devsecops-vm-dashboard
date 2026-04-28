@@ -19,6 +19,13 @@ import TextDashboard from "./components/TextDashboard";
 import FinOpsDashboard from "./components/FinOpsDashboard";
 import { mockDashboard, mockQuotes } from "./data/mockDashboard";
 
+const getDashboardFallbackDiagnostics = () => [
+  {
+    section: "Dashboard API unavailable",
+    route: "/api/dashboard",
+  },
+];
+
 function getRandomQuote(quotes) {
   if (!quotes?.length) return mockQuotes[0];
   return quotes[Math.floor(Math.random() * quotes.length)];
@@ -50,6 +57,7 @@ export default function App() {
   const [flashMode, setFlashMode] = useState(false);
   const [flashTextMode, setFlashTextMode] = useState(0);
   const [copyFailureVisible, setCopyFailureVisible] = useState(false);
+  const [dashboardDiagnostics, setDashboardDiagnostics] = useState([]);
   const textFlashTimeoutRef = useRef(null);
   const copyFailureTimeoutRef = useRef(null);
 
@@ -83,7 +91,7 @@ export default function App() {
     copyFailureTimeoutRef.current = setTimeout(() => {
       setCopyFailureVisible(false);
       copyFailureTimeoutRef.current = null;
-    }, 3600);
+    }, 3000);
   }, []);
 
   useEffect(() => {
@@ -138,9 +146,11 @@ export default function App() {
         const data = await res.json();
         data.monitoringEndpoints = getRealMonitoringEndpoints();
         setDashboard(data);
+        setDashboardDiagnostics([]);
       } catch {
         const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
         setDashboard(mockWithRealEndpoints);
+        setDashboardDiagnostics(getDashboardFallbackDiagnostics());
       } finally {
         setIsLoading(false);
       }
@@ -156,7 +166,11 @@ export default function App() {
         const res = await fetch("/data/quotes.json", { cache: "no-store" });
         if (!res.ok) throw new Error("quotes fetch failed");
         const data = await res.json();
-        setQuotes(Array.isArray(data) ? data : mockQuotes);
+        if (Array.isArray(data) && data.length) {
+          setQuotes(data);
+        } else {
+          setQuotes(mockQuotes);
+        }
       } catch {
         setQuotes(mockQuotes);
       }
@@ -194,6 +208,10 @@ export default function App() {
   }, []);
 
   const featuredQuote = useMemo(() => getRandomQuote(quotes), [quotes]);
+  const mockDataDiagnostics = useMemo(
+    () => dashboardDiagnostics,
+    [dashboardDiagnostics]
+  );
 
   const instanceName = dashboard?.identity?.instanceName || "";
   const zone = dashboard?.location?.zone || "";
@@ -238,20 +256,22 @@ export default function App() {
   const copyFailureToast = (
     <AnimatePresence>
       {copyFailureVisible && (
-        <motion.div
-          initial={{ opacity: 0, y: 12, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 12, scale: 0.96 }}
-          className="fixed left-1/2 top-1/2 z-[100] w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-500/50 bg-red-950/95 px-4 py-3 text-red-100 shadow-2xl shadow-red-950/40 backdrop-blur"
-          role="alert"
-        >
-          <div className="flex items-start gap-3">
-            <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-300" />
-            <div className="text-sm font-medium">
-              Copy failed. Copy manually or access host locally.
+        <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.97 }}
+            className="w-[min(92vw,32rem)] rounded-xl border border-red-400/35 bg-red-950/75 px-4 py-3 text-red-100 shadow-xl shadow-red-950/25 backdrop-blur-md"
+            role="alert"
+          >
+            <div className="flex items-start gap-3">
+              <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-300" />
+              <div className="text-sm font-medium">
+                Clipboard unavailable on public HTTP. Try HTTPS, SSH tunnel, or manual copy.
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
@@ -269,6 +289,7 @@ export default function App() {
           flashTitle={flashTextMode}
           onOpenFinOps={() => handleModeChange("finops")}
           onCopyFailure={showCopyFailure}
+          mockDataDiagnostics={mockDataDiagnostics}
           onRefresh={async () => {
             try {
               const res = await fetch("/api/dashboard", { cache: "no-store" });
@@ -276,9 +297,11 @@ export default function App() {
               const data = await res.json();
               data.monitoringEndpoints = getRealMonitoringEndpoints();
               setDashboard(data);
+              setDashboardDiagnostics([]);
             } catch {
               const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
               setDashboard(mockWithRealEndpoints);
+              setDashboardDiagnostics(getDashboardFallbackDiagnostics());
             }
           }}
         />
@@ -317,6 +340,7 @@ export default function App() {
           currentMode={mode}
           onModeChange={handleModeChange}
           flashMode={flashMode}
+          mockDataDiagnostics={mockDataDiagnostics}
         />
         <motion.main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6" variants={containerVariants} initial="hidden" animate="visible">
           {/* Stats Cards */}

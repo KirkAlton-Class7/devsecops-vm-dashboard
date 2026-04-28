@@ -10,6 +10,7 @@ Provides:
 * **FinOps insights** (BigQuery cost trends, budgets, rightsizing, idle resources)
 * API-driven observability with paginated system logs
 * Sort, filter, search, and view-all workflows for logs, services, and FinOps lists
+* Header diagnostic warning when mock or fallback data is being displayed
 * Lightweight UI modes (terminal + visual)
 
 DevSecOps system health is collected locally from the VM and GCP metadata. FinOps data uses GCP APIs and BigQuery billing export when configured.

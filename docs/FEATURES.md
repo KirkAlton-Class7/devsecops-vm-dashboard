@@ -153,6 +153,16 @@ Each entry includes:
 
 ---
 
+### Mock / Fallback Data Warning
+
+When any visible dashboard section is using bundled mock data or API fallback data, the header shows a red **Mock Data Active** diagnostic pill beside the date/time controls.
+
+Clicking the pill opens a diagnostic panel that lists the affected sections and remediation guidance, including deployment configuration, API/service health, environment variables, and restart/redeploy steps.
+
+The warning hides automatically after the relevant live API responds successfully.
+
+---
+
 ## Text Mode
 
 A minimalist, terminal-style view of DevSecOps data. Optimized for keyboard navigation and copy-paste workflows.
@@ -165,6 +175,7 @@ Displays:
 * Monitoring endpoints
 * Services with the same 10-row default, sort, filter, and view-all behavior as DevSecOps mode
 * Application logs with Time, Level, Source, and Message columns
+* `[WARNING]` in the top controls when mock or fallback data diagnostics are active
 
 Exit with `Esc` or `[Esc] EXIT`.
 
@@ -238,6 +249,8 @@ To enable, press `F` or click the **FinOps** button.
 * **Filtering and search** – FinOps list widgets use modal-based filters and modal search. CPU filters include rightsizing candidate and utilization range. Idle resource filters include scope, status, and resource type. Rightsizing filters include level and savings.
 
 * **Savings Summary** – realized savings (`0.0`) + potential rightsizing savings
+
+* **Mock / fallback warning** – if `/api/finops` fails and the UI falls back to bundled FinOps data, the header diagnostic pill lists the affected FinOps sections.
 
 > **Note:** Data is sourced from GCP APIs (BigQuery, Monitoring, Recommender, Budgets).
 > Initial data population may be delayed (see below).
@@ -351,7 +364,7 @@ Clipboard API requires secure context.
 * Dashboard copy buttons may also fail outside secure browser contexts
 * Dashboard otherwise unaffected
 
-When the browser rejects a copy action, the UI shows a centered red toast: `Copy failed. Copy manually or access host locally.`
+When the browser rejects a copy action, the UI shows a centered red toast: `Clipboard unavailable on public HTTP. Try HTTPS, SSH tunnel, or manual copy.`
 
 ---
 
