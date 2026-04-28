@@ -58,6 +58,9 @@ export default function App() {
   const [flashTextMode, setFlashTextMode] = useState(0);
   const [copyFailureVisible, setCopyFailureVisible] = useState(false);
   const [dashboardDiagnostics, setDashboardDiagnostics] = useState([]);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
+    () => localStorage.getItem("dashboard_sidebar_collapsed") === "true"
+  );
   const textFlashTimeoutRef = useRef(null);
   const copyFailureTimeoutRef = useRef(null);
 
@@ -99,6 +102,10 @@ export default function App() {
       if (copyFailureTimeoutRef.current) clearTimeout(copyFailureTimeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("dashboard_sidebar_collapsed", String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -220,6 +227,9 @@ export default function App() {
 
   const githubUrl = import.meta.env.VITE_GITHUB_URL || "https://github.com";
   const linkedinUrl = import.meta.env.VITE_LINKEDIN_URL || "https://www.linkedin.com";
+  const toggleSidebarCollapsed = useCallback(() => {
+    setIsSidebarCollapsed((current) => !current);
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -319,6 +329,8 @@ export default function App() {
         currentMode={mode}
         onModeChange={handleModeChange}
         flashMode={flashMode}
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebar={toggleSidebarCollapsed}
       />
     );
   }
@@ -331,8 +343,15 @@ export default function App() {
         dashboardName={dashboard.meta?.dashboardName || "DevSecOps Dashboard"}
         githubUrl={githubUrl}
         linkedinUrl={linkedinUrl}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapsed={toggleSidebarCollapsed}
       />
-      <motion.div className="lg:ml-72" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+      <motion.div
+        className={isSidebarCollapsed ? "xl:ml-20" : "xl:ml-72"}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
         <Header
           appName={dashboard.meta?.appName || "Custom Application"}
           tagline={dashboard.meta?.tagline || "Real-time infrastructure monitoring"}

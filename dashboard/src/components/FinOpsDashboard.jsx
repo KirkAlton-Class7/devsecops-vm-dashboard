@@ -432,6 +432,8 @@ export default function FinOpsDashboard({
   currentMode,
   onModeChange,
   flashMode,
+  isSidebarCollapsed = false,
+  onToggleSidebar,
 }) {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -680,9 +682,11 @@ export default function FinOpsDashboard({
         githubUrl={githubUrl}
         linkedinUrl={linkedinUrl}
         navItems={finopsNavItems}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapsed={onToggleSidebar}
       />
 
-      <div className="lg:ml-72">
+      <div className={isSidebarCollapsed ? "xl:ml-20" : "xl:ml-72"}>
         <Header
           appName="FinOps"
           tagline="Optimize resources and cost"
