@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { XCircle } from "lucide-react";
 import Header from "./components/Header";
 import QuoteCard from "./components/QuoteCard";
 import ImageGallery from "./components/ImageGallery";
@@ -48,7 +49,9 @@ export default function App() {
   const [previousMode, setPreviousMode] = useState("standard");
   const [flashMode, setFlashMode] = useState(false);
   const [flashTextMode, setFlashTextMode] = useState(0);
+  const [copyFailureVisible, setCopyFailureVisible] = useState(false);
   const textFlashTimeoutRef = useRef(null);
+  const copyFailureTimeoutRef = useRef(null);
 
   const startModeGlow = useCallback(() => {
     setFlashMode(true);
@@ -73,6 +76,21 @@ export default function App() {
     }
     setMode(newMode);
   }, [mode]);
+
+  const showCopyFailure = useCallback(() => {
+    if (copyFailureTimeoutRef.current) clearTimeout(copyFailureTimeoutRef.current);
+    setCopyFailureVisible(true);
+    copyFailureTimeoutRef.current = setTimeout(() => {
+      setCopyFailureVisible(false);
+      copyFailureTimeoutRef.current = null;
+    }, 3600);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (copyFailureTimeoutRef.current) clearTimeout(copyFailureTimeoutRef.current);
+    };
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -217,30 +235,55 @@ export default function App() {
     );
   }
 
+  const copyFailureToast = (
+    <AnimatePresence>
+      {copyFailureVisible && (
+        <motion.div
+          initial={{ opacity: 0, y: 12, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 12, scale: 0.96 }}
+          className="fixed left-1/2 top-1/2 z-[100] w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-500/50 bg-red-950/95 px-4 py-3 text-red-100 shadow-2xl shadow-red-950/40 backdrop-blur"
+          role="alert"
+        >
+          <div className="flex items-start gap-3">
+            <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-300" />
+            <div className="text-sm font-medium">
+              Copy failed. Copy manually or access host locally.
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
   if (mode === "text") {
     return (
-      <TextDashboard 
-        dashboard={dashboard} 
-        tagline={dashboard.meta?.tagline || "Real-time infrastructure monitoring"}
-        onExitTextDash={() => setMode(previousMode)}
-        logLimit={logLimit}
-        serviceLimit={serviceLimit}
-        dashboardName={dashboard.meta?.dashboardName || "DevSecOps Dashboard"}
-        flashTitle={flashTextMode}
-        onOpenFinOps={() => handleModeChange("finops")}
-        onRefresh={async () => {
-          try {
-            const res = await fetch("/api/dashboard", { cache: "no-store" });
-            if (!res.ok) throw new Error("dashboard fetch failed");
-            const data = await res.json();
-            data.monitoringEndpoints = getRealMonitoringEndpoints();
-            setDashboard(data);
-          } catch {
-            const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
-            setDashboard(mockWithRealEndpoints);
-          }
-        }}
-      />
+      <>
+        <TextDashboard 
+          dashboard={dashboard} 
+          tagline={dashboard.meta?.tagline || "Real-time infrastructure monitoring"}
+          onExitTextDash={() => setMode(previousMode)}
+          logLimit={logLimit}
+          serviceLimit={serviceLimit}
+          dashboardName={dashboard.meta?.dashboardName || "DevSecOps Dashboard"}
+          flashTitle={flashTextMode}
+          onOpenFinOps={() => handleModeChange("finops")}
+          onCopyFailure={showCopyFailure}
+          onRefresh={async () => {
+            try {
+              const res = await fetch("/api/dashboard", { cache: "no-store" });
+              if (!res.ok) throw new Error("dashboard fetch failed");
+              const data = await res.json();
+              data.monitoringEndpoints = getRealMonitoringEndpoints();
+              setDashboard(data);
+            } catch {
+              const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
+              setDashboard(mockWithRealEndpoints);
+            }
+          }}
+        />
+        {copyFailureToast}
+      </>
     );
   }
 
@@ -309,7 +352,7 @@ export default function App() {
           {/* Ambience */}
           <motion.section id="ambience" className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={itemVariants}>
             <div className="space-y-6">
-              <QuoteCard quote={featuredQuote} />
+              <QuoteCard quote={featuredQuote} onCopyFailure={showCopyFailure} />
               <NetworkParticles />
             </div>
             <ImageGallery />
@@ -334,7 +377,7 @@ export default function App() {
 
           {/* Monitoring Endpoints */}
           <motion.section id="monitoring-endpoints" className="grid grid-cols-1 gap-6" variants={itemVariants}>
-            <MonitoringEndpointsCard endpoints={dashboard.monitoringEndpoints || []} />
+            <MonitoringEndpointsCard endpoints={dashboard.monitoringEndpoints || []} onCopyFailure={showCopyFailure} />
           </motion.section>
 
           {/* Services */}
@@ -359,10 +402,12 @@ export default function App() {
               title="Application Logs"
               isLogs={true}
               limit={logLimit}
+              onCopyFailure={showCopyFailure}
             />
           </motion.section>
         </motion.main>
       </motion.div>
+      {copyFailureToast}
     </div>
   );
 }

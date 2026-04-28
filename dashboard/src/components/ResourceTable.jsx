@@ -319,6 +319,7 @@ export default function ResourceTable({
   limit,
   onRowClick,
   filterResetKey,
+  onCopyFailure,
 }) {
   const [showAllLogsModal, setShowAllLogsModal] = useState(false);
   const [showAllResourcesModal, setShowAllResourcesModal] = useState(false);
@@ -545,11 +546,19 @@ export default function ResourceTable({
     }
   };
 
-  const handleCopyLog = (log, index) => {
+  const handleCopyLog = async (log, index) => {
     const text = `[${getLogRawTime(log)}] ${getLogLevelValue(log)}: ${getLogSourceValue(log)} - ${getLogMessageValue(log)}`;
-    navigator.clipboard.writeText(text);
-    setCopiedLogId(index);
-    setTimeout(() => setCopiedLogId(null), 2000);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard API unavailable");
+      }
+      await navigator.clipboard.writeText(text);
+      setCopiedLogId(index);
+      setTimeout(() => setCopiedLogId(null), 2000);
+    } catch (error) {
+      console.error("Failed to copy log:", error);
+      onCopyFailure?.();
+    }
   };
 
   const openModal = () => {

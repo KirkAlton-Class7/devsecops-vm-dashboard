@@ -198,6 +198,7 @@ export default function TextDashboard({
   dashboardName = "DevSecOps Dashboard",
   flashTitle = false,
   onOpenFinOps,
+  onCopyFailure,
 }) {
   const [copyFlash, setCopyFlash] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
@@ -463,7 +464,7 @@ export default function TextDashboard({
     );
   }, [serviceFilterItems.length]);
 
-  const copySnapshot = useCallback(() => {
+  const copySnapshot = useCallback(async () => {
     const snapshot = generateTextSnapshot(
       dashboard,
       lastRefresh,
@@ -473,14 +474,22 @@ export default function TextDashboard({
       tagline
     );
 
-    navigator.clipboard.writeText(snapshot);
-    if (copyFlashTimeoutRef.current) clearTimeout(copyFlashTimeoutRef.current);
-    setCopyFlash(true);
-    copyFlashTimeoutRef.current = setTimeout(() => {
-      setCopyFlash(false);
-      copyFlashTimeoutRef.current = null;
-    }, 300);
-  }, [dashboard, lastRefresh, logLimit, serviceLimit, dashboardName, tagline]);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard API unavailable");
+      }
+      await navigator.clipboard.writeText(snapshot);
+      if (copyFlashTimeoutRef.current) clearTimeout(copyFlashTimeoutRef.current);
+      setCopyFlash(true);
+      copyFlashTimeoutRef.current = setTimeout(() => {
+        setCopyFlash(false);
+        copyFlashTimeoutRef.current = null;
+      }, 300);
+    } catch (error) {
+      console.error("Failed to copy snapshot:", error);
+      onCopyFailure?.();
+    }
+  }, [dashboard, lastRefresh, logLimit, serviceLimit, dashboardName, tagline, onCopyFailure]);
 
   useEffect(() => {
     return () => {

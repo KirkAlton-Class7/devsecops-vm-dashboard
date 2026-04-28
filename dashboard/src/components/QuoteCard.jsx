@@ -51,7 +51,7 @@ function getAttribution(quote) {
   return { primary, secondary };
 }
 
-export default function QuoteCard({ quote: initialQuote }) {
+export default function QuoteCard({ quote: initialQuote, onCopyFailure }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -112,15 +112,23 @@ export default function QuoteCard({ quote: initialQuote }) {
     }
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     const { primary, secondary } = getAttribution(currentQuote);
     let textToCopy = `Quote of the day\n\n"${currentQuote.text}"\n\n– ${primary}`;
     if (secondary.length > 0) {
       textToCopy += `\n${secondary.join('\n')}`;
     }
-    navigator.clipboard.writeText(textToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard API unavailable");
+      }
+      await navigator.clipboard.writeText(textToCopy);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy quote:", error);
+      onCopyFailure?.();
+    }
   };
 
   const handleSave = () => {

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Copy, CheckCircle, ExternalLink, Activity, FileCode } from "lucide-react";
 import Card from "./Card";
 
-export default function MonitoringEndpointsCard({ endpoints }) {
+export default function MonitoringEndpointsCard({ endpoints, onCopyFailure }) {
   const [copiedIndex, setCopiedIndex] = useState(null);
 
   const copyToClipboard = async (text, index) => {
@@ -13,6 +13,7 @@ export default function MonitoringEndpointsCard({ endpoints }) {
       setTimeout(() => setCopiedIndex(null), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
+      onCopyFailure?.();
     }
   };
 

@@ -348,7 +348,10 @@ Clipboard API requires secure context.
 ### Impact
 
 * Text Mode → Copy (`C`) unreliable on HTTP
+* Dashboard copy buttons may also fail outside secure browser contexts
 * Dashboard otherwise unaffected
+
+When the browser rejects a copy action, the UI shows a centered red toast: `Copy failed. Copy manually or access host locally.`
 
 ---
 
