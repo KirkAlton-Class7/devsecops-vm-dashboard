@@ -14,19 +14,16 @@ Open `app_bootstrap.sh` and locate the **“Dashboard Customization”** block:
 # -------------------------------
 # Dashboard Customization
 # -------------------------------
-# Edit these values to customize your dashboard
-
-# App name shown in the header (top left)
 DASHBOARD_APP_NAME="GCP Deployment"
-
-# Tagline shown below the app name
 DASHBOARD_TAGLINE="Infrastructure health and activity"
-
-# User name shown in the sidebar
 DASHBOARD_USER="Kirk Alton"
-
-# Dashboard title shown in the sidebar
 DASHBOARD_NAME="DevSecOps Dashboard"
+
+# ---------------------------------
+# Env Variables for React build
+# ---------------------------------
+export VITE_GITHUB_URL="https://github.com/KirkAlton-Class7"
+export VITE_LINKEDIN_URL="https://www.linkedin.com/in/kirkcochranjr/"
 ```
 
 Update these values as needed:
@@ -37,9 +34,11 @@ Update these values as needed:
 | `DASHBOARD_TAGLINE`  | Subtitle beneath the app name              | `Live infrastructure insights` |
 | `DASHBOARD_USER`     | Shown in the sidebar (user attribution)    | `Jane Doe`                     |
 | `DASHBOARD_NAME`     | Title of the dashboard (sidebar heading)   | `Ops Center`                   |
+| `VITE_GITHUB_URL`    | GitHub link compiled into the React build  | `https://github.com/example`   |
+| `VITE_LINKEDIN_URL`  | LinkedIn link compiled into the React build | `https://www.linkedin.com/in/example/` |
 
 > [!TIP]
-> These values are injected into the frontend via the API (`/api/dashboard`), so changes will propagate automatically after redeploy.
+> `DASHBOARD_*` values are exported for the API service and returned through `/api/dashboard`. `VITE_*` values are read by Vite during `npm run build`, so they require a frontend rebuild.
 
 ---
 
@@ -62,18 +61,13 @@ Update these values as needed:
 Immediately below the configuration boundary, you will see:
 
 ```bash
-# Repo to pull the dashboard code from (can be changed to your fork)
-REPO_URL="https://github.com/KirkAlton-Class7/devsecops-vm-dashboard.git"
-
-# URL to fetch quotes from (must be a valid quotes.json file inside your repo)
 GITHUB_QUOTES_URL="https://raw.githubusercontent.com/KirkAlton-Class7/devsecops-vm-dashboard/main/quotes.json"
 ```
 
-* **`REPO_URL`** – Set this to your fork if you are maintaining a custom version of the dashboard.
 * **`GITHUB_QUOTES_URL`** – Must point to a valid `quotes.json` file accessible over HTTP.
 
 > [!NOTE]
-> If `GITHUB_QUOTES_URL` is invalid or unreachable, the quotes feature will silently fall back or fail to refresh.
+> The wrapper script (`infra/startup/gcp_startup.sh`) hardcodes the repository clone URL. Change that wrapper if you deploy from a fork.
 
 ---
 
@@ -105,8 +99,8 @@ DATA_DIR="${APP_DIR}/data"
 ## Applying Changes
 
 1. Edit `app_bootstrap.sh` in your local repository.
-2. Commit and push the changes to your Git repository (the same one referenced by `REPO_URL`).
-3. The VM’s auto-deploy cron job will detect changes within ~15 minutes and rebuild the dashboard automatically.
+2. Commit and push the changes to the Git repository cloned by `infra/startup/gcp_startup.sh`.
+3. The VM’s auto-deploy cron job runs `/opt/dashboard-deploy.sh` every 15 minutes and rebuilds when the local checkout differs from `origin/main`.
 
 To trigger an immediate update:
 
@@ -124,7 +118,7 @@ sudo /opt/dashboard-deploy.sh
 
 ## Environment Variables (Optional)
 
-The React frontend reads these same values from environment variables. If running the Flask API outside of the startup script, you can define them manually:
+If running the Python API outside of the startup script, define the dashboard branding variables before starting it:
 
 ```bash
 export DASHBOARD_APP_NAME="Stock Dashboard"
@@ -133,9 +127,9 @@ export DASHBOARD_USER="Carlton Banks"
 export DASHBOARD_NAME="FinOps Insights"
 ```
 
-These values are injected by the Flask API into the `/api/dashboard` endpoint and consumed by the frontend at runtime.
+These values are returned by the Python API in the `/api/dashboard` response and consumed by the frontend at runtime.
 
 > [!NOTE]
-> Environment variables override defaults at runtime but do not persist across reboots unless explicitly configured.
+> `VITE_GITHUB_URL` and `VITE_LINKEDIN_URL` are build-time React variables. Set them before `npm run build`; changing them after the site is built will not update the deployed frontend.
 
 ---

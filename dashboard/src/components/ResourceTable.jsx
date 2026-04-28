@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   ChevronRight,
   Server,
@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Pause,
   Eye,
+  Filter,
   Copy,
   Check,
   X,
@@ -20,6 +21,13 @@ import {
 } from "lucide-react";
 import Card from "./Card";
 import StatusDot from "./StatusDot";
+import FilterOverlay, {
+  applyOptionFilters,
+  getUniqueOptions,
+  hasActiveFilters,
+  toggleFilterValue,
+} from "./FilterOverlay";
+import { getPaginatedMockLogs } from "../mockLogs";
 
 const getScopeIcon = (scope) => {
   switch (scope?.toLowerCase()) {
@@ -76,6 +84,48 @@ const getStatusDotStatus = (rowStatus) => {
   return "healthy";
 };
 
+const STATUS_SORT_ORDER = {
+  critical: 0,
+  error: 1,
+  failed: 2,
+  unreachable: 3,
+  unavailable: 4,
+  warning: 5,
+  pending: 6,
+  degraded: 7,
+  stopped: 8,
+  healthy: 9,
+  running: 10,
+  installed: 11,
+  reachable: 12,
+  ready: 13,
+  active: 14,
+  successful: 15,
+  serving: 16,
+  completed: 17,
+};
+
+const RESOURCE_SORT_FIELDS = ["name", "scope", "status", "type"];
+const RESOURCE_SORT_LABELS = {
+  name: "Name",
+  status: "Status",
+  type: "Type",
+  scope: "Scope",
+};
+const LOG_SORT_FIELDS = ["name", "level", "source"];
+const LOG_SORT_LABELS = {
+  name: "Time",
+  level: "Level",
+  source: "Source",
+};
+const LOG_LEVEL_SORT_ORDER = {
+  ERROR: 0,
+  WARN: 1,
+  WARNING: 1,
+  INFO: 2,
+  DEBUG: 3,
+};
+
 const getLogRawTime = (log) =>
   log?.timestamp ||
   log?.datetime ||
@@ -87,9 +137,33 @@ const getLogRawTime = (log) =>
   log?.name ||
   "";
 
-const getLogLevelValue = (log) => (log?.level || "INFO").toUpperCase();
+const formatLogTimestamp = (log) => {
+  const raw = getLogRawTime(log);
+  if (typeof raw === "number") return new Date(raw).toLocaleString();
+
+  const value = String(raw || "").trim();
+  if (!value) return "";
+  if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(value)) return value;
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(value)) return value;
+  if (/^\d{1,2}:\d{2}/.test(value)) {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${value}`;
+  }
+  return value;
+};
+
+const getLogLevelValue = (log) => (log?.level || log?.type || "INFO").toUpperCase();
 const getLogSourceValue = (log) => log?.source || log?.scope || "";
 const getLogMessageValue = (log) => log?.message || log?.status || "";
+
+const matchesSearch = (item, query, getValues) => {
+  const normalizedQuery = String(query || "").trim().toLowerCase();
+  if (!normalizedQuery) return true;
+
+  return getValues(item).some((value) =>
+    String(value || "").toLowerCase().includes(normalizedQuery)
+  );
+};
 
 const getLogSortValue = (log) => {
   const raw = getLogRawTime(log);
@@ -174,14 +248,36 @@ const dedupeLogs = (logs) => {
   });
 };
 
-const orderLogs = (logs, direction = "desc") =>
+const orderLogs = (logs, direction = "desc", field = "name") =>
   dedupeLogs(logs)
     .map((log, index) => ({ log, index }))
     .sort((a, b) => {
-      const aTime = getLogSortValue(a.log);
-      const bTime = getLogSortValue(b.log);
-      const timeDiff = direction === "asc" ? aTime - bTime : bTime - aTime;
-      return timeDiff || a.index - b.index;
+      let result;
+
+      if (field === "level") {
+        result =
+          (LOG_LEVEL_SORT_ORDER[getLogLevelValue(a.log)] ?? 99) -
+          (LOG_LEVEL_SORT_ORDER[getLogLevelValue(b.log)] ?? 99);
+      } else if (field === "source") {
+        result = getLogSourceValue(a.log).localeCompare(
+          getLogSourceValue(b.log),
+          undefined,
+          { sensitivity: "base" }
+        );
+      } else if (field === "status") {
+        result = getLogMessageValue(a.log).localeCompare(
+          getLogMessageValue(b.log),
+          undefined,
+          { sensitivity: "base" }
+        );
+      } else {
+        const aTime = getLogSortValue(a.log);
+        const bTime = getLogSortValue(b.log);
+        result = aTime - bTime;
+      }
+
+      const orderedResult = direction === "asc" ? result : -result;
+      return orderedResult || a.index - b.index;
     })
     .map(({ log }) => log);
 
@@ -221,11 +317,17 @@ export default function ResourceTable({
   subtitle = "Service logs and operational events",
   isLogs = false,
   limit,
-  onLimitChange,
-  cycleLabel,
   onRowClick,
+  filterResetKey,
 }) {
   const [showAllLogsModal, setShowAllLogsModal] = useState(false);
+  const [showAllResourcesModal, setShowAllResourcesModal] = useState(false);
+  const [showLogFilters, setShowLogFilters] = useState(false);
+  const [showResourceFilters, setShowResourceFilters] = useState(false);
+  const [logFilters, setLogFilters] = useState({});
+  const [resourceFilters, setResourceFilters] = useState({});
+  const [logSearch, setLogSearch] = useState("");
+  const [resourceSearch, setResourceSearch] = useState("");
   const [allLogs, setAllLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logError, setLogError] = useState(null);
@@ -233,8 +335,12 @@ export default function ResourceTable({
   const [refreshMessage, setRefreshMessage] = useState(null);
   const [isFetchingRange, setIsFetchingRange] = useState(false);
   const [timeRangeMinutes, setTimeRangeMinutes] = useState("10");
-  const [sortDirection, setSortDirection] = useState("desc");
+  const [sortDirection, setSortDirection] = useState(() => (isLogs ? "desc" : "asc"));
+  const [logSortField, setLogSortField] = useState("name");
+  const [resourceSortField, setResourceSortField] = useState("name");
   const logsContainerRef = useRef(null);
+  const allLogsModalRef = useRef(null);
+  const allResourcesModalRef = useRef(null);
 
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasOlder, setHasOlder] = useState(true);
@@ -242,9 +348,29 @@ export default function ResourceTable({
   const PAGE_SIZE = 200;
 
   const totalRowsCount = rows.length;
-  const resolvedCycleLabel = cycleLabel || (isLogs ? "logs" : "resources");
-  const getIncrements = () =>
-    isLogs ? [5, 10, 15, 20, 25, 30] : [3, 6, 9, 12, 15, 18, 21, 24, 27, 30];
+
+  useEffect(() => {
+    if (filterResetKey !== undefined) {
+      setResourceFilters({});
+      setResourceSearch("");
+    }
+  }, [filterResetKey]);
+
+  useEffect(() => {
+    if (showLogFilters || showResourceFilters) return undefined;
+
+    const activeModal =
+      (showAllLogsModal && allLogsModalRef.current) ||
+      (showAllResourcesModal && allResourcesModalRef.current);
+
+    if (!activeModal) return undefined;
+
+    const frame = requestAnimationFrame(() => {
+      activeModal.focus({ preventScroll: true });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [showAllLogsModal, showAllResourcesModal, showLogFilters, showResourceFilters]);
 
   const scrollLogsToTop = () => {
     requestAnimationFrame(() => {
@@ -254,6 +380,20 @@ export default function ResourceTable({
 
   const toggleSortDirection = () => {
     setSortDirection((current) => (current === "desc" ? "asc" : "desc"));
+  };
+
+  const cycleResourceSortField = () => {
+    setResourceSortField((current) => {
+      const currentIndex = RESOURCE_SORT_FIELDS.indexOf(current);
+      return RESOURCE_SORT_FIELDS[(currentIndex + 1) % RESOURCE_SORT_FIELDS.length];
+    });
+  };
+
+  const cycleLogSortField = () => {
+    setLogSortField((current) => {
+      const currentIndex = LOG_SORT_FIELDS.indexOf(current);
+      return LOG_SORT_FIELDS[(currentIndex + 1) % LOG_SORT_FIELDS.length];
+    });
   };
 
   const getRequestedMinutes = () => {
@@ -267,20 +407,50 @@ export default function ResourceTable({
     return dedupeLogs([...liveLogs, ...fetchedLogs]);
   };
 
-  const cycleLimit = () => {
-    const increments = getIncrements();
-    if (limit >= totalRowsCount) {
-      onLimitChange?.(increments[0]);
-      return;
-    }
-    const currentIndex = increments.indexOf(limit);
-    const nextIndex = (currentIndex + 1) % increments.length;
-    onLimitChange?.(increments[nextIndex]);
-  };
+  const orderResources = (resourceRows) =>
+    [...(resourceRows || [])].sort((a, b) => {
+      let result;
 
-  const displayedRows = rows.slice(0, limit);
+      if (resourceSortField === "status") {
+        const aStatus = String(a?.status || "").toLowerCase();
+        const bStatus = String(b?.status || "").toLowerCase();
+        result =
+          (STATUS_SORT_ORDER[aStatus] ?? 99) -
+          (STATUS_SORT_ORDER[bStatus] ?? 99);
+      } else {
+        result = String(a?.[resourceSortField] || "").localeCompare(
+          String(b?.[resourceSortField] || ""),
+          undefined,
+          { sensitivity: "base" }
+        );
+      }
+
+      if (result === 0) {
+        result = String(a?.name || "").localeCompare(String(b?.name || ""), undefined, {
+          sensitivity: "base",
+        });
+      }
+
+      return sortDirection === "asc" ? result : -result;
+    });
+
+  const logAccessors = {
+    level: (log) => getLogLevelValue(log),
+    source: (log) => getLogSourceValue(log),
+  };
+  const resourceAccessors = {
+    type: (row) => row.type,
+    scope: (row) => row.scope,
+    status: (row) => row.status,
+  };
+  const filteredPreviewLogs = applyOptionFilters(rows, logFilters, logAccessors);
+  const filteredResources = applyOptionFilters(rows, resourceFilters, resourceAccessors);
+  const sortedRows = isLogs ? rows : orderResources(filteredResources);
+  const displayedRows = sortedRows.slice(0, limit);
   const displayText =
-    limit >= totalRowsCount ? `all ${totalRowsCount}` : `${limit} of ${totalRowsCount}`;
+    isLogs
+      ? `last ${limit}`
+      : `${Math.min(limit, filteredResources.length)} of ${totalRowsCount}`;
 
   const handleRowClick = () => {
     if (onRowClick) {
@@ -295,6 +465,8 @@ export default function ResourceTable({
     if (initialLoad) {
       setLoadingLogs(true);
       setAllLogs([]);
+      setLogFilters({});
+      setLogSearch("");
       setOlderOffset(0);
       setHasOlder(true);
     }
@@ -310,12 +482,14 @@ export default function ResourceTable({
         minutes,
       });
 
-      const fetchedLogs = data.logs || [];
+      const fetchedLogs = data.logs?.length
+        ? data.logs
+        : getPaginatedMockLogs(PAGE_SIZE, 0, minutes).logs;
       const mergedLogs = mergeFetchedAndLiveLogs(fetchedLogs, minutes);
 
       setAllLogs(mergedLogs);
-      setOlderOffset(0);
-      setHasOlder(true);
+      setOlderOffset(data.offset || fetchedLogs.length);
+      setHasOlder(data.hasMore ?? fetchedLogs.length >= PAGE_SIZE);
       setRefreshMessage(
         mergedLogs.length ? `Updated last ${minutes} min` : `No logs in last ${minutes} min`
       );
@@ -323,7 +497,14 @@ export default function ResourceTable({
       scrollLogsToTop();
     } catch (err) {
       console.error(err);
-      setLogError(err.message);
+      const fallback = getPaginatedMockLogs(PAGE_SIZE, 0, minutes);
+      const mergedLogs = mergeFetchedAndLiveLogs(fallback.logs, minutes);
+      setAllLogs(mergedLogs);
+      setOlderOffset(fallback.offset);
+      setHasOlder(fallback.hasMore);
+      setRefreshMessage(`Showing mock logs for last ${minutes} min`);
+      setTimeout(() => setRefreshMessage(null), 3000);
+      scrollLogsToTop();
     } finally {
       setIsFetchingRange(false);
       setLoadingLogs(false);
@@ -332,23 +513,33 @@ export default function ResourceTable({
 
   const loadOlderLogs = async () => {
     if (loadingOlder || !hasOlder) return;
+    const minutes = getRequestedMinutes();
     setLoadingOlder(true);
 
     try {
-      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: olderOffset });
-      const newLogs = data.logs || [];
+      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: olderOffset, minutes });
+      const newLogs = data.logs?.length
+        ? data.logs
+        : getPaginatedMockLogs(PAGE_SIZE, olderOffset, minutes).logs;
       const more = data.hasMore || false;
 
       if (newLogs.length) {
         setAllLogs((prev) => dedupeLogs([...prev, ...newLogs]));
-        setOlderOffset((prevOffset) => prevOffset + newLogs.length);
+        setOlderOffset(data.offset || olderOffset + newLogs.length);
         setHasOlder(more || newLogs.length >= PAGE_SIZE);
       } else {
         setHasOlder(false);
       }
     } catch (err) {
       console.error(err);
-      setLogError(err.message);
+      const fallback = getPaginatedMockLogs(PAGE_SIZE, olderOffset, minutes);
+      if (fallback.logs.length) {
+        setAllLogs((prev) => dedupeLogs([...prev, ...fallback.logs]));
+        setOlderOffset(fallback.offset);
+        setHasOlder(fallback.hasMore);
+      } else {
+        setHasOlder(false);
+      }
     } finally {
       setLoadingOlder(false);
     }
@@ -388,13 +579,80 @@ export default function ResourceTable({
     );
   }
 
-  const logsToDisplay = isLogs ? orderLogs(displayedRows, sortDirection) : displayedRows;
-  const displayLogs = orderLogs(allLogs, sortDirection);
-  const SortIcon = sortDirection === "desc" ? ArrowDown : ArrowUp;
+  const logsToDisplay = isLogs
+    ? orderLogs(filteredPreviewLogs, sortDirection, logSortField).slice(0, limit)
+    : displayedRows;
+  const filteredLogs = applyOptionFilters(allLogs, logFilters, logAccessors);
+  const searchedLogs = filteredLogs.filter((log) =>
+    matchesSearch(log, logSearch, (item) => [
+      formatLogTimestamp(item),
+      getLogLevelValue(item),
+      getLogSourceValue(item),
+      getLogMessageValue(item),
+    ])
+  );
+  const displayLogs = orderLogs(searchedLogs, sortDirection, logSortField);
+  const resourcesToDisplay = orderResources(filteredResources).filter((row) =>
+    matchesSearch(row, resourceSearch, (item) => [
+      item.name,
+      item.type,
+      item.scope,
+      item.status,
+    ])
+  );
+  const logFilterSource = allLogs.length ? allLogs : rows;
+  const logFilterSections = [
+    {
+      key: "level",
+      label: "Level",
+      options: getUniqueOptions(logFilterSource, getLogLevelValue).map((value) => ({ value, label: value })),
+    },
+    {
+      key: "source",
+      label: "Source",
+      options: getUniqueOptions(logFilterSource, getLogSourceValue).map((value) => ({ value, label: value })),
+    },
+  ];
+  const resourceFilterSections = [
+    {
+      key: "scope",
+      label: "Scope",
+      options: getUniqueOptions(rows, (row) => row.scope).map((value) => ({ value, label: value })),
+    },
+    {
+      key: "status",
+      label: "Status",
+      options: getUniqueOptions(rows, (row) => row.status).map((value) => ({ value, label: value })),
+    },
+    {
+      key: "type",
+      label: "Resource Type",
+      options: getUniqueOptions(rows, (row) => row.type).map((value) => ({ value, label: value })),
+    },
+  ];
+  const SortIcon = isLogs
+    ? sortDirection === "desc" ? ArrowDown : ArrowUp
+    : sortDirection === "asc" ? ArrowDown : ArrowUp;
   const sortTitle =
-    sortDirection === "desc"
-      ? "Sorted newest first. Click for oldest first."
-      : "Sorted oldest first. Click for newest first.";
+    isLogs
+      ? logSortField === "name"
+        ? sortDirection === "desc"
+          ? "Sorted newest first. Click for oldest first."
+          : "Sorted oldest first. Click for newest first."
+        : logSortField === "level"
+          ? sortDirection === "asc"
+            ? "Sorted ERROR to DEBUG. Click to reverse."
+            : "Sorted DEBUG to ERROR. Click to reverse."
+          : sortDirection === "asc"
+            ? `Sorted ${LOG_SORT_LABELS[logSortField]} A-Z. Click for Z-A.`
+            : `Sorted ${LOG_SORT_LABELS[logSortField]} Z-A. Click for A-Z.`
+      : resourceSortField === "status"
+        ? sortDirection === "asc"
+          ? "Sorted by status priority. Click to reverse."
+          : "Sorted by reversed status priority. Click to reverse."
+        : sortDirection === "asc"
+          ? `Sorted ${RESOURCE_SORT_LABELS[resourceSortField]} A-Z. Click for Z-A.`
+          : `Sorted ${RESOURCE_SORT_LABELS[resourceSortField]} Z-A. Click for A-Z.`;
 
   return (
     <>
@@ -404,30 +662,12 @@ export default function ResourceTable({
         transition={{ duration: 0.5 }}
       >
         <Card title={title} subtitle={subtitle}>
-          <div className="flex justify-between items-center mb-3 px-1">
-            <div className="text-xs text-slate-500">
-              Showing {displayText} {isLogs ? "log entries" : "resources"}
-            </div>
-            <div className="flex gap-2">
-              {isLogs && (
-                <button
-                  onClick={openModal}
-                  className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
-                  title="View all logs"
-                >
-                  <Eye className="w-3 h-3" />
-                  <span className="hidden sm:inline">View All</span>
-                </button>
-              )}
-              <button
-                onClick={cycleLimit}
-                className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
-                title={`Cycle ${resolvedCycleLabel}`}
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span className="hidden sm:inline">Cycle {resolvedCycleLabel}</span>
-              </button>
-              {isLogs && (
+          {isLogs ? (
+            <div className="flex justify-between items-center mb-3 px-1">
+              <div className="text-xs text-slate-500">
+                Showing {displayText} log entries
+              </div>
+              <div className="flex gap-2">
                 <button
                   onClick={toggleSortDirection}
                   className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
@@ -436,9 +676,79 @@ export default function ResourceTable({
                   <SortIcon className="w-3 h-3" />
                   <span className="hidden sm:inline">Sort</span>
                 </button>
-              )}
+                <button
+                  onClick={cycleLogSortField}
+                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
+                  title="Switch log sort field"
+                >
+                  <span className="hidden sm:inline">{LOG_SORT_LABELS[logSortField]}</span>
+                </button>
+                <button
+                  onClick={() => setShowLogFilters(true)}
+                  className={`flex items-center gap-1 text-xs transition-colors px-2 py-1 rounded border ${
+                    hasActiveFilters(logFilters)
+                      ? "border-cyan-500/60 text-cyan-300"
+                      : "border-slate-700 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/50"
+                  }`}
+                  title="Filter logs"
+                >
+                  <Filter className="w-3 h-3" />
+                  <span className="hidden sm:inline">Filter</span>
+                </button>
+                <button
+                  onClick={openModal}
+                  className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
+                  title="View all logs"
+                >
+                  <Eye className="w-3 h-3" />
+                  <span className="hidden sm:inline">View All</span>
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex justify-between items-center mb-3 px-1">
+              <div className="text-xs text-slate-500">
+                Showing {displayText} resources
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={toggleSortDirection}
+                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
+                  title={sortTitle}
+                >
+                  <SortIcon className="w-3 h-3" />
+                  <span className="hidden sm:inline">Sort</span>
+                </button>
+                <button
+                  onClick={cycleResourceSortField}
+                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
+                  title="Switch resource sort field"
+                >
+                  <span className="hidden sm:inline">{RESOURCE_SORT_LABELS[resourceSortField]}</span>
+                </button>
+                <button
+                  onClick={() => setShowResourceFilters(true)}
+                  className={`flex items-center gap-1 text-xs transition-colors px-2 py-1 rounded border ${
+                    hasActiveFilters(resourceFilters)
+                      ? "border-cyan-500/60 text-cyan-300"
+                      : "border-slate-700 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/50"
+                  }`}
+                  title="Filter resources"
+                >
+                  <Filter className="w-3 h-3" />
+                  <span className="hidden sm:inline">Filter</span>
+                </button>
+                <button
+                  onClick={() => setShowAllResourcesModal(true)}
+                  className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-2 py-1 rounded border border-slate-700 hover:border-cyan-500/50"
+                  title="View all resources"
+                >
+                  <Eye className="w-3 h-3" />
+                  <span className="hidden sm:inline">View all</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
@@ -465,7 +775,7 @@ export default function ResourceTable({
               <tbody>
                 {logsToDisplay.map((row, idx) => {
                   if (isLogs) {
-                    const timestamp = getLogRawTime(row);
+                    const timestamp = formatLogTimestamp(row);
                     const level = getLogLevelValue(row);
                     const source = getLogSourceValue(row);
                     const message = getLogMessageValue(row);
@@ -557,8 +867,9 @@ export default function ResourceTable({
 
           <div className="mt-4 pt-3 border-t border-slate-800">
             <p className="text-xs text-slate-500">
-              Showing {displayText} {isLogs ? "log entry" : "resource"}
-              {totalRowsCount !== 1 ? "s" : ""}
+              {isLogs
+                ? `Showing ${displayText} log entries`
+                : `Showing ${displayText} resource${totalRowsCount !== 1 ? "s" : ""}`}
             </p>
           </div>
         </Card>
@@ -573,24 +884,27 @@ export default function ResourceTable({
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           >
             <motion.div
+              ref={allLogsModalRef}
+              tabIndex={-1}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col"
+              className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col outline-none"
             >
-              <div className="flex items-center justify-between p-4 border-b border-white/10 flex-wrap gap-2">
-                <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-cyan-400" />
-                  System Logs ({allLogs.length} shown)
-                </h2>
-                <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-start justify-between p-4 border-b border-white/10 gap-4">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-cyan-400" />
+                    System Logs ({displayLogs.length} of {allLogs.length} shown)
+                  </h2>
                   {refreshMessage && (
-                    <span className="text-emerald-400 text-xs flex items-center gap-1">
+                    <div className="mt-1 text-emerald-400 text-xs flex items-center gap-1">
                       <Check className="w-3 h-3" />
                       {refreshMessage}
-                    </span>
+                    </div>
                   )}
-                  <div className="flex items-center gap-2">
+                </div>
+                <div className="ml-auto flex items-center justify-end gap-2 flex-wrap">
                     <span className="text-xs text-slate-300 whitespace-nowrap">
                       View Logs from Last
                     </span>
@@ -603,11 +917,11 @@ export default function ResourceTable({
                     />
                     <span className="text-xs text-slate-300">minutes.</span>
                     <button
-                      onClick={() => updateLogs()}
+                      onClick={() => updateLogs({ initialLoad: true })}
                       disabled={isFetchingRange}
                       className="px-3 py-1 text-xs rounded border border-cyan-500/50 text-cyan-400 hover:text-cyan-300 hover:border-cyan-400 transition-colors disabled:opacity-50"
                     >
-                      {isFetchingRange ? "Updating..." : "Update"}
+                      {isFetchingRange ? "Refreshing..." : "Refresh"}
                     </button>
                     <button
                       onClick={toggleSortDirection}
@@ -617,7 +931,25 @@ export default function ResourceTable({
                       <SortIcon className="w-3 h-3" />
                       Sort
                     </button>
-                  </div>
+                    <button
+                      onClick={cycleLogSortField}
+                      className="flex items-center gap-1 px-3 py-1 text-xs rounded border border-slate-700 text-slate-300 hover:text-cyan-300 hover:border-cyan-500/50 transition-colors"
+                      title="Switch log sort field"
+                    >
+                      {LOG_SORT_LABELS[logSortField]}
+                    </button>
+                    <button
+                      onClick={() => setShowLogFilters(true)}
+                      className={`flex items-center gap-1 px-3 py-1 text-xs rounded border transition-colors ${
+                        hasActiveFilters(logFilters)
+                          ? "border-cyan-500/60 text-cyan-300"
+                          : "border-slate-700 text-slate-300 hover:text-cyan-300 hover:border-cyan-500/50"
+                      }`}
+                      title="Filter loaded logs"
+                    >
+                      <Filter className="w-3 h-3" />
+                      Filter
+                    </button>
                   <button
                     onClick={closeModal}
                     className="p-1 rounded-lg hover:bg-white/10 transition-colors"
@@ -625,6 +957,16 @@ export default function ResourceTable({
                     <X className="w-5 h-5 text-slate-400" />
                   </button>
                 </div>
+              </div>
+
+              <div className="border-b border-white/10 p-3">
+                <input
+                  type="search"
+                  value={logSearch}
+                  onChange={(event) => setLogSearch(event.target.value)}
+                  className="w-full rounded border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-500"
+                  placeholder="Search loaded logs by time, level, source, or message"
+                />
               </div>
 
               <div ref={logsContainerRef} className="flex-1 overflow-y-auto p-4">
@@ -645,11 +987,13 @@ export default function ResourceTable({
                   </div>
                 ) : allLogs.length === 0 ? (
                   <p className="text-center text-slate-400 py-8">No logs found.</p>
+                ) : displayLogs.length === 0 ? (
+                  <p className="text-center text-slate-400 py-8">No logs match the active filters or search.</p>
                 ) : (
                   <>
                     <div className="space-y-2">
                       {displayLogs.map((log, idx) => {
-                        const timestamp = getLogRawTime(log);
+                        const timestamp = formatLogTimestamp(log);
                         const level = getLogLevelValue(log);
                         const source = getLogSourceValue(log);
                         const message = getLogMessageValue(log);
@@ -724,6 +1068,163 @@ export default function ResourceTable({
               </div>
             </motion.div>
           </motion.div>
+        )}
+
+        {showAllResourcesModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          >
+            <motion.div
+              ref={allResourcesModalRef}
+              tabIndex={-1}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col outline-none"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-white/10 flex-wrap gap-2">
+                <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+                  <Server className="w-5 h-5 text-cyan-400" />
+                  {title} ({resourcesToDisplay.length} of {totalRowsCount} shown)
+                </h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleSortDirection}
+                    className="flex items-center gap-1 px-3 py-1 text-xs rounded border border-slate-700 text-slate-300 hover:text-cyan-300 hover:border-cyan-500/50 transition-colors"
+                    title={sortTitle}
+                  >
+                    <SortIcon className="w-3 h-3" />
+                    Sort
+                  </button>
+                  <button
+                    onClick={cycleResourceSortField}
+                    className="flex items-center gap-1 px-3 py-1 text-xs rounded border border-slate-700 text-slate-300 hover:text-cyan-300 hover:border-cyan-500/50 transition-colors"
+                    title="Switch resource sort field"
+                  >
+                    {RESOURCE_SORT_LABELS[resourceSortField]}
+                  </button>
+                  <button
+                    onClick={() => setShowResourceFilters(true)}
+                    className={`flex items-center gap-1 px-3 py-1 text-xs rounded border transition-colors ${
+                      hasActiveFilters(resourceFilters)
+                        ? "border-cyan-500/60 text-cyan-300"
+                        : "border-slate-700 text-slate-300 hover:text-cyan-300 hover:border-cyan-500/50"
+                    }`}
+                    title="Filter resources"
+                  >
+                    <Filter className="w-3 h-3" />
+                    Filter
+                  </button>
+                  <button
+                    onClick={() => setShowAllResourcesModal(false)}
+                    className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+                    title="Close resources"
+                  >
+                    <X className="w-5 h-5 text-slate-400" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="border-b border-white/10 p-3">
+                <input
+                  type="search"
+                  value={resourceSearch}
+                  onChange={(event) => setResourceSearch(event.target.value)}
+                  className="w-full rounded border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-500"
+                  placeholder="Search resources by name, type, scope, or status"
+                />
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                <table className="min-w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-800">
+                      <th className="px-4 py-3 font-medium">Name</th>
+                      <th className="px-4 py-3 font-medium">Type</th>
+                      <th className="px-4 py-3 font-medium">Scope</th>
+                      <th className="px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 py-3 font-medium w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {resourcesToDisplay.map((row, idx) => {
+                      const statusDotStatus = getStatusDotStatus(row.status);
+
+                      return (
+                        <motion.tr
+                          key={`${row.name}-${row.type}-${idx}`}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.03 }}
+                          whileHover={{
+                            scale: 1.01,
+                            backgroundColor: "rgba(15, 23, 42, 0.4)",
+                            transition: { duration: 0.2 },
+                          }}
+                          className="border-b border-slate-800/50 transition-all duration-200 cursor-pointer group"
+                          onClick={handleRowClick}
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                {getScopeIcon(row.scope)}
+                              </div>
+                              <span className="text-slate-200 font-medium group-hover:text-cyan-400 transition-colors">
+                                {row.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">
+                              {row.type}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-400">{row.scope}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <StatusDot status={statusDotStatus} size="sm" showTooltip animated />
+                              <span className="text-sm text-slate-300">{row.status}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {resourcesToDisplay.length === 0 && (
+                  <p className="py-8 text-center text-slate-400">No resources match the active filters or search.</p>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showLogFilters && (
+          <FilterOverlay
+            title="Filter Logs"
+            sections={logFilterSections}
+            filters={logFilters}
+            onToggle={(key, value) => setLogFilters((current) => toggleFilterValue(current, key, value))}
+            onClear={() => setLogFilters({})}
+            onClose={() => setShowLogFilters(false)}
+          />
+        )}
+
+        {showResourceFilters && (
+          <FilterOverlay
+            title="Filter Resources"
+            sections={resourceFilterSections}
+            filters={resourceFilters}
+            onToggle={(key, value) => setResourceFilters((current) => toggleFilterValue(current, key, value))}
+            onClear={() => setResourceFilters({})}
+            onClose={() => setShowResourceFilters(false)}
+          />
         )}
       </AnimatePresence>
     </>

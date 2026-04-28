@@ -82,9 +82,9 @@ export default function MonitoringEndpointsCard({ endpoints }) {
                       )}
                     </motion.button>
                   </div>
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-start gap-2 mb-2">
                     <FileCode className="w-4 h-4 text-cyan-400" />
-                    <code className="text-sm font-mono text-slate-300 truncate">{ep.name}</code>
+                    <code className="min-w-0 break-all text-sm font-mono text-slate-300">{ep.name}</code>
                   </div>
                   <p className="text-xs text-slate-400 mb-3 line-clamp-2">{getDescription(ep.name)}</p>
                   <div className="flex items-center justify-between">

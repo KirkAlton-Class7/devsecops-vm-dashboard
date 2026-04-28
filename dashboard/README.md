@@ -1,16 +1,79 @@
-# React + Vite
+# Dashboard Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite frontend for the VM Dashboard.
 
-Currently, two official plugins are available:
+It renders:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- DevSecOps mode from `/api/dashboard`
+- FinOps mode from `/api/finops`
+- Text mode from the same DevSecOps payload, plus `/api/logs` for the all-logs modal
+- Quotes from `/data/quotes.json`
+- Gallery images from `/data/images.json` and `/data/images/*`
+- Client-side sort, filter, search, and view-all modals for logs, services, and FinOps tables
 
-## React Compiler
+## Local Development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+Access: `http://localhost:5173`
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The Vite dev server has no proxy configured:
+
+```js
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Put vendor dependencies into separate chunks
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react'
+            }
+            if (id.includes('framer-motion') || id.includes('lucide-react')) {
+              return 'vendor-ui'
+            }
+            return 'vendor'
+          }
+        }
+      }
+    }
+  }
+})
+```
+
+Because frontend requests use relative paths like `/api/dashboard`, local development falls back to bundled mock data unless the app is served behind NGINX or a local proxy is added.
+
+In Vite development mode, `/api/logs` is intercepted by `dashboard/src/mockLogs.js` so the log modals can still demonstrate pagination, filtering, sorting, and older-log loading without a live `journalctl` API.
+
+## Build
+
+```bash
+npm run build
+```
+
+The bootstrap script runs this command as `appuser`, then copies `dashboard/dist/*` into `/var/www/vm-dashboard`.
+
+## Build-Time Links
+
+The sidebar links are read from Vite environment variables:
+
+```js
+const githubUrl = import.meta.env.VITE_GITHUB_URL || "https://github.com";
+const linkedinUrl = import.meta.env.VITE_LINKEDIN_URL || "https://www.linkedin.com";
+```
+
+In VM deployments, `scripts/bootstrap/app_bootstrap.sh` exports:
+
+```bash
+export VITE_GITHUB_URL="https://github.com/KirkAlton-Class7"
+export VITE_LINKEDIN_URL="https://www.linkedin.com/in/kirkcochranjr/"
+```
+
+Set these before `npm run build` if you need different links.

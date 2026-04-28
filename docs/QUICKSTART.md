@@ -6,11 +6,11 @@
 
 **Quick summary:**
 
-* **Enable APIs**: `bigquery`, `monitoring`, `recommender`, `billingbudgets`, `cloudbilling`, `cloudquotas`.
+* **Enable APIs**: `compute`, `bigquery`, `monitoring`, `logging`, `recommender`, `billingbudgets`, `cloudbilling`.
 * **Create a custom service account** (recommended) or use the default Compute Engine SA.
 * **Grant IAM roles**:
   * `roles/billing.viewer` on the **billing account**
-  * `roles/bigquery.dataViewer`, `bigquery.jobUser`, `monitoring.viewer`, `recommender.computeViewer` on the **project**.
+  * `roles/compute.viewer`, `roles/bigquery.dataViewer`, `roles/bigquery.jobUser`, `roles/monitoring.viewer`, `roles/recommender.viewer` on the **project**.
 * **Set up BigQuery billing export** to a dataset named `billing_export`.
 * **Ensure the VM is created with the `cloud-platform` OAuth scope**.
 
@@ -24,7 +24,7 @@ The FinOps dashboard will show real data only after these prerequisites are met 
 > Deployment is fully automated using a startup script.
 
 1. **Copy the appropriate bootstrap script** into your VM’s user‑data / startup script field.
-   * Use `infra/startup/startup.sh` as the **wrapper** – it installs dependencies, clones the repo, and then runs the main bootstrap.
+   * Use `infra/startup/gcp_startup.sh` as the **wrapper** – it installs `git`, clones the repo to `/opt/deploy`, and then runs the main bootstrap.
 
 2. **Launch a VM** (Debian 11 or Ubuntu 20.04/22.04 recommended).
 
@@ -32,9 +32,9 @@ The FinOps dashboard will show real data only after these prerequisites are met 
    * Install basic tools (nginx, Python, Node.js, git, **Google Cloud SDK**)
    * Clone the repository to `/opt/deploy`
    * Install Python packages (`google-cloud-bigquery`, `google-cloud-monitoring`, etc.)
-   * Create a systemd service for the Flask API (`dashboard-api.service`) on port 8080
+   * Create a systemd service for the Python API (`dashboard-api.service`) on port 8080
    * Build the React frontend
-   * Configure NGINX to serve the dashboard and proxy `/api/` to Flask
+   * Configure NGINX to serve the dashboard and proxy `/api/` and `/metadata` to the Python API
    * Set up cron jobs for quotes (every 10 min), pricing (monthly), and auto‑deploy (every 15 min)
    * Start everything
 
@@ -44,14 +44,14 @@ The FinOps dashboard will show real data only after these prerequisites are met 
 > Logs are written to `/var/log/bootstrap.log` and `/var/log/startup-script.log` for troubleshooting.
 
 > [!IMPORTANT]
-> The dashboard may take up to 10 minutes to fully populate cost estimates, images, and quotes (cron jobs run every few minutes).  
+> The dashboard may take up to 10 minutes to fully install, build, and populate images and quotes.
 > FinOps data may take up to 24 hours to appear after enabling BigQuery billing export.
 
 ---
 
 ## Dashboard Customization (Bootstrap Script)
 
-See **`docs/CONFIGURATION.md`** *(placeholder – full customisation guide)*
+See **[`docs/APP_CONFIG.md`](./APP_CONFIG.md)**.
 
 **Quick variables** (edit at the top of `app_bootstrap.sh`):
 
@@ -71,21 +71,22 @@ VITE_LINKEDIN_URL="https://www.linkedin.com/in/kirkcochranjr/"
 
 ## Dashboard API Configuration
 
-See **`docs/API_CONFIGURATION.md`** *(placeholder – full API guide)*
+See **[`docs/API_CONFIG.md`](./API_CONFIG.md)**.
 
-**User‑configurable variable** (`dashboard_api.py`):
+**User‑configurable variable** (`scripts/dashboard_api.py`):
 
 ```python
-STUDENT_NAME = "Kirk Alton"   # appears in /metadata
-BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"   # hardcoded for reliability
+STUDENT_NAME = "Kirk Alton"
+BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"
 ```
 
 **Important notes**:
 
-- The API caches static values (subnet name, billing account ID) – first request may be slower, subsequent requests are fast (<0.2s).
-- Cost data is written to `/var/tmp/vm-cost.json` (persists across reboots).
+- The API caches dashboard data for 10 seconds, update status for 5 minutes, and FinOps queries for up to 1 hour.
+- `/api/logs` reads paginated `journalctl` rows and supports `limit`, `offset`, and optional `minutes`. When `minutes` is set, it queries journalctl with `--since`.
+- Heuristic DevSecOps cost data is written to `/var/tmp/vm-cost.json` (persists across reboots).
 - Quotes are read from `/var/www/vm-dashboard/data/quotes.json` (updated by cron).
-- The FinOps endpoint uses caching (1 hour for cost/budgets/recommendations, 5 minutes for CPU utilisation).
+- Real FinOps cost data is read from the `billing_export` BigQuery dataset.
 
 If VM is already deployed, restart the service after modifying the API:
 
@@ -94,8 +95,6 @@ sudo systemctl restart dashboard-api.service
 ```
 
 ---
-
-Here’s the optimized version with expected results and notes for each check:
 
 ## **Verify Permissions on VM (Post Deployment)**
 
@@ -128,6 +127,12 @@ curl -s http://127.0.0.1:8080/api/finops | jq '.summaryCards'
 **Expected result:** A JSON array with four summary cards (Total Cost MTD, Forecast EOM, Potential Savings, CUD Coverage). Values may be `"0.00"` if no data yet.  
 **Note:** If you see `"Error building FinOps data"`, check the API logs (`sudo journalctl -u dashboard-api.service -n 50`). This often indicates missing IAM roles or BigQuery export not configured.
 
+```bash
+curl -s "http://127.0.0.1:8080/api/logs?limit=5&offset=0&minutes=10" | jq '.logs[0]'
+```
+**Expected result:** A log object with `time`, `level`, `source`, and `message`.  
+**Note:** Timestamps include the year (`YYYY-MM-DD HH:MM:SS`) so older-log pagination stays readable.
+
 ---
 
 ## Local Development
@@ -148,14 +153,18 @@ npm run dev
 
 Access: `http://localhost:5173`
 
-### Run the Flask API locally
+### Run the Python API locally
 
 ```bash
 cd ..
-python3 dashboard_api.py
+python3 scripts/dashboard_api.py
 ```
 
 The API will listen on `http://localhost:8080`.
+
+> [!NOTE]
+> The Vite dev server does not define an API proxy. In local development, frontend calls to `/api/dashboard` on `localhost:5173` fall back to mock dashboard data unless you serve through NGINX or add a local proxy.
+> `/api/logs` is intercepted in Vite development mode and served from `dashboard/src/mockLogs.js`, which keeps the all-logs modal useful for demos without a live `journalctl` backend.
 
 ---
 
@@ -170,9 +179,11 @@ devsecops-vm-dashboard/
 ├── scripts/
 │   ├── bootstrap/
 │   │   └── app_bootstrap.sh # Main dashboard deployment script
-│   ├── monitoring_server.py # Flask API (renamed to dashboard_api.py)
+│   ├── dashboard_api.py     # Python API (metadata + live dashboard data)
 │   └── fetch_pricing.py     # Pricing cache generator
-├── dashboard_api.py         # Flask API (metadata + live dashboard data)
+├── infra/startup/
+│   └── gcp_startup.sh       # VM startup wrapper script
+├── terraform/               # GCP IAM/service account/VM snippets
 └── README.md
 ```
 
@@ -183,9 +194,9 @@ devsecops-vm-dashboard/
 | Provider     | Metadata           | FinOps Support           | Auto‑deploy  |
 | ------------ | ------------------ | ------------------------ | ------------ |
 | **GCP**      | Full               | Full (BigQuery, etc.)    | cron         |
-| **Azure**    | Partial            | None (planned)           | cron         |
-| **AWS**      | Partial            | None (planned)           | cron         |
-| **Local VM** | fallback detection | None                     | if available |
+| **Local VM** | fallback detection | None                     | manual/dev   |
+| **Azure**    | Not implemented    | None                     | not implemented |
+| **AWS**      | Not implemented    | None                     | not implemented |
 
 > [!NOTE]
 > FinOps features are only available on GCP. The DevSecOps dashboard works on any Linux VM with internet access.
@@ -199,6 +210,7 @@ devsecops-vm-dashboard/
 | API service status | `sudo systemctl status dashboard-api.service` |
 | API response (DevSecOps) | `curl -s http://localhost:8080/api/dashboard | jq '.meta.dashboardName'` |
 | API response (FinOps) | `curl -s http://localhost:8080/api/finops | jq '.summaryCards'` |
+| API response (logs) | `curl -s "http://localhost:8080/api/logs?limit=5&offset=0" | jq '.logs'` |
 | Nginx status | `sudo systemctl status nginx` |
 | Frontend through nginx | `curl -s http://localhost/ | grep -o "<title>"` |
 | Bootstrap logs | `sudo tail -100 /var/log/bootstrap.log` |
@@ -212,6 +224,6 @@ devsecops-vm-dashboard/
 
 - **Cost estimation** (DevSecOps card) is heuristic (static price × uptime). It is **not** a real billing API call. For real cost data, use the FinOps dashboard.
 - **External IP fallback** uses `ifconfig.me`; if the VM has no internet, external IP will show `unknown`.
-- **Azure / AWS** support is partial; the dashboard is primarily tested on GCP.
+- **Azure / AWS** provider adapters are not implemented in the current codebase.
 - **Clipboard** requires HTTPS (see the dedicated section above).
 - **FinOps data** requires BigQuery billing export, which takes up to 24 hours to populate after first setup.

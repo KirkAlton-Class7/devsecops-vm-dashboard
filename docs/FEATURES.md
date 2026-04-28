@@ -23,7 +23,6 @@ To enable, press `D` or click the **DevSecOps** button in the mode dropdown menu
 
   * **CPU / Memory / Disk** → GCP Compute Engine instance details page
   * **Estimated Cost** → GCP Billing overview
-  * **Optimize button** *(appears when billing account ID is available)* → opens FinOps Hub for cost optimization
 
 ---
 
@@ -97,41 +96,60 @@ A detailed widget with three sections:
 
 ### Services
 
-Displays health and status of key system components:
+Displays health and status of key system components returned by `build_dashboard_data()`:
 
 * **nginx** – running / stopped
 
-* **Python3** – installed / missing
+* **Python** – installed
 
-* **Metadata Service** – reachable / unreachable
+* **Metadata Service** – reachable
 
-* **HTTP Service** – serving / not serving
+* **HTTP Service** – serving
 
-* **Startup Script** – completed / pending
+* **Startup Script** – completed
 
-* **GitHub Quotes Sync** – successful / failed
+* **GitHub Quotes Sync** – successful
 
 * **Bootstrap Packages** – installed packages list
 
-* **Cycle services** – adjust visible services (3 → 30) via button or shortcut
+* **Default view** – shows 10 services by default and displays `Showing X of X services`
+
+* **View all services** – opens the full service list in a modal
+
+* **Sort services** – cycles through Name A-Z, Name Z-A, Status Healthy-Critical, and Status Critical-Healthy
+
+* **Filter services** – filters by service name and status
 
 ---
 
 ### Application Logs
 
-* Displays last **X** log entries (default: 5, configurable up to 30)
+* Displays the last **30** log entries from `journalctl`
 
 Each entry includes:
 
-* Time (HH:MM:SS)
+* Time (`YYYY-MM-DD HH:MM:SS`)
 
 * Level (info / warning / error)
 
-* Scope (system, metrics, quotes, nginx, security)
+* Scope/source (from `SYSLOG_IDENTIFIER`, truncated for display)
 
 * Message
 
-* **Cycle logs** – adjust log count (5 → 30)
+* **View all logs** – opens a modal backed by `/api/logs`
+
+* **Show older logs** – appends paginated logs using the same timestamp format, including year
+
+* **Refresh logs** – reloads the currently selected time window
+
+* **Sort logs** – cycles through Time Newest, Time Oldest, Level Error-Debug, Level Debug-Error, Source A-Z, and Source Z-A
+
+* **Filter logs** – filters the currently loaded logs by level and source
+
+* **Search logs** – searches loaded modal rows by time, level, source, or message
+
+> Filters are client-side and apply to the logs currently loaded in the modal. They persist while paging older logs and reset on full refresh.
+> When a filter modal is opened from another modal, closing it restores focus to the previous modal layer.
 
 ---
 
@@ -145,8 +163,8 @@ Displays:
 
 * Identity, Overview, Network, Location
 * Monitoring endpoints
-* Services
-* Application logs
+* Services with the same 10-row default, sort, filter, and view-all behavior as DevSecOps mode
+* Application logs with Time, Level, Source, and Message columns
 
 Exit with `Esc` or `[Esc] EXIT`.
 
@@ -158,13 +176,25 @@ Exit with `Esc` or `[Esc] EXIT`.
 | ----- | ------------------------------------------ |
 | `Esc` | Exit text mode                             |
 | `C`   | Copy dashboard snapshot                    |
-| `R`   | Refresh data                               |
 | `H`   | Toggle help overlay                        |
-| `L`   | Cycle log limit (5 → 10 → 20 → 30)         |
-| `S`   | Cycle service limit (3 → 5 → 10 → 20 → 30) |
+| `L`   | Sort logs                                  |
+| `FL`  | Filter logs                                |
+| `LL`  | View all logs                              |
+| `S`   | Sort services                              |
+| `FS`  | Filter services                            |
+| `SS`  | View all services                          |
+
+Text mode filter popups use the same filter options as the graphical dashboard:
+
+* Arrow keys move through filter columns
+* `Space` or `Enter` toggles a filter
+* `Delete` or `Backspace` clears filters
+* `Esc` closes the active popup and returns focus to the previous modal layer
+
+When `ALL SYSTEM LOGS` is open, press `R` to refresh the loaded log window.
 
 > [!TIP]
-> Preferences (service limit, logs, favourites) are saved in `localStorage` and persist across sessions.
+> Favorite quotes are saved in `localStorage` and persist across sessions.
 
 ---
 
@@ -185,19 +215,27 @@ To enable, press `F` or click the **FinOps** button.
 
 * **CUD Coverage** – placeholder (coming soon)
 
+* **FinOps summary cards are clickable:**
+
+  * **Total Cost / Forecast** → GCP Billing overview
+  * **Potential Savings** → FinOps Hub
+  * **CUD Coverage** → Compute Engine commitments
+
 * **Daily Cost Trend** – last 10 days
 
 * **Top Services by Cost** – spend breakdown
 
-* **Budgets** – thresholds + alerts
+* **Budgets** – configured budgets with placeholder spent/forecast values
 
-* **CPU Utilization** – P95 per VM (last hour)
+* **CPU Utilization** – P95 per VM (last hour), 10-row preview with sort/view-all modal
 
-* **Rightsizing Recommendations** – machine recommendations
+* **Rightsizing Recommendations** – machine recommendations, 10-row preview with sort/view-all modal
 
-* **Idle Resources** – underutilized assets
+* **Idle Resources** – underutilized assets, 10-row preview with sort/view-all modal
 
-* **Savings Summary** – realized + potential savings
+* **Filtering and search** – FinOps list widgets use modal-based filters and modal search. CPU filters include rightsizing candidate and utilization range. Idle resource filters include scope, status, and resource type. Rightsizing filters include level and savings.
+
+* **Savings Summary** – realized savings (`0.0`) + potential rightsizing savings
 
 > **Note:** Data is sourced from GCP APIs (BigQuery, Monitoring, Recommender, Budgets).
 > Initial data population may be delayed (see below).
@@ -221,13 +259,14 @@ To enable, press `F` or click the **FinOps** button.
 
 ---
 
-## Ambience (Shared Feature)
+## Ambiance (Shared Feature)
 
 ### Featured Quote
 
-* Random quote (refreshes every 10s)
+* Random quote loaded from `/data/quotes.json`
+* Manual refresh button selects a new quote
 * ⭐ Bookmark quotes → saved locally
-* View/manage favourites via `localStorage`
+* View/manage favorites via `localStorage`
 
 ---
 
@@ -243,28 +282,30 @@ Interactive particle background (click to cycle):
 
 ### International Photo Gallery
 
-* Images loaded from `/images` + `images.json`
+* Images loaded from `/data/images` + `/data/images.json`
 * Responsive grid layout
 
 Features:
 
 * ℹ️ View image metadata (title + location)
-* ⭐ Save favourites (local)
-* ✈️ Open Google Flights (pre-filled location)
+* ⭐ Save favorites (local)
+* ✈️ Open Google Travel Explore for liked destinations
 * 🏠 “Living info” Google search
 
 ---
 
 ## Monitoring Endpoints
 
-Quick access to built-in endpoints:
+Quick reference for built-in endpoints:
 
 * `/healthz` – plain text health check
 * `/metadata` – VM metadata + health JSON
 * `/api/dashboard` – DevSecOps data
 * `/api/finops` – FinOps data
+* `/api/config` – API config JSON
+* `/api/logs` – paginated journal logs
 
-All endpoints are clickable (open in new tab).
+The frontend Monitoring Endpoints card currently links to `/healthz` and `/metadata`.
 
 ---
 
@@ -276,6 +317,8 @@ All endpoints are clickable (open in new tab).
 | `/metadata`      | GET    | VM + health JSON           |
 | `/api/dashboard` | GET    | DevSecOps data             |
 | `/api/finops`    | GET    | FinOps data                |
+| `/api/config`    | GET    | API config JSON            |
+| `/api/logs`      | GET    | Paginated journal logs     |
 
 ---
 

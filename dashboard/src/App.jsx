@@ -47,29 +47,27 @@ export default function App() {
   const [mode, setMode] = useState("standard");
   const [previousMode, setPreviousMode] = useState("standard");
   const [flashMode, setFlashMode] = useState(false);
-  const [flashTextMode, setFlashTextMode] = useState(false);
-  const flashTimeoutRef = useRef(null);
+  const [flashTextMode, setFlashTextMode] = useState(0);
   const textFlashTimeoutRef = useRef(null);
 
-  const triggerFlash = useCallback(() => {
-    if (flashTimeoutRef.current) return;
+  const startModeGlow = useCallback(() => {
     setFlashMode(true);
-    flashTimeoutRef.current = setTimeout(() => {
-      setFlashMode(false);
-      flashTimeoutRef.current = null;
-    }, 300);
+  }, []);
+
+  const stopModeGlow = useCallback(() => {
+    setFlashMode(false);
   }, []);
 
   const triggerTextFlash = useCallback(() => {
     if (textFlashTimeoutRef.current) return;
-    setFlashTextMode(true);
+    setFlashTextMode((current) => current + 1);
     textFlashTimeoutRef.current = setTimeout(() => {
-      setFlashTextMode(false);
       textFlashTimeoutRef.current = null;
     }, 300);
   }, []);
 
   const handleModeChange = useCallback((newMode) => {
+    setFlashMode(false);
     if (newMode === "text") {
       setPreviousMode(mode);
     }
@@ -86,34 +84,33 @@ export default function App() {
       const key = e.key.toLowerCase();
       if (key === 'd') {
         if (mode !== 'standard') handleModeChange('standard');
-        else triggerFlash();
+        else startModeGlow();
       } else if (key === 't') {
         if (mode !== 'text') handleModeChange('text');
         else triggerTextFlash();
       } else if (key === 'f') {
+        if (mode === 'text') return;
         if (mode !== 'finops') handleModeChange('finops');
-        else triggerFlash();
+        else startModeGlow();
+      }
+    };
+    const handleKeyUp = (e) => {
+      const key = e.key.toLowerCase();
+      if (key === 'd' || key === 'f') {
+        stopModeGlow();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode, handleModeChange, triggerFlash, triggerTextFlash]);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [mode, handleModeChange, startModeGlow, stopModeGlow, triggerTextFlash]);
 
-  const [logLimit, setLogLimit] = useState(() => {
-    const saved = localStorage.getItem("dashboard_log_limit");
-    return saved ? parseInt(saved, 10) : 5;
-  });
-  const [serviceLimit, setServiceLimit] = useState(() => {
-    const saved = localStorage.getItem("dashboard_service_limit");
-    return saved ? parseInt(saved, 10) : 30;
-  });
-
-  useEffect(() => {
-    localStorage.setItem("dashboard_log_limit", logLimit);
-  }, [logLimit]);
-  useEffect(() => {
-    localStorage.setItem("dashboard_service_limit", serviceLimit);
-  }, [serviceLimit]);
+  const logLimit = 30;
+  const DEFAULT_SERVICE_LIMIT = 10;
+  const serviceLimit = DEFAULT_SERVICE_LIMIT;
 
   useEffect(() => {
     async function loadDashboard() {
@@ -228,10 +225,9 @@ export default function App() {
         onExitTextDash={() => setMode(previousMode)}
         logLimit={logLimit}
         serviceLimit={serviceLimit}
-        onLogLimitChange={setLogLimit}
-        onServiceLimitChange={setServiceLimit}
         dashboardName={dashboard.meta?.dashboardName || "DevSecOps Dashboard"}
         flashTitle={flashTextMode}
+        onOpenFinOps={() => handleModeChange("finops")}
         onRefresh={async () => {
           try {
             const res = await fetch("/api/dashboard", { cache: "no-store" });
@@ -348,7 +344,6 @@ export default function App() {
               subtitle="Service health, status, and performance"
               items={dashboard.services || []}
               limit={serviceLimit}
-              onLimitChange={setServiceLimit}
             />
           </motion.section>
 
@@ -364,7 +359,6 @@ export default function App() {
               title="Application Logs"
               isLogs={true}
               limit={logLimit}
-              onLimitChange={setLogLimit}
             />
           </motion.section>
         </motion.main>

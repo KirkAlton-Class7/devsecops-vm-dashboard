@@ -13,9 +13,9 @@ This runbook defines all prerequisite configuration required **before** deployin
 | **Real cost data** (BigQuery) | `bigquery.dataViewer`, `bigquery.jobUser` | 3.2 |
 | **Budgets & alerts** | `billing.viewer`, `billingbudgets.googleapis.com` | 3.1, 1 |
 | **CPU utilization** (per VM) | `monitoring.viewer`, `monitoring.googleapis.com` | 3.2, 1 |
-| **Rightsizing recommendations** | `recommender.computeViewer`, `recommender.googleapis.com` | 3.2, 1 |
+| **Rightsizing recommendations** | `recommender.viewer`, `recommender.googleapis.com` | 3.2, 1 |
 | **Cost trends & forecasts** | BigQuery billing export | 4 |
-| **Idle resources** | `recommender.computeViewer` | 3.2 |
+| **Idle resources** | `recommender.viewer` | 3.2 |
 | **Service account identity** | Custom SA created | 2.1 |
 
 ---
@@ -34,15 +34,17 @@ This runbook defines all prerequisite configuration required **before** deployin
 
 ```bash
 gcloud services enable \
+  compute.googleapis.com \
   cloudbilling.googleapis.com \
   billingbudgets.googleapis.com \
   recommender.googleapis.com \
   monitoring.googleapis.com \
   bigquery.googleapis.com \
-  cloudquotas.googleapis.com
+  logging.googleapis.com
 ```
 
 > **Note:** This step is required once per project. If any API fails, check your project owner permissions.
+> The Terraform snippet in `terraform/required-apis.tf` enables this same API set.
 
 ---
 
@@ -111,10 +113,10 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/monitoring.viewer"
 
-# Recommender Compute Viewer – rightsizing & idle resources
+# Recommender Viewer – rightsizing & idle resources
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:${SA_EMAIL}" \
-  --role="roles/recommender.computeViewer"
+  --role="roles/recommender.viewer"
 ```
 
 > **Enables:** BigQuery cost queries, CPU utilization metrics, rightsizing & idle resource recommendations.
@@ -153,7 +155,7 @@ gcloud projects get-iam-policy ${PROJECT_ID} --flatten="bindings[].members" --fo
 gcloud beta billing accounts get-iam-policy ${BILLING_ACCOUNT_ID} --format=json | grep -A2 ${SA_EMAIL}
 
 # 4. Required APIs Enabled
-gcloud services list --enabled --filter="cloudbilling.googleapis.com OR billingbudgets.googleapis.com OR recommender.googleapis.com OR monitoring.googleapis.com OR bigquery.googleapis.com"
+gcloud services list --enabled --filter="compute.googleapis.com OR cloudbilling.googleapis.com OR billingbudgets.googleapis.com OR recommender.googleapis.com OR monitoring.googleapis.com OR bigquery.googleapis.com OR logging.googleapis.com"
 
 # 5. BigQuery Billing Export Dataset Exists
 bq ls billing_export 2>/dev/null || echo "Dataset not found"
@@ -169,7 +171,7 @@ gcloud beta billing budgets list --billing-account=${BILLING_ACCOUNT_ID}
 
 ```
 
-> **Warning: gcloud does not support Monitoring time series queries. Use the Monitoring API via curl.
+> **Warning:** `gcloud` does not support Monitoring time series queries. Use the Monitoring API via curl.
 
 ```bash
 # 9. Monitoring API access (may return empty array)
@@ -182,7 +184,7 @@ curl -H "Authorization: Bearer $(gcloud auth print-access-token)" \
 curl -H "Authorization: Bearer $(gcloud auth print-access-token)" \
 "https://monitoring.googleapis.com/v3/projects/$PROJECT_ID/timeSeries?filter=metric.type=\"compute.googleapis.com/instance/cpu/utilization\"&interval.endTime=$(date -u +"%Y-%m-%dT%H:%M:%SZ")&interval.startTime=$(date -u -v-1H +"%Y-%m-%dT%H:%M:%SZ")"
 
-# 1oc. Windows (PowerShell):
+# 10c. Windows (PowerShell):
 $end = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 $start = (Get-Date).ToUniversalTime().AddHours(-1).ToString("yyyy-MM-ddTHH:mm:ssZ")
 $token = gcloud auth print-access-token

@@ -28,14 +28,14 @@ export default function NetworkCard({ network }) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 + 0.1 }}
-              className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+              className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={handleClick}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex flex-shrink-0 items-center gap-3">
                 <item.icon className="w-4 h-4 text-purple-400" />
                 <span className="text-sm text-slate-300">{item.label}</span>
               </div>
-              <span className="text-sm font-mono text-slate-400">
+              <span className="min-w-0 flex-1 break-all text-right text-sm font-mono text-slate-400">
                 {item.value || "unknown"}
               </span>
             </motion.div>

@@ -2,6 +2,19 @@
 
 > **Prerequisite:** You must already have a dedicated Terraform service account (e.g., `terraform-service@PROJECT_ID.iam.gserviceaccount.com`). This runbook grants that account the ability to manage IAM policies on the billing account.
 
+The Terraform code uses this permission when applying:
+
+```hcl
+resource "google_billing_account_iam_member" "vm_dashboard_billing_viewer" {
+  billing_account_id = "01BB2F-8195CD-645BC0"
+  role               = "roles/billing.viewer"
+
+  member = "serviceAccount:${google_service_account.vm_dashboard.email}"
+}
+```
+
+The billing account ID is currently hardcoded in `terraform/iam.tf`; replace it there if you deploy in another billing account.
+
 ### **Step 1: Set Environment Variables**
 
 Run these commands to automatically retrieve your project ID, billing account ID, and Terraform service account email:

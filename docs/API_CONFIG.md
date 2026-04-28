@@ -1,12 +1,15 @@
 # Dashboard API Configuration
 
-The API server (`dashboard_api.py`) provides live data for the dashboard via:
+The API server (`scripts/dashboard_api.py`) provides live data for the dashboard via:
 
 * `/api/dashboard` – full dashboard payload (used by the frontend)
+* `/api/finops` – cost, budget, utilization, and recommendation payload
+* `/api/config` – static API settings
+* `/api/logs` – paginated `journalctl` logs with optional time-window filtering
 * `/metadata` – instance metadata + health object
 * `/healthz` – basic service health check
 
-It runs as a **systemd service** on the VM (default port `8080`).
+It runs as a **systemd service** on the VM (fixed port `8080`).
 
 ---
 
@@ -16,15 +19,19 @@ At the top of the file, you will find:
 
 ```python
 # -------------------------------
-# Metadata Customization
+# API Customization
 # -------------------------------
-student_name = "Kirk Alton"
+STUDENT_NAME = "Kirk Alton"
+
+# Your billing account ID (hardcoded for reliability)
+BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"
 ```
 
-* **`student_name`** – This value appears in the `/metadata` response under the `student_name` field.
+* **`STUDENT_NAME`** – Appears in the `/metadata` response under the `STUDENT_NAME` field.
+* **`BILLING_ACCOUNT_ID`** – Used by `get_budgets()` when calling `gcloud billing budgets list`.
 
 > [!NOTE]
-> This value is only used for display in the metadata endpoint.
+> `STUDENT_NAME` is only used for display in the metadata endpoint.
 > It does **not** affect dashboard functionality or system behavior.
 
 ---
@@ -34,25 +41,26 @@ student_name = "Kirk Alton"
 Your API includes a runtime override:
 
 ```python
-meta_student = get_metadata("instance/attributes/student_name")
-final_student = meta_student if meta_student != "unknown" and meta_student else student_name
+student_name = get_metadata("instance/attributes/STUDENT_NAME")
+if student_name in ("unknown", ""):
+    student_name = STUDENT_NAME
 ```
 
 > [!IMPORTANT]
-> If a **GCP instance metadata attribute** named `student_name` exists, it will override the hardcoded value in `dashboard_api.py`.
+> If a **GCP instance metadata attribute** named `STUDENT_NAME` exists, it will override the hardcoded value in `dashboard_api.py`.
 
 ### Practical Implication
 
 ```text
-GCP Metadata Attribute (if present)
+GCP Metadata Attribute: STUDENT_NAME (if present)
         ↓
 Overrides
         ↓
-student_name in Python
+STUDENT_NAME in Python
 ```
 
 > [!TIP]
-> This allows you to set `student_name` **without modifying code**, using instance metadata instead.
+> This allows you to set `STUDENT_NAME` **without modifying code**, using instance metadata instead.
 
 ---
 
@@ -80,15 +88,17 @@ This section outlines how the values returned by the API are structured and wher
 
 ## Output Structure Overview
 
-The API exposes two primary data outputs:
+The API exposes three main data outputs:
 
 * **`/api/dashboard`** – main dataset used by the frontend UI
+* **`/api/finops`** – FinOps dataset used by the FinOps UI
 * **`/metadata`** – structured instance and health information
 
 These outputs are constructed in two locations:
 
 ```text
 build_dashboard_data()        → /api/dashboard
+get_cached_finops_data()      → /api/finops
 MonitoringHandler (/metadata) → /metadata
 ```
 
@@ -119,6 +129,8 @@ systemResources
 
 Each section represents a logical grouping of data displayed in the UI.
 
+The dashboard preview uses the `logs` array returned by `/api/dashboard`. The full log modals load from `/api/logs` so they can paginate beyond the preview.
+
 ---
 
 ### Field Composition
@@ -147,9 +159,58 @@ Values in the dashboard are derived from:
 * Helper functions (`get_*`)
 * Environment variables (`os.environ`)
 * Local files (e.g., `quotes.json`, cost cache)
+* GCP APIs for FinOps data (BigQuery, Monitoring, Recommender, Budgets)
 
 > [!NOTE]
-> The API does not rely on external monitoring services; all values are computed locally or via metadata.
+> DevSecOps values are computed locally or via metadata. FinOps values use GCP APIs when the required IAM and billing export are configured.
+
+---
+
+## Logs API (`/api/logs`)
+
+The logs endpoint is built from `journalctl` JSON output:
+
+```python
+cmd = [journalctl_path, "--since", f"{minutes} minutes ago", "--no-pager", "-o", "json"]
+```
+
+When `minutes` is not provided, the endpoint reads the latest `ALL_LOGS_MAX_LINES` entries for general browsing:
+
+```python
+cmd = [journalctl_path, "-n", str(ALL_LOGS_MAX_LINES), "--no-pager", "-o", "json"]
+```
+
+It returns a paginated response:
+
+```json
+{
+  "logs": [],
+  "offset": 200,
+  "hasMore": true,
+  "total": 1432
+}
+```
+
+Supported query parameters:
+
+| Parameter | Purpose | Default |
+| --------- | ------- | ------- |
+| `limit` | Number of log rows to return | `100` |
+| `offset` | Pagination offset for older logs | `0` |
+| `minutes` | Optional time window in minutes | unset |
+
+Each log row includes:
+
+```json
+{
+  "time": "2026-04-27 14:58:42",
+  "level": "WARN",
+  "source": "nginx",
+  "message": "..."
+}
+```
+
+`time` is formatted as `YYYY-MM-DD HH:MM:SS`. When `minutes` is set, the API queries journalctl with `--since` for that time window, then paginates the result. The frontend applies sort, search, and filters client-side to the currently loaded rows. Full refreshes reload the selected time window and reset active log filters.
 
 ---
 
@@ -213,7 +274,7 @@ The API reads dashboard branding values from environment variables:
 
 > [!IMPORTANT]
 > These values are **not defined in this file**.
-> They are injected by `app_bootstrap.sh` at runtime.
+> They are exported by `app_bootstrap.sh` before the API service is started.
 
 ### Data Flow
 
@@ -295,11 +356,18 @@ The API relies on local system files and generated data:
 
   * File: `/var/tmp/vm-cost.json`
   * Persists across reboots
+  * Used only by the DevSecOps **Estimated Cost** card
 
 * **Quotes data**
 
   * File: `/var/www/vm-dashboard/data/quotes.json`
   * Updated via cron (every ~10 minutes)
+
+* **BigQuery billing export**
+
+  * Dataset: `billing_export`
+  * Table pattern: `gcp_billing_export_v1_*`
+  * Used by `get_cost_trend()` and `get_top_services_by_cost()`
 
 > [!NOTE]
 > If quotes stop updating, verify:
@@ -315,18 +383,25 @@ The API relies on local system files and generated data:
 The API uses lightweight TTL caching:
 
 ```python
+@ttl_cache(seconds=10)
+def build_dashboard_data()
+
 @ttl_cache(seconds=60)
 def get_ssh_status()
 
 @ttl_cache(seconds=300)
 def get_update_status()
+
+@ttl_cache(seconds=3600)
+def get_cost_trend(days=30)
 ```
 
 * Reduces repeated system calls (`systemctl`, `apt`)
 * Improves API responsiveness
+* Keeps FinOps API calls from querying BigQuery and GCP APIs on every request
 
 > [!TIP]
-> Cached values may appear slightly stale (up to 5 minutes for updates).
+> Cached values may appear slightly stale (10 seconds for DevSecOps, 5 minutes for update/CPU checks, and up to 1 hour for cost, budget, and recommendation data).
 
 ---
 
@@ -339,18 +414,19 @@ All system metrics are collected directly from the VM:
 * `uptime` → system uptime
 * `systemctl` → service health
 * metadata server → instance details
+* `journalctl` → `/api/logs` and dashboard log rows
 
 > [!NOTE]
-> No external monitoring services are used.
+> Cloud Monitoring is used only for FinOps CPU utilization across VMs.
 
 ---
 
 ## Applying Changes
 
-If you modify `dashboard_api.py` (e.g., update `student_name` or logic), restart the service:
+If you modify `scripts/dashboard_api.py` (e.g., update `STUDENT_NAME`, `BILLING_ACCOUNT_ID`, or logic), restart the service:
 
 ```bash
-sudo systemctl restart dashboard-api
+sudo systemctl restart dashboard-api.service
 ```
 
 > [!IMPORTANT]

@@ -26,9 +26,6 @@ export default function Header({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeButtonRef = useRef(null);
-  const [isFlashing, setIsFlashing] = useState(false);
-  const flashTimeoutRef = useRef(null);
-  const isFlashingRef = useRef(false);
 
   // Budget dropdown state
   const [showBudgetsMenu, setShowBudgetsMenu] = useState(false);
@@ -57,19 +54,6 @@ export default function Header({
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    if (flashMode && !isFlashingRef.current) {
-      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-      isFlashingRef.current = true;
-      setIsFlashing(true);
-      flashTimeoutRef.current = setTimeout(() => {
-        setIsFlashing(false);
-        isFlashingRef.current = false;
-        flashTimeoutRef.current = null;
-      }, 300);
-    }
-  }, [flashMode]);
 
   const formattedTime = currentTime.toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -304,7 +288,7 @@ export default function Header({
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-white/5 text-slate-300 hover:border-white/40 transition-all text-xs font-mono ${
-                  isFlashing
+                  flashMode
                     ? "shadow-[0_0_12px_theme(colors.cyan.400)] border-cyan-400/60"
                     : ""
                 }`}

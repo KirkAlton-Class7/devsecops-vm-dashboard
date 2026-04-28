@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  ArrowDown,
+  ArrowUp,
   BarChart3,
   ChartBarDecreasing,
   Cpu,
+  Eye,
+  Filter,
   Gauge,
-  RefreshCw,
   Server,
   Sparkles,
   Shrink,
-  Pause
+  X
 } from "lucide-react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
@@ -24,39 +27,32 @@ import CostBreakdownChart from "./CostBreakdownChart";
 import QuoteCard from "./QuoteCard";
 import NetworkParticles from "./NetworkParticles";
 import ImageGallery from "./ImageGallery";
+import FilterOverlay, {
+  applyOptionFilters,
+  getUniqueOptions,
+  hasActiveFilters,
+  toggleFilterValue,
+} from "./FilterOverlay";
 import { finopsNavItems } from "../config/finopsNavItems";
 import { mockFinOpsData } from "../data/mockFinOpsDashboard";
 
-const cycleSteps = [3, 6, 9, 12];
+const FINOPS_PREVIEW_LIMIT = 10;
+const IMPACT_SORT_ORDER = {
+  LOW: 0,
+  MEDIUM: 1,
+  HIGH: 2,
+};
 
-function getStoredLimit(key, fallback) {
-  const saved = localStorage.getItem(key);
-  return saved ? parseInt(saved, 10) : fallback;
-}
+const sortByText = (items, direction, getValue) =>
+  [...(items || [])].sort((a, b) => {
+    const result = String(getValue(a) || "").localeCompare(
+      String(getValue(b) || ""),
+      undefined,
+      { sensitivity: "base" }
+    );
 
-function getNextLimit(currentLimit, totalItems) {
-  const maxItems = Math.min(totalItems, 12);
-  const availableSteps = cycleSteps.filter((step) => step <= maxItems);
-
-  if (availableSteps.length === 0) {
-    return maxItems;
-  }
-
-  if (currentLimit >= maxItems) {
-    return availableSteps[0];
-  }
-
-  const nextStep = availableSteps.find((step) => step > currentLimit);
-
-  return nextStep || maxItems;
-}
-
-function getDisplayText(limit, totalItems) {
-  const maxItems = Math.min(totalItems, 12);
-  const shownItems = Math.min(limit, maxItems);
-
-  return shownItems >= maxItems ? `all ${maxItems}` : `${shownItems} of ${maxItems}`;
-}
+    return direction === "asc" ? result : -result;
+  });
 
 function WidgetTitle({ icon: Icon, children, tone = "cyan" }) {
   const tones = {
@@ -78,18 +74,350 @@ function WidgetTitle({ icon: Icon, children, tone = "cyan" }) {
   );
 }
 
-function CycleButton({ label, title, onClick }) {
+function SortButton({ direction, onClick, title }) {
+  const SortIcon = direction === "asc" ? ArrowDown : ArrowUp;
+
   return (
     <button
       onClick={onClick}
       className="flex items-center gap-1.5 rounded border border-slate-700 px-2 py-1 text-xs text-slate-400 transition-colors hover:border-cyan-500/50 hover:text-cyan-400"
       title={title}
     >
-      <RefreshCw className="h-3 w-3" />
+      <SortIcon className="h-3 w-3" />
+      <span className="hidden sm:inline">Sort</span>
+    </button>
+  );
+}
+
+function SortFieldButton({ label, onClick, title }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 rounded border border-slate-700 px-2 py-1 text-xs text-slate-400 transition-colors hover:border-cyan-500/50 hover:text-cyan-400"
+      title={title}
+    >
       <span className="hidden sm:inline">{label}</span>
     </button>
   );
 }
+
+function ViewAllButton({ onClick, title = "View all" }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 rounded border border-slate-700 px-2 py-1 text-xs text-cyan-400 transition-colors hover:border-cyan-500/50 hover:text-cyan-300"
+      title={title}
+    >
+      <Eye className="h-3 w-3" />
+      <span className="hidden sm:inline">View all</span>
+    </button>
+  );
+}
+
+function FilterButton({ onClick, active = false, title = "Filter" }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 rounded border px-2 py-1 text-xs transition-colors ${
+        active
+          ? "border-cyan-500/60 text-cyan-300"
+          : "border-slate-700 text-slate-400 hover:border-cyan-500/50 hover:text-cyan-400"
+      }`}
+      title={title}
+    >
+      <Filter className="h-3 w-3" />
+      <span className="hidden sm:inline">Filter</span>
+    </button>
+  );
+}
+
+function FinOpsModal({
+  title,
+  subtitle,
+  sortDirection,
+  sortTitle,
+  onSort,
+  sortFieldLabel,
+  onSortField,
+  onFilter,
+  filterActive,
+  searchValue,
+  onSearchChange,
+  searchPlaceholder,
+  onClose,
+  children,
+}) {
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-slate-950/90 p-4 backdrop-blur-sm"
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 16 }}
+          className="mx-auto flex h-full max-w-5xl flex-col rounded-xl border border-slate-700 bg-slate-950 shadow-2xl"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 p-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
+              <p className="text-xs text-slate-500">{subtitle}</p>
+            </div>
+            <div className="flex gap-2">
+              <SortButton direction={sortDirection} onClick={onSort} title={sortTitle} />
+              {onSortField && (
+                <SortFieldButton
+                  label={sortFieldLabel}
+                  onClick={onSortField}
+                  title={`Switch ${title} sort field`}
+                />
+              )}
+              {onFilter && (
+                <FilterButton
+                  onClick={onFilter}
+                  active={filterActive}
+                  title={`Filter ${title}`}
+                />
+              )}
+              <button
+                onClick={onClose}
+                className="flex items-center gap-1 rounded border border-slate-700 px-2 py-1 text-xs text-slate-400 transition-colors hover:border-red-500/50 hover:text-red-300"
+                title={`Close ${title}`}
+              >
+                <X className="h-3 w-3" />
+                <span className="hidden sm:inline">Close</span>
+              </button>
+            </div>
+          </div>
+
+          {onSearchChange && (
+            <div className="border-b border-slate-800 p-4 pt-0">
+              <input
+                type="search"
+                value={searchValue}
+                onChange={(event) => onSearchChange(event.target.value)}
+                className="w-full rounded border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-500"
+                placeholder={searchPlaceholder}
+              />
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto p-4">
+            {children}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function CpuUtilizationRow({ vm }) {
+  return (
+    <div
+      className="flex items-center justify-between gap-2 rounded-lg bg-white/5 p-2 cursor-pointer hover:bg-white/10 transition-colors"
+      onClick={() => window.open("https://console.cloud.google.com/compute/instances", "_blank")}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 text-cyan-400">
+          <Cpu className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-white">{vm.instance}</p>
+          <div className="mt-0.5 flex items-center gap-2">
+            <span className="text-xs text-slate-400">P95 CPU:</span>
+            <span className="font-mono text-xs text-cyan-400">{vm.cpuP95}%</span>
+            {vm.recommendationMatch && (
+              <span className="whitespace-nowrap rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-400">
+                Rightsizing candidate
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="w-24 flex-shrink-0">
+        <UtilizationChart
+          data={[
+            vm.cpuP95 * 0.8,
+            vm.cpuP95 * 0.9,
+            vm.cpuP95,
+            vm.cpuP95 * 1.1,
+            vm.cpuP95,
+          ]}
+          unit="%"
+          height={32}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ListControls({
+  shownCount,
+  totalCount,
+  label,
+  sortDirection,
+  sortTitle,
+  onSort,
+  sortFieldLabel,
+  onSortField,
+  onFilter,
+  filterActive,
+  onViewAll,
+}) {
+  return (
+    <div className="mb-3 flex items-center justify-between px-1">
+      <div className="text-xs text-slate-500">
+        Showing {shownCount} of {totalCount} {label}
+      </div>
+      <div className="flex gap-2">
+        <SortButton direction={sortDirection} onClick={onSort} title={sortTitle} />
+        {onSortField && (
+          <SortFieldButton
+            label={sortFieldLabel}
+            onClick={onSortField}
+            title={`Switch ${label} sort field`}
+          />
+        )}
+        {onFilter && (
+          <FilterButton
+            onClick={onFilter}
+            active={filterActive}
+            title={`Filter ${label}`}
+          />
+        )}
+        <ViewAllButton onClick={onViewAll} title={`View all ${label}`} />
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ icon: Icon, title, subtitle }) {
+  return (
+    <div className="py-8 text-center text-slate-400">
+      <Icon className="w-12 h-12 mx-auto mb-2 opacity-40" />
+      <p>{title}</p>
+      <p className="text-xs mt-1">{subtitle}</p>
+    </div>
+  );
+}
+
+function RecommendationList({ rows }) {
+  return (
+    <div className="space-y-2">
+      {rows.map((rec, idx) => (
+        <RecommendationItem key={`${rec.resource}-${idx}`} {...rec} />
+      ))}
+    </div>
+  );
+}
+
+function CpuList({ rows }) {
+  return (
+    <div className="space-y-3">
+      {rows.map((vm, idx) => (
+        <CpuUtilizationRow key={`${vm.instance}-${idx}`} vm={vm} />
+      ))}
+    </div>
+  );
+}
+
+function getSortTitle(direction) {
+  return direction === "asc"
+    ? "Sorted A-Z. Click for Z-A."
+    : "Sorted Z-A. Click for A-Z.";
+}
+
+function toggleSort(current) {
+  return current === "asc" ? "desc" : "asc";
+}
+
+function toggleRightsizingSortField(current) {
+  const fields = ["name", "level", "costDelta", "resource"];
+  const currentIndex = fields.indexOf(current);
+  return fields[(currentIndex + 1) % fields.length];
+}
+
+function toggleCpuSortField(current) {
+  return current === "name" ? "candidate" : "name";
+}
+
+const getCpuRange = (vm) => {
+  const cpu = Number(vm?.cpuP95);
+  if (!Number.isFinite(cpu)) return "Unknown";
+  if (cpu < 10) return "0-10%";
+  if (cpu < 30) return "10-30%";
+  if (cpu < 40) return "30-40%";
+  if (cpu < 50) return "40-50%";
+  if (cpu < 60) return "50-60%";
+  return "60%+";
+};
+
+const getCandidateValue = (vm) => (vm?.recommendationMatch ? "Yes" : "No");
+
+const getRecommendationImpact = (rec) => (rec?.impact || "MEDIUM").toUpperCase();
+
+const matchesSearch = (item, query, getValues) => {
+  const normalizedQuery = String(query || "").trim().toLowerCase();
+  if (!normalizedQuery) return true;
+
+  return getValues(item).some((value) =>
+    String(value || "").toLowerCase().includes(normalizedQuery)
+  );
+};
+
+const buildSavingsRange = (recommendations) => {
+  const values = (recommendations || [])
+    .map((rec) => Number(rec?.monthlySavings))
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+
+  if (!values.length) {
+    return {
+      getRange: () => "Unknown",
+      options: [{ value: "Unknown", label: "Unknown" }],
+    };
+  }
+
+  const lowBreak = Math.ceil(values[Math.floor((values.length - 1) / 3)]);
+  const highBreak = Math.ceil(values[Math.floor(((values.length - 1) * 2) / 3)]);
+
+  if (lowBreak >= highBreak) {
+    const exactOptions = getUniqueOptions(recommendations || [], (rec) => {
+      const savings = Number(rec?.monthlySavings);
+      return Number.isFinite(savings) ? `$${savings.toFixed(2)}/mo` : "Unknown";
+    }).map((value) => ({ value, label: value }));
+
+    return {
+      getRange: (rec) => {
+        const savings = Number(rec?.monthlySavings);
+        return Number.isFinite(savings) ? `$${savings.toFixed(2)}/mo` : "Unknown";
+      },
+      options: exactOptions,
+    };
+  }
+
+  const lowLabel = `Under $${lowBreak}/mo`;
+  const midLabel = `$${lowBreak}-$${highBreak}/mo`;
+  const highLabel = `$${highBreak}+/mo`;
+
+  return {
+    getRange: (rec) => {
+      const savings = Number(rec?.monthlySavings);
+      if (!Number.isFinite(savings)) return "Unknown";
+      if (savings < lowBreak) return lowLabel;
+      if (savings < highBreak) return midLabel;
+      return highLabel;
+    },
+    options: [
+      { value: lowLabel, label: lowLabel },
+      { value: midLabel, label: midLabel },
+      { value: highLabel, label: highLabel },
+    ],
+  };
+};
 
 export default function FinOpsDashboard({
   onExit,
@@ -101,16 +429,19 @@ export default function FinOpsDashboard({
 }) {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const [cpuLimit, setCpuLimit] = useState(() =>
-    getStoredLimit("finops_cpu_limit", 3)
-  );
-  const [rightsizingLimit, setRightsizingLimit] = useState(() =>
-    getStoredLimit("finops_rightsizing_limit", 3)
-  );
-  const [idleResourceLimit, setIdleResourceLimit] = useState(() =>
-    getStoredLimit("finops_idle_resource_limit", 3)
-  );
+  const [showAllCpu, setShowAllCpu] = useState(false);
+  const [showAllRightsizing, setShowAllRightsizing] = useState(false);
+  const [showCpuFilters, setShowCpuFilters] = useState(false);
+  const [showRightsizingFilters, setShowRightsizingFilters] = useState(false);
+  const [cpuFilters, setCpuFilters] = useState({});
+  const [rightsizingFilters, setRightsizingFilters] = useState({});
+  const [cpuSearch, setCpuSearch] = useState("");
+  const [rightsizingSearch, setRightsizingSearch] = useState("");
+  const [finOpsRefreshKey, setFinOpsRefreshKey] = useState(0);
+  const [cpuSortDirection, setCpuSortDirection] = useState("asc");
+  const [cpuSortField, setCpuSortField] = useState("name");
+  const [rightsizingSortDirection, setRightsizingSortDirection] = useState("asc");
+  const [rightsizingSortField, setRightsizingSortField] = useState("name");
 
   const [budgetPage, setBudgetPage] = useState(0);
   const BUDGETS_PER_PAGE = 3;
@@ -143,18 +474,6 @@ export default function FinOpsDashboard({
   };
 
   useEffect(() => {
-    localStorage.setItem("finops_cpu_limit", cpuLimit);
-  }, [cpuLimit]);
-
-  useEffect(() => {
-    localStorage.setItem("finops_rightsizing_limit", rightsizingLimit);
-  }, [rightsizingLimit]);
-
-  useEffect(() => {
-    localStorage.setItem("finops_idle_resource_limit", idleResourceLimit);
-  }, [idleResourceLimit]);
-
-  useEffect(() => {
     async function fetchFinOpsData() {
       try {
         const res = await fetch("/api/finops");
@@ -165,9 +484,19 @@ export default function FinOpsDashboard({
 
         const json = await res.json();
         setData(json);
+        setCpuFilters({});
+        setRightsizingFilters({});
+        setCpuSearch("");
+        setRightsizingSearch("");
+        setFinOpsRefreshKey((current) => current + 1);
       } catch (err) {
         console.error("FinOps API error, using mock data:", err);
         setData(mockFinOpsData);
+        setCpuFilters({});
+        setRightsizingFilters({});
+        setCpuSearch("");
+        setRightsizingSearch("");
+        setFinOpsRefreshKey((current) => current + 1);
       } finally {
         setIsLoading(false);
       }
@@ -194,17 +523,140 @@ export default function FinOpsDashboard({
 
   const top10Services = sortedServices.slice(0, 10);
 
-  const utilizationRows = (data.utilization || []).slice(
-    0,
-    Math.min(cpuLimit, 12)
+  const filteredUtilizationRows = applyOptionFilters(data.utilization || [], cpuFilters, {
+    candidate: getCandidateValue,
+    cpuRange: getCpuRange,
+  });
+  const sortedUtilizationRows = [...filteredUtilizationRows].sort((a, b) => {
+    let result;
+
+    if (cpuSortField === "candidate") {
+      result = Number(Boolean(b?.recommendationMatch)) - Number(Boolean(a?.recommendationMatch));
+    } else {
+      result = String(a?.instance || "").localeCompare(String(b?.instance || ""), undefined, {
+        sensitivity: "base",
+      });
+    }
+
+    if (result === 0) {
+      result = String(a?.instance || "").localeCompare(String(b?.instance || ""), undefined, {
+        sensitivity: "base",
+      });
+    }
+
+    return cpuSortField === "candidate"
+      ? result
+      : cpuSortDirection === "asc"
+        ? result
+        : -result;
+  });
+  const utilizationRows = sortedUtilizationRows.slice(0, FINOPS_PREVIEW_LIMIT);
+  const searchedUtilizationRows = sortedUtilizationRows.filter((vm) =>
+    matchesSearch(vm, cpuSearch, (item) => [
+      item.instance,
+      item.cpuP95,
+      getCandidateValue(item),
+      getCpuRange(item),
+    ])
   );
 
-  const recommendationRows = (data.recommendations || []).slice(
-    0,
-    Math.min(rightsizingLimit, 12)
+  const savingsRange = buildSavingsRange(data.recommendations || []);
+  const filteredRecommendationRows = applyOptionFilters(data.recommendations || [], rightsizingFilters, {
+    resource: (rec) => rec.resource,
+    impact: getRecommendationImpact,
+    savingsRange: savingsRange.getRange,
+  });
+  const sortedRecommendationRows = [...filteredRecommendationRows].sort((a, b) => {
+    let result;
+
+    if (rightsizingSortField === "level") {
+      result =
+        (IMPACT_SORT_ORDER[getRecommendationImpact(a)] ?? 99) -
+        (IMPACT_SORT_ORDER[getRecommendationImpact(b)] ?? 99);
+    } else if (rightsizingSortField === "costDelta") {
+      result = Number(a?.monthlySavings || 0) - Number(b?.monthlySavings || 0);
+    } else {
+      result = String(a?.resource || "").localeCompare(String(b?.resource || ""), undefined, {
+        sensitivity: "base",
+      });
+    }
+
+    if (result === 0) {
+      result = String(a?.resource || "").localeCompare(String(b?.resource || ""), undefined, {
+        sensitivity: "base",
+      });
+    }
+
+    return rightsizingSortDirection === "asc" ? result : -result;
+  });
+  const recommendationRows = sortedRecommendationRows.slice(0, FINOPS_PREVIEW_LIMIT);
+  const searchedRecommendationRows = sortedRecommendationRows.filter((rec) =>
+    matchesSearch(rec, rightsizingSearch, (item) => [
+      item.resource,
+      item.description,
+      item.monthlySavings,
+      getRecommendationImpact(item),
+      savingsRange.getRange(item),
+    ])
   );
 
-  const idleResourceRows = (data.idleResources || []).slice(0, 12);
+  const idleResourceRows = data.idleResources || [];
+  const cpuSortTitle =
+    cpuSortField === "candidate"
+      ? "Sorted rightsizing candidates first."
+      : getSortTitle(cpuSortDirection);
+  const cpuSortFieldLabel = cpuSortField === "candidate" ? "Candidate" : "Name";
+  const rightsizingSortTitle =
+    rightsizingSortField === "level"
+      ? rightsizingSortDirection === "asc"
+        ? "Sorted LOW to HIGH. Click for HIGH to LOW."
+        : "Sorted HIGH to LOW. Click for LOW to HIGH."
+      : rightsizingSortField === "costDelta"
+        ? rightsizingSortDirection === "asc"
+          ? "Sorted low savings to high savings. Click to reverse."
+          : "Sorted high savings to low savings. Click to reverse."
+        : getSortTitle(rightsizingSortDirection);
+  const rightsizingSortFieldLabel =
+    rightsizingSortField === "level"
+      ? "Level"
+      : rightsizingSortField === "costDelta"
+        ? "Savings"
+        : rightsizingSortField === "resource"
+          ? "Resource"
+          : "Name";
+  const cpuFilterSections = [
+    {
+      key: "candidate",
+      label: "Rightsizing Candidate",
+      options: getUniqueOptions(data.utilization || [], getCandidateValue).map((value) => ({
+        value,
+        label: value,
+      })),
+    },
+    {
+      key: "cpuRange",
+      label: "CPU Usage Range",
+      options: ["0-10%", "10-30%", "30-40%", "40-50%", "50-60%"].map((value) => ({
+        value,
+        label: value,
+      })),
+    },
+  ];
+  const rightsizingFilterSections = [
+    {
+      key: "impact",
+      label: "Level",
+      options: getUniqueOptions(data.recommendations || [], getRecommendationImpact).map((value) => ({
+        value,
+        label: value,
+      })),
+    },
+    {
+      key: "savingsRange",
+      label: "Savings",
+      options: savingsRange.options,
+    },
+  ];
 
   const featuredQuote = data.quote || {
     text: "Optimize cloud costs with FinOps",
@@ -360,63 +812,33 @@ export default function FinOpsDashboard({
             >
               {data.utilization && data.utilization.length > 0 ? (
                 <>
-                  <div className="mb-3 flex items-center justify-between px-1">
-                    <div className="text-xs text-slate-500">
-                      Showing {getDisplayText(cpuLimit, data.utilization.length)} VMs
+                  <ListControls
+                    shownCount={Math.min(FINOPS_PREVIEW_LIMIT, sortedUtilizationRows.length)}
+                    totalCount={sortedUtilizationRows.length}
+                    label="VMs"
+                    sortDirection={cpuSortDirection}
+                    sortTitle={cpuSortTitle}
+                    onSort={() => setCpuSortDirection(toggleSort)}
+                    sortFieldLabel={cpuSortFieldLabel}
+                    onSortField={() => setCpuSortField(toggleCpuSortField)}
+                    onFilter={() => setShowCpuFilters(true)}
+                    filterActive={hasActiveFilters(cpuFilters)}
+                    onViewAll={() => setShowAllCpu(true)}
+                  />
+                  {utilizationRows.length ? (
+                    <CpuList rows={utilizationRows} />
+                  ) : (
+                    <div className="py-6 text-center text-sm text-slate-400">
+                      No VMs match the active filters.
                     </div>
-                    <CycleButton
-                      label="Cycle VMs"
-                      title="Cycle CPU utilization"
-                      onClick={() => setCpuLimit((current) => getNextLimit(current, data.utilization.length))}
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    {utilizationRows.map((vm, idx) => (
-                      <div
-                        key={`${vm.instance}-${idx}`}
-                        className="flex items-center justify-between gap-2 rounded-lg bg-white/5 p-2 cursor-pointer hover:bg-white/10 transition-colors"
-                        onClick={() => window.open("https://console.cloud.google.com/compute/instances", "_blank")}
-                      >
-                        <div className="flex min-w-0 flex-1 items-center gap-3">
-                          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 text-cyan-400">
-                            <Cpu className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-white">{vm.instance}</p>
-                            <div className="mt-0.5 flex items-center gap-2">
-                              <span className="text-xs text-slate-400">P95 CPU:</span>
-                              <span className="font-mono text-xs text-cyan-400">{vm.cpuP95}%</span>
-                              {vm.recommendationMatch && (
-                                <span className="whitespace-nowrap rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-400">
-                                  Rightsizing candidate
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="w-24 flex-shrink-0">
-                          <UtilizationChart
-                            data={[
-                              vm.cpuP95 * 0.8,
-                              vm.cpuP95 * 0.9,
-                              vm.cpuP95,
-                              vm.cpuP95 * 1.1,
-                              vm.cpuP95,
-                            ]}
-                            unit="%"
-                            height={32}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  )}
                 </>
               ) : (
-                <div className="py-8 text-center text-slate-400">
-                  <Gauge className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                  <p>No CPU utilization data available.</p>
-                  <p className="text-xs mt-1">CPU utilization appears within 5‑10 minutes after a VM starts.</p>
-                </div>
+                <EmptyState
+                  icon={Gauge}
+                  title="No CPU utilization data available."
+                  subtitle="CPU utilization appears within 5-10 minutes after a VM starts."
+                />
               )}
             </Card>
 
@@ -424,38 +846,36 @@ export default function FinOpsDashboard({
               title={<WidgetTitle icon={Sparkles} tone="emerald">Rightsizing Recommendations</WidgetTitle>}
               subtitle="Estimated monthly savings"
             >
-              <div className="mb-3 flex items-center justify-between px-1">
-                <div className="text-xs text-slate-500">
-                  Showing{" "}
-                  {getDisplayText(
-                    rightsizingLimit,
-                    data.recommendations?.length || 0
-                  )}{" "}
-                  recommendations
-                </div>
-                <CycleButton
-                  label="Cycle Rightsizing"
-                  title="Cycle rightsizing recommendations"
-                  onClick={() =>
-                    setRightsizingLimit((current) =>
-                      getNextLimit(current, data.recommendations?.length || 0)
-                    )
-                  }
+              {data.recommendations && data.recommendations.length > 0 ? (
+                <>
+                  <ListControls
+                    shownCount={Math.min(FINOPS_PREVIEW_LIMIT, sortedRecommendationRows.length)}
+                    totalCount={sortedRecommendationRows.length}
+                    label="recommendations"
+                    sortDirection={rightsizingSortDirection}
+                    sortTitle={rightsizingSortTitle}
+                    onSort={() => setRightsizingSortDirection(toggleSort)}
+                    sortFieldLabel={rightsizingSortFieldLabel}
+                    onSortField={() => setRightsizingSortField(toggleRightsizingSortField)}
+                    onFilter={() => setShowRightsizingFilters(true)}
+                    filterActive={hasActiveFilters(rightsizingFilters)}
+                    onViewAll={() => setShowAllRightsizing(true)}
+                  />
+                  {recommendationRows.length ? (
+                    <RecommendationList rows={recommendationRows} />
+                  ) : (
+                    <div className="py-6 text-center text-sm text-slate-400">
+                      No recommendations match the active filters.
+                    </div>
+                  )}
+                </>
+              ) : (
+                <EmptyState
+                  icon={Shrink}
+                  title="No recommendations available."
+                  subtitle="GCP Recommender API may take up to 48 hours to generate insights."
                 />
-              </div>
-              <div className="space-y-2">
-                {recommendationRows.map((rec, idx) => (
-                  <RecommendationItem key={`${rec.resource}-${idx}`} {...rec} />
-                ))}
-
-                {(!data.recommendations || data.recommendations.length === 0) && (
-                  <div className="py-8 text-center text-slate-400">
-                    <Shrink className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                    <p>No recommendations available.</p>
-                    <p className="text-xs mt-1">GCP Recommender API may take up to 48 hours to generate insights.</p>
-                  </div>
-                )}
-              </div>
+              )}
             </Card>
           </section>
 
@@ -465,18 +885,87 @@ export default function FinOpsDashboard({
               title={<WidgetTitle icon={Server} tone="amber">Idle Resources</WidgetTitle>}
               subtitle="Resources with low usage or cleanup opportunities"
               isLogs={false}
-              limit={idleResourceLimit}
-              cycleLabel="resources"
-              onLimitChange={() =>
-                setIdleResourceLimit((current) =>
-                  getNextLimit(current, data.idleResources?.length || 0)
-                )
-              }
+              limit={FINOPS_PREVIEW_LIMIT}
               onRowClick="https://console.cloud.google.com/home/dashboard"
+              filterResetKey={finOpsRefreshKey}
             />
           </section>
         </main>
       </div>
+
+      {showAllCpu && (
+        <FinOpsModal
+          title="CPU Utilization"
+          subtitle={`Showing ${searchedUtilizationRows.length} of ${(data.utilization || []).length} VMs`}
+          sortDirection={cpuSortDirection}
+          sortTitle={cpuSortTitle}
+          onSort={() => setCpuSortDirection(toggleSort)}
+          sortFieldLabel={cpuSortFieldLabel}
+          onSortField={() => setCpuSortField(toggleCpuSortField)}
+          onFilter={() => setShowCpuFilters(true)}
+          filterActive={hasActiveFilters(cpuFilters)}
+          searchValue={cpuSearch}
+          onSearchChange={setCpuSearch}
+          searchPlaceholder="Search VMs by instance, CPU range, or candidate status"
+          onClose={() => setShowAllCpu(false)}
+        >
+          {searchedUtilizationRows.length ? (
+            <CpuList rows={searchedUtilizationRows} />
+          ) : (
+            <div className="py-8 text-center text-sm text-slate-400">
+              No VMs match the active filters or search.
+            </div>
+          )}
+        </FinOpsModal>
+      )}
+
+      {showAllRightsizing && (
+        <FinOpsModal
+          title="Rightsizing Recommendations"
+          subtitle={`Showing ${searchedRecommendationRows.length} of ${(data.recommendations || []).length} recommendations`}
+          sortDirection={rightsizingSortDirection}
+          sortTitle={rightsizingSortTitle}
+          onSort={() => setRightsizingSortDirection(toggleSort)}
+          sortFieldLabel={rightsizingSortFieldLabel}
+          onSortField={() => setRightsizingSortField(toggleRightsizingSortField)}
+          onFilter={() => setShowRightsizingFilters(true)}
+          filterActive={hasActiveFilters(rightsizingFilters)}
+          searchValue={rightsizingSearch}
+          onSearchChange={setRightsizingSearch}
+          searchPlaceholder="Search recommendations by resource, impact, savings, or description"
+          onClose={() => setShowAllRightsizing(false)}
+        >
+          {searchedRecommendationRows.length ? (
+            <RecommendationList rows={searchedRecommendationRows} />
+          ) : (
+            <div className="py-8 text-center text-sm text-slate-400">
+              No recommendations match the active filters or search.
+            </div>
+          )}
+        </FinOpsModal>
+      )}
+
+      {showCpuFilters && (
+        <FilterOverlay
+          title="Filter CPU Utilization"
+          sections={cpuFilterSections}
+          filters={cpuFilters}
+          onToggle={(key, value) => setCpuFilters((current) => toggleFilterValue(current, key, value))}
+          onClear={() => setCpuFilters({})}
+          onClose={() => setShowCpuFilters(false)}
+        />
+      )}
+
+      {showRightsizingFilters && (
+        <FilterOverlay
+          title="Filter Rightsizing"
+          sections={rightsizingFilterSections}
+          filters={rightsizingFilters}
+          onToggle={(key, value) => setRightsizingFilters((current) => toggleFilterValue(current, key, value))}
+          onClear={() => setRightsizingFilters({})}
+          onClose={() => setShowRightsizingFilters(false)}
+        />
+      )}
     </div>
   );
 }

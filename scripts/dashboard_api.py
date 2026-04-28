@@ -66,9 +66,6 @@ STUDENT_NAME = "Kirk Alton"
 # Your billing account ID (hardcoded for reliability)
 BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"
 
-# Log Limit (max number of logs to save)
-LOG_LIMIT = 500
-
 # ---------------------------------------------------------------------------------------------
 # !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
 # ---------------------------------------------------------------------------------------------
@@ -387,9 +384,9 @@ def get_system_logs(limit=30):
                 ts_micro = int(entry.get("__REALTIME_TIMESTAMP", 0))
                 if ts_micro:
                     dt = datetime.fromtimestamp(ts_micro / 1_000_000)
-                    time_str = dt.strftime("%H:%M:%S")
+                    time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
                 else:
-                    time_str = datetime.now().strftime("%H:%M:%S")
+                    time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 message = entry.get("MESSAGE", "").strip()
                 scope = entry.get("SYSLOG_IDENTIFIER", "system")
                 logs.append({
@@ -406,76 +403,90 @@ def get_system_logs(limit=30):
         return []
 
 
-# Get all logs (with limit)
-from functools import lru_cache
-import time
-
 # Simple time-based cache (can also use @ttl_cache)
 _all_logs_cache = None
 _all_logs_cache_time = 0
-_all_logs_max_lines = 5000
+ALL_LOGS_MAX_LINES = 5000
+
+def _parse_journalctl_logs(raw_output):
+    logs = []
+    for line in raw_output.strip().split("\n"):
+        try:
+            entry = json.loads(line)
+            priority = int(entry.get("PRIORITY", 6))
+            if priority <= 3:
+                level = "ERROR"
+            elif priority == 4:
+                level = "WARN"
+            else:
+                level = "INFO"
+            ts_micro = int(entry.get("__REALTIME_TIMESTAMP", 0))
+            if ts_micro:
+                dt = datetime.fromtimestamp(ts_micro / 1_000_000)
+                time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                ts_micro = int(datetime.now().timestamp() * 1_000_000)
+                time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            message_val = entry.get("MESSAGE", "")
+            if isinstance(message_val, str):
+                message = message_val.strip()
+            else:
+                message = str(message_val)[:300]
+            source_val = entry.get("SYSLOG_IDENTIFIER", "system")
+            if isinstance(source_val, str):
+                source = source_val.strip()
+            else:
+                source = str(source_val)[:20]
+            logs.append({
+                "time": time_str,
+                "_timestamp": ts_micro,
+                "level": level,
+                "source": source[:20],
+                "message": message[:300]
+            })
+        except json.JSONDecodeError:
+            continue
+    return logs
 
 def get_all_logs(limit=100, offset=0, minutes=None):
     global _all_logs_cache, _all_logs_cache_time
-    # Cache for 10 seconds
-    if not _all_logs_cache or time.time() - _all_logs_cache_time > 10:
-        journalctl_path = "/usr/bin/journalctl"
-        cmd = [journalctl_path, "-n", str(_all_logs_max_lines), "--no-pager", "-o", "json"]
+    journalctl_path = "/usr/bin/journalctl"
+
+    if minutes:
+        cmd = [
+            journalctl_path,
+            "--since",
+            f"{minutes} minutes ago",
+            "--no-pager",
+            "-o",
+            "json"
+        ]
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             if result.returncode != 0 or not result.stdout.strip():
-                _all_logs_cache = []
+                filtered_logs = []
             else:
-                logs = []
-                for line in result.stdout.strip().split("\n"):
-                    try:
-                        entry = json.loads(line)
-                        priority = int(entry.get("PRIORITY", 6))
-                        if priority <= 3:
-                            level = "ERROR"
-                        elif priority == 4:
-                            level = "WARN"
-                        else:
-                            level = "INFO"
-                        ts_micro = int(entry.get("__REALTIME_TIMESTAMP", 0))
-                        if ts_micro:
-                            dt = datetime.fromtimestamp(ts_micro / 1_000_000)
-                            time_str = dt.strftime("%H:%M:%S")
-                        else:
-                            ts_micro = int(datetime.now().timestamp() * 1_000_000)
-                            time_str = datetime.now().strftime("%H:%M:%S")
-                        message_val = entry.get("MESSAGE", "")
-                        if isinstance(message_val, str):
-                            message = message_val.strip()
-                        else:
-                            message = str(message_val)[:300]
-                        source_val = entry.get("SYSLOG_IDENTIFIER", "system")
-                        if isinstance(source_val, str):
-                            source = source_val.strip()
-                        else:
-                            source = str(source_val)[:20]
-                        logs.append({
-                            "time": time_str,
-                            "_timestamp": ts_micro,
-                            "level": level,
-                            "source": source[:20],
-                            "message": message[:300]
-                        })
-                    except json.JSONDecodeError:
-                        continue
-                _all_logs_cache = logs
-                _all_logs_cache_time = time.time()
+                filtered_logs = _parse_journalctl_logs(result.stdout)
         except Exception as e:
-            print(f"Error fetching full logs: {e}", file=sys.stderr)
-            _all_logs_cache = []
-            _all_logs_cache_time = time.time()
-    
-    filtered_logs = _all_logs_cache
-    if minutes:
-        cutoff = int((time.time() - minutes * 60) * 1_000_000)
-        filtered_logs = [
-            log for log in _all_logs_cache if log.get("_timestamp", 0) >= cutoff
-        ]
+            print(f"Error fetching logs since {minutes} minutes ago: {e}", file=sys.stderr)
+            filtered_logs = []
+    else:
+        # Cache unbounded log browsing for 10 seconds.
+        if not _all_logs_cache or time.time() - _all_logs_cache_time > 10:
+            cmd = [journalctl_path, "-n", str(ALL_LOGS_MAX_LINES), "--no-pager", "-o", "json"]
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+                if result.returncode != 0 or not result.stdout.strip():
+                    _all_logs_cache = []
+                else:
+                    _all_logs_cache = _parse_journalctl_logs(result.stdout)
+                    _all_logs_cache_time = time.time()
+            except Exception as e:
+                print(f"Error fetching full logs: {e}", file=sys.stderr)
+                _all_logs_cache = []
+                _all_logs_cache_time = time.time()
+
+        filtered_logs = _all_logs_cache
 
     total = len(filtered_logs)
     start = offset
@@ -1025,7 +1036,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
         if self.path == '/api/config':
             try:
                 config = {
-                    "logLimit": LOG_LIMIT
+                    "allLogsMaxLines": ALL_LOGS_MAX_LINES
                 }
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
