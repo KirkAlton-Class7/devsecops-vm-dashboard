@@ -277,7 +277,7 @@ export default function App() {
             <div className="flex items-start gap-3">
               <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-300" />
               <div className="text-sm font-medium">
-                Clipboard unavailable on public HTTP. Try HTTPS, SSH tunnel, or manual copy.
+                Clipboard unavailable on public HTTP. Try HTTPS or manual copy.
               </div>
             </div>
           </motion.div>

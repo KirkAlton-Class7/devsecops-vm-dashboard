@@ -73,7 +73,7 @@ export default function MonitoringEndpointsCard({ endpoints, onCopyFailure }) {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => copyToClipboard(ep.url, idx)}
-                      className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                      className="p-1.5 rounded-lg opacity-0 transition-all hover:bg-white/10 group-hover:opacity-100 focus-visible:opacity-100"
                       title="Copy URL"
                     >
                       {copiedIndex === idx ? (
