@@ -2,6 +2,8 @@
 
 > **Prerequisite:** You must already have a dedicated Terraform service account (e.g., `terraform-service@PROJECT_ID.iam.gserviceaccount.com`). This runbook grants that account the ability to manage IAM policies on the billing account.
 
+> **Related:** For the full Terraform deployment model, including GCP VM provisioning, AWS Route 53 DNS, HTTPS, Nginx, and Certbot behavior, see [GCP Route 53 HTTPS Setup](./GCP_ROUTE53_HTTPS_SETUP.md).
+
 The Terraform code uses this permission when applying:
 
 ```hcl

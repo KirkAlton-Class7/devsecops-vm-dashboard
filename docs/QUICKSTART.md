@@ -23,6 +23,21 @@ The FinOps dashboard will show real data only after these prerequisites are met 
 > [!IMPORTANT]
 > Deployment is fully automated using a startup script.
 
+This project supports two deployment paths:
+
+| Path | Result | Best for |
+| --- | --- | --- |
+| **HTTP ClickOps VM deployment** | Serves the dashboard at `http://<VM_EXTERNAL_IP>` | Labs, demos, fast manual GCP Console deployment |
+| **Terraform HTTPS deployment** | Serves the dashboard at `https://dashboard.<domain>` | Repeatable infrastructure with DNS and TLS |
+
+The dashboard application does not require HTTPS to show real data. Real versus fallback data depends on GCP APIs, IAM roles, service account scopes, and BigQuery billing export. HTTPS only changes how browsers securely connect to the already-running dashboard.
+
+---
+
+## HTTP ClickOps Deployment
+
+Use this path when creating a VM manually in the GCP Console and pasting a startup script into the VM metadata field.
+
 1. **Copy the appropriate bootstrap script** into your VM’s user‑data / startup script field.
    * Use `infra/startup/gcp_startup.sh` as the **wrapper** – it installs `git`, clones the repo to `/opt/deploy`, and then runs the main bootstrap.
 
@@ -38,7 +53,13 @@ The FinOps dashboard will show real data only after these prerequisites are met 
    * Set up cron jobs for quotes (every 10 min), pricing (monthly), and auto‑deploy (every 15 min)
    * Start everything
 
-4. **Open the VM’s public IP** in your browser – the dashboard appears.
+4. **Open the VM’s public IP** in your browser:
+
+```text
+http://<VM_EXTERNAL_IP>
+```
+
+The HTTP ClickOps path does **not** configure HTTPS, Certbot, Route 53, or a TLS certificate.
 
 > [!TIP]
 > Logs are written to `/var/log/bootstrap.log` and `/var/log/startup-script.log` for troubleshooting.
@@ -46,6 +67,62 @@ The FinOps dashboard will show real data only after these prerequisites are met 
 > [!IMPORTANT]
 > The dashboard may take up to 10 minutes to fully install, build, and populate images and quotes.
 > FinOps data may take up to 24 hours to appear after enabling BigQuery billing export.
+
+---
+
+## HTTPS Terraform Deployment
+
+Use this path when deploying with Terraform and a real DNS name.
+
+The Terraform deployment can coordinate:
+
+- GCP VM creation
+- GCP static external IP
+- firewall rules for `80` and `443`
+- GCP service account and IAM roles
+- AWS Route 53 `A` record
+- instance metadata for the dashboard hostname and Let's Encrypt email
+
+The VM startup script then:
+
+1. installs the dashboard over HTTP first
+2. reads `dashboard-hostname` and `letsencrypt-email` from GCP metadata
+3. waits until DNS resolves to the VM public IP
+4. installs Certbot in `/opt/certbot-venv`
+5. requests a Let's Encrypt certificate
+6. updates Nginx to redirect HTTP to HTTPS
+
+Expected HTTPS URL:
+
+```text
+https://dashboard.kirkdevsecops.com
+```
+
+> [!NOTE]
+> Let's Encrypt certificates are issued for domain names, not raw IP addresses. Test HTTPS with the hostname, not `https://<VM_EXTERNAL_IP>`.
+
+### HTTPS Requirements
+
+- A public domain name, such as `kirkdevsecops.com`
+- A public DNS record pointing the dashboard hostname to the VM static IP
+- inbound firewall access for ports `80` and `443`
+- VM internet egress so Certbot can reach Let's Encrypt
+- a Let's Encrypt contact email
+- Nginx serving HTTP before Certbot runs
+
+### HTTPS Troubleshooting
+
+| Check | Command |
+| --- | --- |
+| DNS record | `dig +short dashboard.kirkdevsecops.com` |
+| HTTP response | `curl -I http://dashboard.kirkdevsecops.com` |
+| HTTPS response | `curl -I https://dashboard.kirkdevsecops.com` |
+| HTTPS setup service | `sudo systemctl status vm-dashboard-https.service` |
+| HTTPS setup logs | `sudo journalctl -u vm-dashboard-https.service --no-pager` |
+| Certbot certificates | `sudo /opt/certbot-venv/bin/certbot certificates` |
+| Renewal dry run | `sudo /opt/certbot-venv/bin/certbot renew --dry-run` |
+
+See the Terraform runbook in `terraform/terraform_docs/` for the full infrastructure setup.
 
 ---
 

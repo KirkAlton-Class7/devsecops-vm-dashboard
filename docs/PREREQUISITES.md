@@ -30,6 +30,50 @@ This runbook defines all prerequisite configuration required **before** deployin
 
 ---
 
+## **Deployment Mode Prerequisites**
+
+The dashboard can be deployed as HTTP-only or HTTPS.
+
+### **HTTP ClickOps VM Deployment**
+
+For a manual GCP Console VM deployment using `infra/startup/gcp_startup.sh`, you need:
+
+- A Debian 11 or Ubuntu 20.04/22.04 VM
+- A public external IP if you want browser access from the internet
+- Inbound firewall access on TCP `80`
+- Internet egress from the VM for package installs and GitHub clone
+- A service account attached to the VM with the roles listed in Stage 3
+- VM OAuth scopes that include `https://www.googleapis.com/auth/cloud-platform`
+
+This path serves the dashboard at:
+
+```text
+http://<VM_EXTERNAL_IP>
+```
+
+It does not configure DNS, HTTPS, Certbot, or a TLS certificate.
+
+### **Terraform HTTPS Deployment**
+
+For the Terraform-based HTTPS path, you also need:
+
+- Inbound firewall access on TCP `443`
+- A public DNS name, such as `dashboard.kirkdevsecops.com`
+- An AWS Route 53 public hosted zone for the root domain, or a manually managed DNS record
+- AWS credentials with permission to read the hosted zone and create/update the `A` record, if Terraform manages DNS
+- A Let's Encrypt contact email
+- DNS pointing the dashboard hostname to the GCP VM static external IP
+
+This path serves the dashboard at:
+
+```text
+https://dashboard.kirkdevsecops.com
+```
+
+> **Important:** HTTPS does not determine whether the dashboard shows real or fallback data. Real data depends on GCP IAM, APIs, service account scopes, and BigQuery billing export.
+
+---
+
 ## **Stage 1: Enable Required APIs**
 
 ```bash
