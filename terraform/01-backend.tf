@@ -8,7 +8,7 @@
 terraform {
   backend "gcs" {
     bucket = "kirkdevsecops-terraform-state"
-    prefix = "vm-dashboard-test/dev"
+    prefix = "vm-dashboard/dev"
   }
 }
 
