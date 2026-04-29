@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Quote, RefreshCw, Bookmark, Copy, Check, BookmarkCheck, Heart, Star, X } from "lucide-react";
 import Card from "./Card";
+import { writeClipboardText } from "../utils/clipboard";
 
 // Helper to format a comma-separated name list with "and"
 function formatNameList(nameStr) {
@@ -51,7 +52,7 @@ function getAttribution(quote) {
   return { primary, secondary };
 }
 
-export default function QuoteCard({ quote: initialQuote, onCopyFailure }) {
+export default function QuoteCard({ quote: initialQuote, onCopyFailure, onCopySuccess }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -119,15 +120,13 @@ export default function QuoteCard({ quote: initialQuote, onCopyFailure }) {
       textToCopy += `\n${secondary.join('\n')}`;
     }
     try {
-      if (!navigator.clipboard?.writeText) {
-        throw new Error("Clipboard API unavailable");
-      }
-      await navigator.clipboard.writeText(textToCopy);
+      await writeClipboardText(textToCopy);
       setCopied(true);
+      onCopySuccess?.("Quote copied to clipboard.");
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Failed to copy quote:", error);
-      onCopyFailure?.();
+      onCopyFailure?.(textToCopy, "quote");
     }
   };
 

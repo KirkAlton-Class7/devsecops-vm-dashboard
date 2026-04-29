@@ -7,6 +7,8 @@ import {
   Cpu,
   CircleDollarSign,
   DollarSign,
+  Braces,
+  Camera,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
@@ -23,12 +25,18 @@ export default function Header({
   monthlyBudget = 100,
   onMonthlyBudgetChange,
   mockDataDiagnostics = [],
+  onCopyJsonSnapshot,
+  onCopySnapshot,
 }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeButtonRef = useRef(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const diagnosticsButtonRef = useRef(null);
+  const [snapshotFlash, setSnapshotFlash] = useState(false);
+  const [jsonSnapshotFlash, setJsonSnapshotFlash] = useState(false);
+  const snapshotFlashTimeoutRef = useRef(null);
+  const jsonSnapshotFlashTimeoutRef = useRef(null);
 
   // Budget dropdown state
   const [showBudgetsMenu, setShowBudgetsMenu] = useState(false);
@@ -124,6 +132,41 @@ export default function Header({
   const toggleBudgetsMenu = () => {
     setShowBudgetsMenu(!showBudgetsMenu);
   };
+
+  const startSnapshotFlash = () => {
+    if (snapshotFlashTimeoutRef.current) clearTimeout(snapshotFlashTimeoutRef.current);
+    setSnapshotFlash(true);
+    snapshotFlashTimeoutRef.current = setTimeout(() => {
+      setSnapshotFlash(false);
+      snapshotFlashTimeoutRef.current = null;
+    }, 2000);
+  };
+
+  const handleSnapshotClick = async () => {
+    const copied = await onCopySnapshot?.();
+    if (copied !== false) startSnapshotFlash();
+  };
+
+  const startJsonSnapshotFlash = () => {
+    if (jsonSnapshotFlashTimeoutRef.current) clearTimeout(jsonSnapshotFlashTimeoutRef.current);
+    setJsonSnapshotFlash(true);
+    jsonSnapshotFlashTimeoutRef.current = setTimeout(() => {
+      setJsonSnapshotFlash(false);
+      jsonSnapshotFlashTimeoutRef.current = null;
+    }, 2000);
+  };
+
+  const handleJsonSnapshotClick = async () => {
+    const copied = await onCopyJsonSnapshot?.();
+    if (copied !== false) startJsonSnapshotFlash();
+  };
+
+  useEffect(() => {
+    return () => {
+      if (snapshotFlashTimeoutRef.current) clearTimeout(snapshotFlashTimeoutRef.current);
+      if (jsonSnapshotFlashTimeoutRef.current) clearTimeout(jsonSnapshotFlashTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!hasMockData) setShowDiagnostics(false);
@@ -454,6 +497,38 @@ export default function Header({
                   document.body
                 )}
             </div>
+
+            {/* Copy JSON snapshot */}
+            <motion.button
+              onClick={handleJsonSnapshotClick}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex h-8 w-8 items-center justify-center rounded-full border bg-white/5 text-slate-300 transition-all hover:border-white/40 hover:text-cyan-300 ${
+                jsonSnapshotFlash
+                  ? "border-cyan-300 text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.75)]"
+                  : "border-white/20"
+              }`}
+              title="Copy JSON snapshot"
+              aria-label="Copy JSON snapshot"
+            >
+              <Braces className="h-3.5 w-3.5" />
+            </motion.button>
+
+            {/* Copy snapshot */}
+            <motion.button
+              onClick={handleSnapshotClick}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex h-8 w-8 items-center justify-center rounded-full border bg-white/5 text-slate-300 transition-all hover:border-white/40 hover:text-cyan-300 ${
+                snapshotFlash
+                  ? "border-cyan-300 text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.75)]"
+                  : "border-white/20"
+              }`}
+              title="Copy snapshot"
+              aria-label="Copy snapshot"
+            >
+              <Camera className="h-3.5 w-3.5" />
+            </motion.button>
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # -------------------------------
-# Dashboard Customization
+# Dashboard configuration
 # -------------------------------
 DASHBOARD_APP_NAME="GCP Deployment"
 DASHBOARD_TAGLINE="Infrastructure health and activity"
@@ -9,14 +9,16 @@ DASHBOARD_USER="Kirk Alton"
 DASHBOARD_NAME="DevSecOps Dashboard"
 
 # ---------------------------------
-# Env Variables for React build
+# React build link configuration
 # ---------------------------------
 export VITE_GITHUB_URL="https://github.com/KirkAlton-Class7"
 export VITE_LINKEDIN_URL="https://www.linkedin.com/in/kirkcochranjr/"
 
-# ---------------------------------------------------------------------------------------------
-# !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
-# ---------------------------------------------------------------------------------------------
+# =================================
+# END OF CONFIGURATION
+# ---------------------------------
+# Modify sections below with caution.
+# ==================================
 
 GITHUB_QUOTES_URL="https://raw.githubusercontent.com/KirkAlton-Class7/devsecops-vm-dashboard/main/quotes.json"
 
@@ -43,7 +45,7 @@ log "  User: ${DASHBOARD_USER}"
 log "  Dashboard Name: ${DASHBOARD_NAME}"
 
 # ---------------------------------
-# Helper Functions
+# Shared helper functions
 # ---------------------------------
 retry() {
   local n=0 max=5 delay=2
@@ -65,7 +67,7 @@ wait_for_apt() {
 mkdir -p /opt
 
 # ---------------------------------
-# Install packages (including python3-pip)
+# Install base system packages
 # ---------------------------------
 wait_for_apt
 retry apt-get update -y
@@ -82,7 +84,7 @@ retry apt-get install -y \
   build-essential
 
 # ---------------------------------
-# Install Google Cloud SDK
+# Install Google Cloud CLI
 # ---------------------------------
 if ! command -v gcloud >/dev/null 2>&1; then
     log "Installing Google Cloud SDK"
@@ -94,7 +96,7 @@ if ! command -v gcloud >/dev/null 2>&1; then
 fi
 
 # ---------------------------------
-# Install Node.js
+# Install Node.js runtime
 # ---------------------------------
 if ! command -v node >/dev/null 2>&1; then
   log "Installing Node.js"
@@ -103,14 +105,14 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 # ----------------------------------------
-# Upgrade pip and Required Python Packages
+# Prepare Python package tooling
 # -----------------------------------------
 log "Upgrading pip and required libraries"
 python3 -m pip install --upgrade pip
 pip3 install --upgrade urllib3 requests
 
 # ---------------------------------
-# Install BigQuery Python library (required for FinOps)
+# Install BigQuery client library
 # ---------------------------------
 log "Installing google-cloud-bigquery"
 pip3 install --upgrade google-cloud-bigquery
@@ -120,13 +122,13 @@ log "Upgrading google-cloud-monitoring"
 pip3 install --upgrade google-cloud-monitoring
 
 # ---------------------------------
-# Install Monitoring Python library (required for CPU utilization)
+# Install Monitoring client library
 # ---------------------------------
 log "Installing google-cloud-monitoring"
 pip3 install --upgrade google-cloud-monitoring
 
 # ---------------------------------
-# Create app user & directories
+# Create app user and directories
 # ---------------------------------
 if ! id "${APP_USER}" >/dev/null 2>&1; then
   log "Creating user ${APP_USER}"
@@ -138,18 +140,18 @@ chown -R ${APP_USER}:${APP_USER} "${APP_DIR}"
 chmod -R 755 "${APP_DIR}"
 
 # ---------------------------------
-# Repository already cloned by wrapper to /opt/deploy
+# Validate and sync repository
 # ---------------------------------
 REPO_DIR="/opt/deploy"
 if [ ! -d "$REPO_DIR" ]; then
-  log "ERROR: Repo not found at $REPO_DIR - wrapper should have cloned it."
+  log "ERROR: Repo not found at $REPO_DIR. The wrapper script is expected to clone it before this step."
   exit 1
 fi
 cd "$REPO_DIR" && git pull
 chown -R ${APP_USER}:${APP_USER} "$REPO_DIR"
 
 # ---------------------------------
-# Copy utility scripts
+# Stage utility scripts
 # ---------------------------------
 mkdir -p /opt/scripts
 if [ -d "$REPO_DIR/scripts" ]; then
@@ -159,7 +161,7 @@ if [ -d "$REPO_DIR/scripts" ]; then
 fi
 
 # ---------------------------------
-# Pricing cache (once)
+# Generate initial pricing cache
 # ---------------------------------
 if [ -f "/opt/scripts/fetch_pricing.py" ]; then
     chmod +x /opt/scripts/fetch_pricing.py
@@ -169,7 +171,7 @@ if [ -f "/opt/scripts/fetch_pricing.py" ]; then
 fi
 
 # ---------------------------------
-# Quotes fallback
+# Seed fallback quote data
 # ---------------------------------
 LOCAL_QUOTES="${DATA_DIR}/quotes_local.json"
 ACTIVE_QUOTES="${DATA_DIR}/quotes.json"
@@ -189,7 +191,7 @@ cat > "${LOCAL_QUOTES}" <<'EOF'
 EOF
 
 # ---------------------------------
-# Cron jobs
+# Configure scheduled jobs
 # ---------------------------------
 log "Setting up cron: quotes every 10 minutes"
 CRON_CMD="*/10 * * * * curl -fsSL ${GITHUB_QUOTES_URL} -o ${DATA_DIR}/quotes.json.tmp && mv ${DATA_DIR}/quotes.json.tmp ${DATA_DIR}/quotes.json && cp ${DATA_DIR}/quotes.json ${DATA_DIR}/quotes_local.json >> /var/log/quotes-cron.log 2>&1 # vm-dashboard-sync"
@@ -199,7 +201,7 @@ log "Setting up pricing cron (monthly)"
 (crontab -l 2>/dev/null | grep -v 'fetch_pricing.py'; echo "0 3 1 * * export DATA_DIR=/var/www/vm-dashboard/data && /opt/scripts/fetch_pricing.py >> /var/log/pricing-cron.log 2>&1") | crontab -
 
 # ---------------------------------
-# Photo gallery (static images.json will be copied later)
+# Stage photo gallery assets
 # ---------------------------------
 log "Setting up photo gallery"
 mkdir -p "${DATA_DIR}/images"
@@ -210,7 +212,7 @@ chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}/images" 2>/dev/null || true
 chmod -R 755 "${DATA_DIR}/images" 2>/dev/null || true
 
 # ---------------------------------
-# Start Flask API service (using dashboard_api.py from repo)
+# Configure dashboard API service
 # ---------------------------------
 log "Setting up Flask API service"
 API_SCRIPT="/opt/deploy/scripts/dashboard_api.py"
@@ -253,7 +255,7 @@ else
 fi
 
 # ---------------------------------
-# Build & deploy React dashboard (fix npm permissions)
+# Build and deploy React dashboard
 # ---------------------------------
 log "Building dashboard"
 cd "$REPO_DIR/dashboard" || { log "ERROR: dashboard dir missing"; exit 1; }
@@ -284,7 +286,7 @@ cp -r "$REPO_DIR/dashboard/dist/"* ${APP_DIR}/
 chown -R ${APP_USER}:${APP_USER} ${APP_DIR}
 
 # ---------------------------------
-# Fetch quotes (final refresh)
+# Refresh quote data
 # ---------------------------------
 log "Force fetching quotes"
 retry curl -fsSL "${GITHUB_QUOTES_URL}" -o "${ACTIVE_QUOTES}.tmp"
@@ -299,7 +301,7 @@ if [ $? -eq 0 ] && [ -s "${ACTIVE_QUOTES}.tmp" ]; then
 fi
 
 # ---------------------------------
-# Ensure index.html exists
+# Ensure frontend entrypoint exists
 # ---------------------------------
 if [ ! -f "${APP_DIR}/index.html" ]; then
     log "Creating fallback index.html"
@@ -307,7 +309,7 @@ if [ ! -f "${APP_DIR}/index.html" ]; then
 fi
 
 # ---------------------------------
-# Nginx configuration
+# Configure Nginx HTTP site
 # ---------------------------------
 log "Configuring nginx"
 systemctl stop nginx || true
@@ -353,12 +355,12 @@ systemctl start nginx
 systemctl enable nginx
 
 # ---------------------------------
-# Get Public IP for final message
+# Resolve public access IP
 # ---------------------------------
 PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "unknown")
 
 # ---------------------------------
-# Validation
+# Validate local deployment
 # ---------------------------------
 sleep 2
 log "Validating deployment"
@@ -379,7 +381,7 @@ fi
 log "Startup complete"
 
 # ---------------------------------
-# Final static images.json copy
+# Apply final image metadata
 # ---------------------------------
 if [ -f "$REPO_DIR/images.json" ]; then
     cp -f "$REPO_DIR/images.json" "${DATA_DIR}/images.json"
@@ -389,7 +391,7 @@ if [ -f "$REPO_DIR/images.json" ]; then
 fi
 
 # ---------------------------------
-# Auto-deploy cron (every 15 min)
+# Configure auto-deploy schedule
 # ---------------------------------
 log "Setting up auto-deploy"
 cat > /opt/dashboard-deploy.sh << 'DEPLOY_SCRIPT'

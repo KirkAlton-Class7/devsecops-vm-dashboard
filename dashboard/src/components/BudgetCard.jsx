@@ -1,7 +1,8 @@
 import Card from "./Card";
 import { AlertTriangle, AlertCircle } from "lucide-react";
+import { buildBudgetSnapshot } from "../utils/widgetSnapshots";
 
-export default function BudgetCard({ name, amount, spent }) {
+export default function BudgetCard({ name, amount, spent, forecast, onCopyFailure, onCopySuccess }) {
   // Safely calculate percent used (avoid division by zero)
   let percentUsed = 0;
   if (amount > 0) {
@@ -30,7 +31,14 @@ export default function BudgetCard({ name, amount, spent }) {
       onClick={handleClick}
       className="cursor-pointer transition-transform duration-200 hover:scale-[1.02]"
     >
-      <Card title={name} subtitle="Budget status">
+      <Card
+        title={name}
+        subtitle="Budget status"
+        snapshotText={buildBudgetSnapshot({ name, amount, spent, forecast })}
+        snapshotLabel={`${name} Budget snapshot`}
+        onCopyFailure={onCopyFailure}
+        onCopySuccess={onCopySuccess}
+      >
         <div className="space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Spent</span>

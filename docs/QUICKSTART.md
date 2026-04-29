@@ -122,7 +122,7 @@ https://dashboard.kirkdevsecops.com
 | Certbot certificates | `sudo /opt/certbot-venv/bin/certbot certificates` |
 | Renewal dry run | `sudo /opt/certbot-venv/bin/certbot renew --dry-run` |
 
-See the Terraform runbook in `terraform/terraform_docs/` for the full infrastructure setup.
+See **[Terraform HTTPS with GCP + Route 53](./terraform_docs/HTTPS_SETUP.md)** for the full infrastructure setup.
 
 ---
 
@@ -208,7 +208,7 @@ curl -s http://127.0.0.1:8080/api/finops | jq '.summaryCards'
 curl -s "http://127.0.0.1:8080/api/logs?limit=5&offset=0&minutes=10" | jq '.logs[0]'
 ```
 **Expected result:** A log object with `time`, `level`, `source`, and `message`.  
-**Note:** Timestamps include the year (`YYYY-MM-DD HH:MM:SS`) so older-log pagination stays readable.
+**Note:** Log timestamps are emitted as ISO 8601 UTC strings, such as `2026-04-27T14:58:42Z`. The React UI formats them for local display.
 
 ---
 
@@ -243,6 +243,16 @@ The API will listen on `http://localhost:8080`.
 > The Vite dev server does not define an API proxy. In local development, frontend calls to `/api/dashboard` on `localhost:5173` fall back to mock dashboard data unless you serve through NGINX or add a local proxy.
 > `/api/logs` is intercepted in Vite development mode and served from `dashboard/src/mockLogs.js`, which keeps the all-logs modal useful for demos without a live `journalctl` backend.
 
+### Test Manual Copy Fallback Locally
+
+To simulate an HTTP/blocked-clipboard browser context during local development, open:
+
+```text
+http://localhost:5173/?HttpTest=1
+```
+
+Copy buttons will use the same Manual Copy modal path that public HTTP deployments use when the browser blocks Clipboard API access. This test flag is local-only and is ignored on the deployed HTTPS dashboard.
+
 ---
 
 ## Repository Structure
@@ -250,9 +260,15 @@ The API will listen on `http://localhost:8080`.
 ```
 devsecops-vm-dashboard/
 ├── dashboard/               # React frontend (Vite + Tailwind)
-├── images/                  # Gallery images
-├── images.json              # Image metadata (auto‑generated)
-├── quotes.json              # Featured quotes
+│   ├── public/data/         # Static quotes, images, and image metadata served by Vite/Nginx
+│   └── src/
+│       ├── components/      # React UI components
+│       ├── config/          # Frontend navigation/config
+│       ├── data/            # Mock dashboard and FinOps data
+│       └── utils/           # Clipboard and snapshot formatters
+├── images/                  # Source gallery images copied into dashboard/public/data/images
+├── images.json              # Source image metadata
+├── quotes.json              # Source featured quotes
 ├── scripts/
 │   ├── bootstrap/
 │   │   └── app_bootstrap.sh # Main dashboard deployment script
@@ -260,7 +276,23 @@ devsecops-vm-dashboard/
 │   └── fetch_pricing.py     # Pricing cache generator
 ├── infra/startup/
 │   └── gcp_startup.sh       # VM startup wrapper script
-├── terraform/               # GCP IAM/service account/VM snippets
+├── terraform/               # Terraform stack for GCP VM, IAM, networking, Route 53 DNS, and HTTPS metadata
+│   ├── 00-authentication.tf
+│   ├── 02-required-api.tf
+│   ├── 03-vpc.tf
+│   ├── 04-subnets.tf
+│   ├── 05-router.tf
+│   ├── 06-nat.tf
+│   ├── 07-firewall.tf
+│   ├── 08-compute.tf
+│   ├── 08-static-ip.tf
+│   ├── 09-outputs.tf
+│   ├── 10-service-accounts.tf
+│   ├── 11-dns.tf
+│   ├── locals.tf
+│   ├── variables.tf
+│   └── scripts/             # Terraform startup script copies and helper scripts
+├── docs/terraform_docs/     # Terraform deployment and service account runbooks
 └── README.md
 ```
 

@@ -7,6 +7,8 @@ import {
   toggleFilterValue,
 } from "./FilterOverlay";
 import { getPaginatedMockLogs } from "../mockLogs";
+import { generateDashboardJsonSnapshot, generateDashboardSnapshot } from "../utils/snapshot";
+import { writeClipboardText } from "../utils/clipboard";
 
 // Helper: format bytes (MB → GB/MB)
 const formatBytes = (mb) => {
@@ -19,6 +21,25 @@ const formatBytes = (mb) => {
 
 const getLogTime = (log) =>
   log?.time || log?.timestamp || log?.datetime || log?.createdAt || "";
+
+const formatLocalDateTime = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
+
+const getLogDisplayTime = (log) => {
+  const raw = getLogTime(log);
+  if (typeof raw === "number") return formatLocalDateTime(new Date(raw));
+
+  const value = String(raw || "").trim();
+  if (!value) return "";
+
+  const parsedDate = Date.parse(value);
+  if (!Number.isNaN(parsedDate)) return formatLocalDateTime(new Date(parsedDate));
+
+  return value;
+};
 
 const getLogLevel = (log) => (log?.level || log?.type || "INFO").toUpperCase();
 
@@ -199,9 +220,11 @@ export default function TextDashboard({
   flashTitle = false,
   onOpenFinOps,
   onCopyFailure,
+  onCopySuccess,
   mockDataDiagnostics = [],
 }) {
   const [copyFlash, setCopyFlash] = useState(false);
+  const [copyJsonFlash, setCopyJsonFlash] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [showHelp, setShowHelp] = useState(false);
   const [showMockDiagnostics, setShowMockDiagnostics] = useState(false);
@@ -223,6 +246,7 @@ export default function TextDashboard({
   const [serviceSortMode, setServiceSortMode] = useState("name-asc");
   const flashTimeoutRef = useRef(null);
   const copyFlashTimeoutRef = useRef(null);
+  const copyJsonFlashTimeoutRef = useRef(null);
   const pendingLiveLogOpenRef = useRef(null);
   const pendingServiceModalRef = useRef(null);
   const pendingLogFilterRef = useRef(null);
@@ -469,20 +493,19 @@ export default function TextDashboard({
   }, [serviceFilterItems.length]);
 
   const copySnapshot = useCallback(async () => {
-    const snapshot = generateTextSnapshot(
+    const snapshot = generateDashboardSnapshot({
+      mode: "devsecops",
       dashboard,
       lastRefresh,
       logLimit,
       serviceLimit,
       dashboardName,
-      tagline
-    );
+      tagline,
+    });
 
     try {
-      if (!navigator.clipboard?.writeText) {
-        throw new Error("Clipboard API unavailable");
-      }
-      await navigator.clipboard.writeText(snapshot);
+      await writeClipboardText(snapshot);
+      onCopySuccess?.("Dashboard snapshot copied to clipboard.");
       if (copyFlashTimeoutRef.current) clearTimeout(copyFlashTimeoutRef.current);
       setCopyFlash(true);
       copyFlashTimeoutRef.current = setTimeout(() => {
@@ -491,14 +514,42 @@ export default function TextDashboard({
       }, 2000);
     } catch (error) {
       console.error("Failed to copy snapshot:", error);
-      onCopyFailure?.();
+      onCopyFailure?.(snapshot, "dashboard snapshot");
     }
-  }, [dashboard, lastRefresh, logLimit, serviceLimit, dashboardName, tagline, onCopyFailure]);
+  }, [dashboard, lastRefresh, logLimit, serviceLimit, dashboardName, tagline, onCopyFailure, onCopySuccess]);
+
+  const copyJsonSnapshot = useCallback(async () => {
+    const payload = generateDashboardJsonSnapshot({
+      mode: "devsecops",
+      dashboard,
+      lastRefresh,
+      logLimit,
+      serviceLimit,
+      dashboardName,
+      tagline,
+    });
+    const snapshot = JSON.stringify(payload, null, 2);
+
+    try {
+      await writeClipboardText(snapshot);
+      onCopySuccess?.("JSON payload copied to clipboard.");
+      if (copyJsonFlashTimeoutRef.current) clearTimeout(copyJsonFlashTimeoutRef.current);
+      setCopyJsonFlash(true);
+      copyJsonFlashTimeoutRef.current = setTimeout(() => {
+        setCopyJsonFlash(false);
+        copyJsonFlashTimeoutRef.current = null;
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to copy JSON snapshot:", error);
+      onCopyFailure?.(snapshot, "JSON payload");
+    }
+  }, [dashboard, lastRefresh, logLimit, serviceLimit, dashboardName, tagline, onCopyFailure, onCopySuccess]);
 
   useEffect(() => {
     return () => {
       if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
       if (copyFlashTimeoutRef.current) clearTimeout(copyFlashTimeoutRef.current);
+      if (copyJsonFlashTimeoutRef.current) clearTimeout(copyJsonFlashTimeoutRef.current);
     };
   }, []);
 
@@ -733,6 +784,7 @@ export default function TextDashboard({
         refreshLiveLogs();
       }
       else if (e.key === "c" || e.key === "C") copySnapshot();
+      else if (e.key === "j" || e.key === "J") copyJsonSnapshot();
       else if (e.key === "h" || e.key === "H") setShowHelp((prev) => !prev);
       else if (e.key === "f" || e.key === "F") {
         if (pendingLogFilterRef.current) {
@@ -805,6 +857,7 @@ export default function TextDashboard({
     };
   }, [
     copySnapshot,
+    copyJsonSnapshot,
     logFilterCursor,
     logFilterItems,
     serviceFilterCursor,
@@ -909,6 +962,17 @@ export default function TextDashboard({
               </button>
 
               <button
+                onClick={copyJsonSnapshot}
+                className={`px-2 py-1 border rounded hover:bg-white/10 ${
+                  copyJsonFlash
+                    ? "border-cyan-400/60 text-cyan-300 shadow-[0_0_8px_theme(colors.cyan.400)]"
+                    : "border-white/20"
+                }`}
+              >
+                [J] {copyJsonFlash ? "COPIED" : "COPY JSON"}
+              </button>
+
+              <button
                 onClick={() => setShowHelp(!showHelp)}
                 className="px-2 py-1 border border-white/20 rounded hover:bg-white/10"
               >
@@ -994,6 +1058,7 @@ export default function TextDashboard({
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 <div>Esc - Exit text mode</div>
                 <div>C - Copy snapshot</div>
+                <div>J - Copy JSON snapshot</div>
                 <div>H - Toggle help</div>
                 <div>L - Sort logs</div>
                 <div>FL - Filter logs</div>
@@ -1254,7 +1319,7 @@ export default function TextDashboard({
                 key={idx}
                 className="grid grid-cols-1 gap-1 font-mono sm:grid-cols-[minmax(9rem,12rem)_5rem_minmax(5rem,10rem)_1fr] sm:gap-2"
               >
-                <span className="text-white/30">[{getLogTime(log)}]</span>
+                <span className="text-white/30">[{getLogDisplayTime(log)}]</span>
                 <span className={getLevelClass(level)}>[{level}]</span>
                 <span className={LOG_SOURCE_CLASS}>[{source}]</span>
                 <span className="break-words text-white/60">{getLogMessage(log)}</span>
@@ -1444,7 +1509,7 @@ export default function TextDashboard({
                         key={getLogLineKey(log, index)}
                         className="grid grid-cols-1 gap-1 border-b border-white/5 py-1 sm:grid-cols-[minmax(9rem,12rem)_5rem_minmax(5rem,10rem)_1fr] sm:gap-2"
                       >
-                        <span className="text-white/30">[{getLogTime(log)}]</span>
+                        <span className="text-white/30">[{getLogDisplayTime(log)}]</span>
                         <span className={getLevelClass(level)}>[{level}]</span>
                         <span className={LOG_SOURCE_CLASS}>[{source}]</span>
                         <span className="break-words text-white/70">{message}</span>
@@ -1669,118 +1734,4 @@ export default function TextDashboard({
       </AnimatePresence>
     </div>
   );
-}
-
-// Helper: generate snapshot for copying (includes detailed overview)
-function generateTextSnapshot(
-  dashboard,
-  lastRefresh,
-  logLimit,
-  serviceLimit,
-  dashboardName,
-  tagline
-) {
-  const serviceStats = {
-    total: dashboard.services?.length || 0,
-    healthy: dashboard.services?.filter((s) => s.status === "healthy").length || 0,
-    warning: dashboard.services?.filter((s) => s.status === "warning").length || 0,
-    critical: dashboard.services?.filter((s) => s.status === "critical").length || 0,
-  };
-  const hasIssues = serviceStats.critical > 0 || serviceStats.warning > 0;
-  const totalLogs = dashboard.logs?.length || 0;
-  const loadAvg =
-    dashboard.location?.loadAvg ||
-    dashboard.systemResources?.cpu?.loadAvg ||
-    dashboard.systemResources?.load5 ||
-    "0.00";
-
-  const systemResources = dashboard.systemResources || {};
-  const memory = systemResources.memory || {
-    total: 0,
-    used: 0,
-    free: 0,
-    available: 0,
-  };
-  const disk = systemResources.disk || { total: 0, used: 0, available: 0 };
-  const cpu = systemResources.cpu || {
-    usage: 0,
-    cores: null,
-    frequency: null,
-    loadAvg: null,
-  };
-
-  const formatMetric = (value) => {
-    if (!value && value !== 0) return "N/A";
-    const cleaned = value.toString().replace(/%$/, "");
-    return `${cleaned}%`;
-  };
-
-  const getCostValue = () => {
-    const costCard = dashboard.summaryCards?.find(
-      (c) => c.label === "Estimated Cost" || c.label === "Cost"
-    );
-    let raw = costCard?.value;
-
-    if (!raw && raw !== 0) return "N/A";
-    if (typeof raw === "number") return `$${raw.toFixed(2)}`;
-    if (typeof raw === "string") {
-      if (raw.startsWith("$")) return raw;
-      const numeric = parseFloat(raw.replace(/[^0-9.-]/g, ""));
-      if (!isNaN(numeric)) return `$${numeric.toFixed(2)}`;
-      return raw;
-    }
-
-    return "N/A";
-  };
-
-  const cpuRaw = dashboard.summaryCards?.find((c) => c.label === "CPU")?.value;
-  const memRaw = dashboard.summaryCards?.find((c) => c.label === "Memory")?.value;
-  const diskRaw = dashboard.summaryCards?.find((c) => c.label === "Disk")?.value;
-
-  const formatBytes = (mb) => {
-    if (!mb && mb !== 0) return "N/A";
-    if (mb > 1024) return `${(mb / 1024).toFixed(1)} GB`;
-    return `${Math.round(mb)} MB`;
-  };
-
-  return `
-${dashboardName.toUpperCase()} SNAPSHOT
-${tagline ? `${tagline}\n` : ""}
-Taken: ${lastRefresh.toLocaleString()}
-
-STATUS: ${hasIssues ? `${serviceStats.critical} critical, ${serviceStats.warning} warning` : "All systems operational"}
-
-IDENTITY
-Project: ${dashboard.identity?.project || "N/A"}
-Instance ID: ${dashboard.identity?.instanceId || "N/A"}
-Hostname: ${dashboard.identity?.hostname || "N/A"}
-Machine type: ${dashboard.identity?.machineType || "N/A"}
-
-OVERVIEW
-CPU: ${formatMetric(cpuRaw)} | Cores: ${cpu.cores || "?"} | Load (1min): ${cpu.loadAvg || loadAvg || "?"}
-Memory: ${formatMetric(memRaw)} | Total: ${formatBytes(memory.total)} | Avail: ${formatBytes(memory.available || memory.free)} | Used: ${formatBytes(memory.used)}
-Disk: ${formatMetric(diskRaw)} | Total: ${formatBytes(disk.total)} | Avail: ${formatBytes(disk.available)} | Used: ${formatBytes(disk.used)}
-Estimated Cost: ${getCostValue()}
-
-NETWORK
-VPC: ${dashboard.network?.vpc || "N/A"}
-Subnet: ${dashboard.network?.subnet || "N/A"}
-Internal IP: ${dashboard.network?.internalIp || "N/A"}
-External IP: ${dashboard.network?.externalIp || "N/A"}
-
-LOCATION
-Region: ${dashboard.location?.region || "N/A"}
-Zone: ${dashboard.location?.zone || "N/A"}
-Uptime: ${dashboard.meta?.uptime || "N/A"}
-5-min load avg: ${loadAvg}
-
-MONITORING ENDPOINTS
-${dashboard.monitoringEndpoints?.map((ep) => `${ep.name}: ${ep.url} [${ep.status}]`).join("\n") || "None"}
-
-SERVICES (${Math.min(serviceLimit, serviceStats.total)} of ${serviceStats.total})
-${dashboard.services?.slice(0, serviceLimit).map((s) => `${s.label} [${s.status}]`).join("\n")}
-
-LOGS ${logLimit >= totalLogs ? `(last ${totalLogs})` : `(last ${logLimit})`}
-${dashboard.logs?.slice(0, logLimit).map((log) => `[${getLogTime(log)}] [${getLogLevel(log)}] [${getLogSource(log)}] ${getLogMessage(log)}`).join("\n")}
-`;
 }

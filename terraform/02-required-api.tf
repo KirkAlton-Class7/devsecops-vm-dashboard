@@ -7,10 +7,8 @@ resource "google_project_service" "required_apis" {
     "compute.googleapis.com",
     "bigquery.googleapis.com",
     "monitoring.googleapis.com",
-    "logging.googleapis.com",
     "recommender.googleapis.com",
-    "cloudbilling.googleapis.com",
-    "billingbudgets.googleapis.com"
+    "cloudbilling.googleapis.com"
   ])
 
   project = "kirk-devsecops-sandbox"

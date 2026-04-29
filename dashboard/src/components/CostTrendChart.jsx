@@ -3,11 +3,14 @@ import { motion } from "framer-motion";
 import { useState, useRef } from "react";
 import { DollarSign } from "lucide-react";
 import Card from "./Card";
+import { buildDailyCostTrendSnapshot } from "../utils/widgetSnapshots";
 
 export default function CostTrendChart({
   title = "Daily Cost Trend",
   dailyBudget = 10,
   data = [],       // array of { date, value }
+  onCopyFailure,
+  onCopySuccess,
 }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [hoveredLabel, setHoveredLabel] = useState("");
@@ -139,6 +142,10 @@ export default function CostTrendChart({
       <Card
         title={title}
         subtitle="Cost data will appear once BigQuery export runs"
+        snapshotText={buildDailyCostTrendSnapshot(data, dailyBudget)}
+        snapshotLabel="Daily Cost Trend snapshot"
+        onCopyFailure={onCopyFailure}
+        onCopySuccess={onCopySuccess}
       >
         <div className="p-8 text-center text-slate-400">
           <DollarSign className="mx-auto mb-2 h-12 w-12 opacity-40" />
@@ -161,7 +168,14 @@ export default function CostTrendChart({
       transition={{ duration: 0.5 }}
       className="relative"
     >
-      <Card title={title} subtitle="Last 10 days (USD)">
+      <Card
+        title={title}
+        subtitle="Last 10 days (USD)"
+        snapshotText={buildDailyCostTrendSnapshot(data, dailyBudget)}
+        snapshotLabel="Daily Cost Trend snapshot"
+        onCopyFailure={onCopyFailure}
+        onCopySuccess={onCopySuccess}
+      >
         <div className="space-y-4">
           {/* Current Cost Indicator */}
           <div className="flex items-center justify-between rounded-lg bg-white/5 p-3">

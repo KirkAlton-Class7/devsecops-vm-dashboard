@@ -9,7 +9,7 @@ The API server (`scripts/dashboard_api.py`) provides live data for the dashboard
 * `/metadata` – instance metadata + health object
 * `/healthz` – basic service health check
 
-It runs as a **systemd service** on the VM (fixed port `8080`).
+It runs as a **systemd service** on the VM (port `8080`).
 
 ---
 
@@ -32,13 +32,13 @@ BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"
 
 > [!NOTE]
 > `STUDENT_NAME` is only used for display in the metadata endpoint.
-> It does **not** affect dashboard functionality or system behavior.
+> It does **not** affect functionality, or system behavior.
 
 ---
 
 ## Metadata Override Behavior (Important)
 
-Your API includes a runtime override:
+The API includes a runtime override:
 
 ```python
 student_name = get_metadata("instance/attributes/STUDENT_NAME")
@@ -62,20 +62,39 @@ STUDENT_NAME in Python
 > [!TIP]
 > This allows you to set `STUDENT_NAME` **without modifying code**, using instance metadata instead.
 
+#### Examle via gCloud CLI
+
+Add instance metadata attribute for `STUDENT_NAME`
+
+``` bash
+gcloud
+gcloud compute instances add-metadata vm-dashboard \
+  --zone us-central1-a \
+  --metadata STUDENT_NAME="Notla Krik"
+```
+Then restart the API on the VM:
+
+```bash
+sudo systemctl restart dashboard-api.service
+```
+
+
 ---
 
 ## Configuration Boundary
 
-```python
-# ---------------------------------------------------------------------------------------------
-# !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
-# ---------------------------------------------------------------------------------------------
+```bash
+# =================================
+# END OF CONFIGURATION
+# ---------------------------------
+# Modify sections below with caution.
+# ==================================
 ```
 
 > [!IMPORTANT]
 > Treat this as a **hard boundary**:
 >
-> * Above → safe for basic customization
+> * Above → safe for basic API customization
 > * Below → core application logic (API, metrics, system calls)
 
 ---
@@ -199,18 +218,18 @@ Supported query parameters:
 | `offset` | Pagination offset for older logs | `0` |
 | `minutes` | Optional time window in minutes | unset |
 
-Each log row includes:
+Each log row includes `time`, `level`, `source`, and `message`. The `time` field is an ISO 8601 UTC timestamp so API consumers can sort, filter, and parse log entries consistently.
 
 ```json
 {
-  "time": "2026-04-27 14:58:42",
+  "time": "2026-04-27T14:58:42Z",
   "level": "WARN",
   "source": "nginx",
-  "message": "..."
+  "message": "Upstream response time exceeded threshold for /api/dashboard"
 }
 ```
 
-`time` is formatted as `YYYY-MM-DD HH:MM:SS`. When `minutes` is set, the API queries journalctl with `--since` for that time window, then paginates the result. The frontend applies sort, search, and filters client-side to the currently loaded rows. Full refreshes reload the selected time window and reset active log filters.
+`time` uses the `YYYY-MM-DDTHH:MM:SSZ` shape. The trailing `Z` indicates UTC. When `minutes` is provided, the API asks `journalctl` for logs from that relative time window with `--since`, then applies pagination to the returned rows. The frontend keeps the ISO value as the data contract for sorting and filtering, but formats it into local time for display. Refreshing the logs reloads the selected time window and clears active log filters.
 
 ---
 

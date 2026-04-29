@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { XCircle } from "lucide-react";
+import { CheckCircle2, X } from "lucide-react";
 import Header from "./components/Header";
 import QuoteCard from "./components/QuoteCard";
 import ImageGallery from "./components/ImageGallery";
@@ -18,6 +18,8 @@ import NetworkParticles from "./components/NetworkParticles";
 import TextDashboard from "./components/TextDashboard";
 import FinOpsDashboard from "./components/FinOpsDashboard";
 import { mockDashboard, mockQuotes } from "./data/mockDashboard";
+import { generateDashboardJsonSnapshot, generateDashboardSnapshot } from "./utils/snapshot";
+import { writeClipboardText } from "./utils/clipboard";
 
 const getDashboardFallbackDiagnostics = () => [
   {
@@ -56,13 +58,16 @@ export default function App() {
   const [previousMode, setPreviousMode] = useState("standard");
   const [flashMode, setFlashMode] = useState(false);
   const [flashTextMode, setFlashTextMode] = useState(0);
-  const [copyFailureVisible, setCopyFailureVisible] = useState(false);
+  const [manualCopy, setManualCopy] = useState(null);
+  const [copySuccessVisible, setCopySuccessVisible] = useState(false);
+  const [copySuccessMessage, setCopySuccessMessage] = useState("Copied to clipboard.");
   const [dashboardDiagnostics, setDashboardDiagnostics] = useState([]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
     () => localStorage.getItem("dashboard_sidebar_collapsed") === "true"
   );
   const textFlashTimeoutRef = useRef(null);
-  const copyFailureTimeoutRef = useRef(null);
+  const copySuccessTimeoutRef = useRef(null);
+  const manualCopyTextareaRef = useRef(null);
 
   const startModeGlow = useCallback(() => {
     setFlashMode(true);
@@ -88,20 +93,48 @@ export default function App() {
     setMode(newMode);
   }, [mode]);
 
-  const showCopyFailure = useCallback(() => {
-    if (copyFailureTimeoutRef.current) clearTimeout(copyFailureTimeoutRef.current);
-    setCopyFailureVisible(true);
-    copyFailureTimeoutRef.current = setTimeout(() => {
-      setCopyFailureVisible(false);
-      copyFailureTimeoutRef.current = null;
-    }, 3000);
+  const showManualCopy = useCallback((text = "", label = "copied value") => {
+    if (copySuccessTimeoutRef.current) clearTimeout(copySuccessTimeoutRef.current);
+    setCopySuccessVisible(false);
+    setManualCopy({
+      label,
+      text: String(text ?? ""),
+    });
+  }, []);
+
+  const showCopySuccess = useCallback((message = "Copied to clipboard.") => {
+    if (copySuccessTimeoutRef.current) clearTimeout(copySuccessTimeoutRef.current);
+    setCopySuccessMessage(message);
+    setCopySuccessVisible(true);
+    copySuccessTimeoutRef.current = setTimeout(() => {
+      setCopySuccessVisible(false);
+      copySuccessTimeoutRef.current = null;
+    }, 2000);
   }, []);
 
   useEffect(() => {
     return () => {
-      if (copyFailureTimeoutRef.current) clearTimeout(copyFailureTimeoutRef.current);
+      if (copySuccessTimeoutRef.current) clearTimeout(copySuccessTimeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!manualCopy) return undefined;
+
+    const frame = requestAnimationFrame(() => {
+      manualCopyTextareaRef.current?.focus();
+      manualCopyTextareaRef.current?.select();
+    });
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setManualCopy(null);
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [manualCopy]);
 
   useEffect(() => {
     localStorage.setItem("dashboard_sidebar_collapsed", String(isSidebarCollapsed));
@@ -144,6 +177,77 @@ export default function App() {
   const logLimit = 30;
   const DEFAULT_SERVICE_LIMIT = 10;
   const serviceLimit = DEFAULT_SERVICE_LIMIT;
+
+  const handleCopySnapshot = useCallback(async (finopsData = null) => {
+    const snapshotMode = (finopsData || mode === "finops") ? "finops" : "devsecops";
+    let resolvedFinopsData = finopsData;
+
+    if (snapshotMode === "finops" && !resolvedFinopsData) {
+      try {
+        const res = await fetch("/api/finops", { cache: "no-store" });
+        if (res.ok) resolvedFinopsData = await res.json();
+      } catch (error) {
+        console.warn("FinOps snapshot data unavailable:", error);
+      }
+    }
+
+    const snapshot = generateDashboardSnapshot({
+      mode: snapshotMode,
+      dashboard,
+      finopsData: resolvedFinopsData,
+      lastRefresh: new Date(),
+      logLimit,
+      serviceLimit,
+      dashboardName: dashboard.meta?.dashboardName || "DevSecOps Dashboard",
+      tagline: dashboard.meta?.tagline || "Real-time infrastructure monitoring",
+    });
+
+    try {
+      await writeClipboardText(snapshot);
+      showCopySuccess("Dashboard snapshot copied to clipboard.");
+      return true;
+    } catch (error) {
+      console.error("Failed to copy snapshot:", error);
+      showManualCopy(snapshot, "dashboard snapshot");
+      return false;
+    }
+  }, [dashboard, logLimit, mode, serviceLimit, showManualCopy, showCopySuccess]);
+
+  const handleCopyJsonSnapshot = useCallback(async (finopsData = null) => {
+    const snapshotMode = (finopsData || mode === "finops") ? "finops" : "devsecops";
+    let resolvedFinopsData = finopsData;
+
+    if (snapshotMode === "finops" && !resolvedFinopsData) {
+      try {
+        const res = await fetch("/api/finops", { cache: "no-store" });
+        if (res.ok) resolvedFinopsData = await res.json();
+      } catch (error) {
+        console.warn("FinOps JSON snapshot data unavailable:", error);
+      }
+    }
+
+    const payload = generateDashboardJsonSnapshot({
+      mode: snapshotMode,
+      dashboard,
+      finopsData: resolvedFinopsData,
+      lastRefresh: new Date(),
+      logLimit,
+      serviceLimit,
+      dashboardName: dashboard.meta?.dashboardName || "DevSecOps Dashboard",
+      tagline: dashboard.meta?.tagline || "Real-time infrastructure monitoring",
+    });
+    const snapshot = JSON.stringify(payload, null, 2);
+
+    try {
+      await writeClipboardText(snapshot);
+      showCopySuccess("JSON payload copied to clipboard.");
+      return true;
+    } catch (error) {
+      console.error("Failed to copy JSON snapshot:", error);
+      showManualCopy(snapshot, "JSON payload");
+      return false;
+    }
+  }, [dashboard, logLimit, mode, serviceLimit, showManualCopy, showCopySuccess]);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -263,22 +367,71 @@ export default function App() {
     );
   }
 
-  const copyFailureToast = (
+  const manualCopyModal = (
     <AnimatePresence>
-      {copyFailureVisible && (
+      {manualCopy && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            className="flex max-h-[86vh] w-[min(92vw,44rem)] flex-col rounded-xl border border-cyan-300/25 bg-slate-950/95 text-slate-100 shadow-2xl shadow-cyan-950/20"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manual-copy-title"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-3">
+              <div>
+                <h2 id="manual-copy-title" className="text-sm font-semibold text-cyan-100">
+                  Manual Copy
+                </h2>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                  Clipboard access is unavailable on public HTTP or blocked by this browser. Highlight the {manualCopy.label} below and copy it manually.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setManualCopy(null)}
+                className="rounded-lg border border-white/10 p-1.5 text-slate-400 transition-colors hover:border-cyan-300/40 hover:text-cyan-200"
+                title="Close manual copy"
+                aria-label="Close manual copy"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 p-4">
+              <textarea
+                ref={manualCopyTextareaRef}
+                readOnly
+                value={manualCopy.text}
+                onFocus={(event) => event.currentTarget.select()}
+                className="h-[min(56vh,28rem)] w-full resize-none rounded-lg border border-slate-700 bg-slate-950 p-3 font-mono text-xs leading-relaxed text-slate-100 outline-none focus:border-cyan-300"
+                aria-label="Manual copy text"
+              />
+            </div>
+            <div className="border-t border-white/10 px-4 py-3 text-xs text-slate-500">
+              Select inside the text box, then use your system copy shortcut.
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
+  const copySuccessToast = (
+    <AnimatePresence>
+      {copySuccessVisible && (
         <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.97 }}
-            className="w-[min(92vw,32rem)] rounded-xl border border-red-400/35 bg-red-950/75 px-4 py-3 text-red-100 shadow-xl shadow-red-950/25 backdrop-blur-md"
-            role="alert"
+            className="w-[min(92vw,24rem)] rounded-xl border border-cyan-300/35 bg-slate-950/80 px-4 py-3 text-cyan-100 shadow-xl shadow-cyan-950/25 backdrop-blur-md"
+            role="status"
           >
             <div className="flex items-start gap-3">
-              <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-300" />
-              <div className="text-sm font-medium">
-                Clipboard unavailable on public HTTP. Try HTTPS or manual copy.
-              </div>
+              <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-cyan-300" />
+              <div className="text-sm font-medium">{copySuccessMessage}</div>
             </div>
           </motion.div>
         </div>
@@ -298,7 +451,8 @@ export default function App() {
           dashboardName={dashboard.meta?.dashboardName || "DevSecOps Dashboard"}
           flashTitle={flashTextMode}
           onOpenFinOps={() => handleModeChange("finops")}
-          onCopyFailure={showCopyFailure}
+          onCopyFailure={showManualCopy}
+          onCopySuccess={showCopySuccess}
           mockDataDiagnostics={mockDataDiagnostics}
           onRefresh={async () => {
             try {
@@ -315,7 +469,8 @@ export default function App() {
             }
           }}
         />
-        {copyFailureToast}
+        {manualCopyModal}
+        {copySuccessToast}
       </>
     );
   }
@@ -332,9 +487,13 @@ export default function App() {
           flashMode={flashMode}
           isSidebarCollapsed={isSidebarCollapsed}
           onToggleSidebar={toggleSidebarCollapsed}
-          onCopyFailure={showCopyFailure}
+          onCopyFailure={showManualCopy}
+          onCopySuccess={showCopySuccess}
+          onCopySnapshot={handleCopySnapshot}
+          onCopyJsonSnapshot={handleCopyJsonSnapshot}
         />
-        {copyFailureToast}
+        {manualCopyModal}
+        {copySuccessToast}
       </>
     );
   }
@@ -364,6 +523,8 @@ export default function App() {
           onModeChange={handleModeChange}
           flashMode={flashMode}
           mockDataDiagnostics={mockDataDiagnostics}
+          onCopyJsonSnapshot={handleCopyJsonSnapshot}
+          onCopySnapshot={handleCopySnapshot}
         />
         <motion.main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6" variants={containerVariants} initial="hidden" animate="visible">
           {/* Stats Cards */}
@@ -393,16 +554,20 @@ export default function App() {
 
           {/* Load Trend Chart */}
           <motion.section id="load" className="grid grid-cols-1 gap-6" variants={itemVariants}>
-            <LoadTrendChart />
+            <LoadTrendChart onCopyFailure={showManualCopy} onCopySuccess={showCopySuccess} />
           </motion.section>
 
           {/* Ambience */}
           <motion.section id="ambience" className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={itemVariants}>
             <div className="space-y-6">
-              <QuoteCard quote={featuredQuote} onCopyFailure={showCopyFailure} />
+              <QuoteCard
+                quote={featuredQuote}
+                onCopyFailure={showManualCopy}
+                onCopySuccess={showCopySuccess}
+              />
               <NetworkParticles />
             </div>
-            <ImageGallery />
+            <ImageGallery onCopyFailure={showManualCopy} onCopySuccess={showCopySuccess} />
           </motion.section>
 
           {/* VM Information */}
@@ -411,26 +576,40 @@ export default function App() {
               identity={dashboard.identity || {}}
               zone={dashboard.location?.zone}
               projectId={dashboard.identity?.project}
-              onCopyFailure={showCopyFailure}
+              onCopyFailure={showManualCopy}
+              onCopySuccess={showCopySuccess}
             />
-            <NetworkCard network={dashboard.network || {}} onCopyFailure={showCopyFailure} />
+            <NetworkCard
+              network={dashboard.network || {}}
+              onCopyFailure={showManualCopy}
+              onCopySuccess={showCopySuccess}
+            />
             <LocationCard
               location={dashboard.location || {}}
               instanceName={dashboard.identity?.instanceName}
               zone={dashboard.location?.zone}
               projectId={dashboard.identity?.project}
-              onCopyFailure={showCopyFailure}
+              onCopyFailure={showManualCopy}
+              onCopySuccess={showCopySuccess}
             />
           </motion.section>
 
           {/* System Resources */}
           <motion.section id="system-resources" className="grid grid-cols-1 gap-6" variants={itemVariants}>
-            <SystemResourcesCard resources={dashboard.systemResources || {}} />
+            <SystemResourcesCard
+              resources={dashboard.systemResources || {}}
+              onCopyFailure={showManualCopy}
+              onCopySuccess={showCopySuccess}
+            />
           </motion.section>
 
           {/* Monitoring Endpoints */}
           <motion.section id="monitoring-endpoints" className="grid grid-cols-1 gap-6" variants={itemVariants}>
-            <MonitoringEndpointsCard endpoints={dashboard.monitoringEndpoints || []} onCopyFailure={showCopyFailure} />
+            <MonitoringEndpointsCard
+              endpoints={dashboard.monitoringEndpoints || []}
+              onCopyFailure={showManualCopy}
+              onCopySuccess={showCopySuccess}
+            />
           </motion.section>
 
           {/* Services */}
@@ -440,6 +619,8 @@ export default function App() {
               subtitle="Service health, status, and performance"
               items={dashboard.services || []}
               limit={serviceLimit}
+              onCopyFailure={showManualCopy}
+              onCopySuccess={showCopySuccess}
             />
           </motion.section>
 
@@ -452,15 +633,17 @@ export default function App() {
                 scope: log.scope || "app",
                 status: log.message,
               })) || []}
-              title="Application Logs"
+              title="System Logs"
               isLogs={true}
               limit={logLimit}
-              onCopyFailure={showCopyFailure}
+              onCopyFailure={showManualCopy}
+              onCopySuccess={showCopySuccess}
             />
           </motion.section>
         </motion.main>
       </motion.div>
-      {copyFailureToast}
+      {manualCopyModal}
+      {copySuccessToast}
     </div>
   );
 }

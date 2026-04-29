@@ -95,14 +95,7 @@ const logTemplates = [
   },
 ];
 
-const formatTimestamp = (date) => {
-  const pad = (value) => String(value).padStart(2, "0");
-  return [
-    date.getFullYear(),
-    pad(date.getMonth() + 1),
-    pad(date.getDate()),
-  ].join("-") + ` ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-};
+const formatTimestamp = (date) => date.toISOString().replace(/\.\d{3}Z$/, "Z");
 
 const pickTemplate = (index) => {
   if (index > 0 && index % 67 === 0) {
@@ -154,4 +147,3 @@ export const getPaginatedMockLogs = (limit = 200, offset = 0, minutes = null) =>
   const hasMore = end < filteredLogs.length;
   return { logs, hasMore, offset: end };
 };
-

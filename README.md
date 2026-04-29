@@ -10,6 +10,7 @@ Provides:
 * **FinOps insights** (BigQuery cost trends, budgets, rightsizing, idle resources)
 * API-driven observability with paginated system logs
 * Sort, filter, search, and view-all workflows for logs, services, and FinOps lists
+* Clipboard-friendly dashboard, widget, and row snapshots with Manual Copy fallback on public HTTP
 * Header diagnostic warning when mock or fallback data is being displayed
 * Lightweight UI modes (terminal + visual)
 
@@ -52,8 +53,8 @@ Certificate private keys are intentionally **not** managed directly by Terraform
 
 Terraform setup docs:
 
-* **[Terraform HTTPS with GCP + Route 53](./terraform/terraform_docs/GCP_ROUTE53_HTTPS_SETUP.md)** – full HTTPS deployment flow
-* **[Terraform Service Account Billing Admin Setup](./terraform/terraform_docs/SA_CONFIG.md)** – one-time billing IAM setup
+* **[Terraform HTTPS with GCP + Route 53](./docs/terraform_docs/HTTPS_SETUP.md)** – full HTTPS deployment flow
+* **[Terraform Service Account Billing Admin Setup](./docs/terraform_docs/SA_CONFIG.md)** – one-time billing IAM setup
 
 ---
 

@@ -3,8 +3,9 @@ import { HardDrive, MemoryStick, Cpu, Gauge } from "lucide-react";
 import { useState, useEffect } from "react";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Card from "./Card";
+import { buildSystemResourcesSnapshot } from "../utils/widgetSnapshots";
 
-export default function SystemResourcesCard({ resources }) {
+export default function SystemResourcesCard({ resources, onCopyFailure, onCopySuccess }) {
   const [cpuHistory, setCpuHistory] = useState(() => resources?.cpu?.history || []);
   const [currentCpu, setCurrentCpu] = useState(resources?.cpu?.usage || 0);
 
@@ -68,7 +69,17 @@ export default function SystemResourcesCard({ resources }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.3 }}
     >
-      <Card title="System Resources" subtitle="CPU, memory, and disk">
+      <Card
+        title="System Resources"
+        subtitle="CPU, memory, and disk"
+        snapshotText={buildSystemResourcesSnapshot({
+          ...resources,
+          cpu: { ...(resources?.cpu || {}), usage: displayedCpuUsage },
+        })}
+        snapshotLabel="System Resources snapshot"
+        onCopyFailure={onCopyFailure}
+        onCopySuccess={onCopySuccess}
+      >
         {/* CPU Section with Live Chart */}
         <div className="mb-6">
           <div className="flex flex-col md:flex-row gap-6">

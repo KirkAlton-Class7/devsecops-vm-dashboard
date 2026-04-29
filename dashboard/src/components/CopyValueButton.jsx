@@ -1,11 +1,19 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Copy } from "lucide-react";
+import { writeClipboardText } from "../utils/clipboard";
+
+const formatCopyLabel = (label) => {
+  const value = String(label || "value").trim();
+  if (!value) return "Value";
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+};
 
 export default function CopyValueButton({
   value,
   label = "value",
   onCopyFailure,
+  onCopySuccess,
   className = "",
   hoverOnly = false,
 }) {
@@ -15,15 +23,13 @@ export default function CopyValueButton({
     event.stopPropagation();
 
     try {
-      if (!navigator.clipboard?.writeText) {
-        throw new Error("Clipboard API unavailable");
-      }
-      await navigator.clipboard.writeText(String(value ?? ""));
+      await writeClipboardText(value);
       setCopied(true);
+      onCopySuccess?.(`${formatCopyLabel(label)} copied to clipboard.`);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error(`Failed to copy ${label}:`, error);
-      onCopyFailure?.();
+      onCopyFailure?.(String(value ?? ""), label);
     }
   };
 

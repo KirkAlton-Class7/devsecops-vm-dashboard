@@ -88,7 +88,7 @@ gcloud services enable \
 ```
 
 > **Note:** This step is required once per project. If any API fails, check your project owner permissions.
-> The Terraform snippet in `terraform/required-apis.tf` enables this same API set.
+> The Terraform snippet in `terraform/02-required-api.tf` enables this same API set.
 
 ---
 

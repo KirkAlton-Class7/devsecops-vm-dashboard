@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowDown, ArrowUp, Eye, Filter, X } from "lucide-react";
 import Card from "./Card";
 import StatusDot from "./StatusDot";
+import { buildServicesSnapshot } from "../utils/widgetSnapshots";
 import FilterOverlay, {
   applyOptionFilters,
   getUniqueOptions,
@@ -64,7 +65,7 @@ const matchesSearch = (item, query) => {
   );
 };
 
-export default function SectionList({ title, subtitle, items, limit }) {
+export default function SectionList({ title, subtitle, items, limit, onCopyFailure, onCopySuccess }) {
   const [showAllModal, setShowAllModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({});
@@ -185,7 +186,14 @@ export default function SectionList({ title, subtitle, items, limit }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Card title={title} subtitle={subtitle}>
+        <Card
+          title={title}
+          subtitle={subtitle}
+          snapshotText={buildServicesSnapshot(sortedItems)}
+          snapshotLabel="Services snapshot"
+          onCopyFailure={onCopyFailure}
+          onCopySuccess={onCopySuccess}
+        >
           <div className="flex justify-between items-center mb-3 px-1">
             <div className="text-xs text-slate-500">
               Showing {shownCount} of {totalItems} services

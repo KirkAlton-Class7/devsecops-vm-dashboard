@@ -2,8 +2,9 @@ import { motion } from "framer-motion";
 import { Server, Database, Globe, Cpu, Fingerprint, Cloud } from "lucide-react";
 import Card from "./Card";
 import CopyValueButton from "./CopyValueButton";
+import { buildIdentitySnapshot } from "../utils/widgetSnapshots";
 
-export default function IdentityCard({ identity, zone, projectId, onCopyFailure }) {
+export default function IdentityCard({ identity, zone, projectId, onCopyFailure, onCopySuccess }) {
   const handleProjectClick = () => {
     if (identity?.project) {
       window.open(`https://console.cloud.google.com/welcome?project=${identity.project}`, "_blank");
@@ -34,7 +35,14 @@ export default function IdentityCard({ identity, zone, projectId, onCopyFailure 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card title="Identity" subtitle="Project and instance details">
+      <Card
+        title="Identity"
+        subtitle="Project and instance details"
+        snapshotText={buildIdentitySnapshot(identity)}
+        snapshotLabel="Identity snapshot"
+        onCopyFailure={onCopyFailure}
+        onCopySuccess={onCopySuccess}
+      >
         <div className="space-y-3">
           {items.map((item, idx) => (
             <motion.div
@@ -57,6 +65,7 @@ export default function IdentityCard({ identity, zone, projectId, onCopyFailure 
                   value={item.value || "unknown"}
                   label={item.label}
                   onCopyFailure={onCopyFailure}
+                  onCopySuccess={onCopySuccess}
                   hoverOnly
                 />
               </div>

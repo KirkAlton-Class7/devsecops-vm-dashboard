@@ -48,7 +48,7 @@ import urllib.request
 import concurrent.futures
 from google.cloud import monitoring_v3
 from google.cloud.monitoring_v3 import Aggregation
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from functools import wraps
 import time
@@ -110,6 +110,15 @@ def get_metadata(path, timeout=2):
         return "unknown"
     except (subprocess.TimeoutExpired, Exception):
         return "unknown"
+
+def format_iso_utc(dt):
+    """Return an ISO 8601 UTC timestamp without fractional seconds."""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+def iso_utc_from_microseconds(ts_micro):
+    return format_iso_utc(datetime.fromtimestamp(ts_micro / 1_000_000, tz=timezone.utc))
 
 def safe_basename(full_path):
     if not full_path or full_path == "unknown":
@@ -383,10 +392,9 @@ def get_system_logs(limit=30):
                     level = "INFO"
                 ts_micro = int(entry.get("__REALTIME_TIMESTAMP", 0))
                 if ts_micro:
-                    dt = datetime.fromtimestamp(ts_micro / 1_000_000)
-                    time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
+                    time_str = iso_utc_from_microseconds(ts_micro)
                 else:
-                    time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    time_str = format_iso_utc(datetime.now(timezone.utc))
                 message = entry.get("MESSAGE", "").strip()
                 scope = entry.get("SYSLOG_IDENTIFIER", "system")
                 logs.append({
@@ -422,11 +430,11 @@ def _parse_journalctl_logs(raw_output):
                 level = "INFO"
             ts_micro = int(entry.get("__REALTIME_TIMESTAMP", 0))
             if ts_micro:
-                dt = datetime.fromtimestamp(ts_micro / 1_000_000)
-                time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
+                time_str = iso_utc_from_microseconds(ts_micro)
             else:
-                ts_micro = int(datetime.now().timestamp() * 1_000_000)
-                time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                now_utc = datetime.now(timezone.utc)
+                ts_micro = int(now_utc.timestamp() * 1_000_000)
+                time_str = format_iso_utc(now_utc)
             message_val = entry.get("MESSAGE", "")
             if isinstance(message_val, str):
                 message = message_val.strip()
@@ -583,13 +591,13 @@ def get_cpu_utilization_all_vms():
     ).stdout.strip()
 
     # Build the API URL without aggregation (raw points)
-    end_time = datetime.utcnow().replace(microsecond=0)
+    end_time = datetime.now(timezone.utc).replace(microsecond=0)
     start_time = end_time - timedelta(hours=1)
 
     params = {
         "filter": 'metric.type="compute.googleapis.com/instance/cpu/utilization"',
-        "interval.startTime": start_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "interval.endTime": end_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+        "interval.startTime": format_iso_utc(start_time),
+        "interval.endTime": format_iso_utc(end_time)
     }
     headers = {"Authorization": f"Bearer {token}"}
     url = f"https://monitoring.googleapis.com/v3/projects/{project_id}/timeSeries"
@@ -785,10 +793,11 @@ def build_dashboard_data():
     # Logs – fetch real system logs (fallback to sample if none)
     logs = get_system_logs()
     if not logs:
+        now_utc = datetime.now(timezone.utc)
         logs = [
-            {"time": datetime.now().strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "Dashboard initialized (live API)"},
-            {"time": (datetime.now() - timedelta(minutes=5)).strftime("%H:%M:%S"), "level": "info", "scope": "metrics", "message": "Metrics collection active"},
-            {"time": (datetime.now() - timedelta(minutes=10)).strftime("%H:%M:%S"), "level": "info", "scope": "system", "message": "System health check passed"},
+            {"time": format_iso_utc(now_utc), "level": "info", "scope": "system", "message": "Dashboard initialized (live API)"},
+            {"time": format_iso_utc(now_utc - timedelta(minutes=5)), "level": "info", "scope": "metrics", "message": "Metrics collection active"},
+            {"time": format_iso_utc(now_utc - timedelta(minutes=10)), "level": "info", "scope": "system", "message": "System health check passed"},
             ]
 
     resource_table = [
@@ -966,7 +975,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 zone_full = get_metadata("instance/zone")
                 zone = safe_basename(zone_full)
                 region = zone.rsplit('-', 1)[0] if '-' in zone else "unknown"
-                startup_utc = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+                startup_utc = format_iso_utc(datetime.now(timezone.utc))
                 uptime = get_uptime()
 
                 # ----- HEALTH -----

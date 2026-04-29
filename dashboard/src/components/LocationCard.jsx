@@ -2,8 +2,9 @@ import { motion } from "framer-motion";
 import { MapPin, Clock, Activity, Gauge, Navigation, Timer } from "lucide-react";
 import Card from "./Card";
 import CopyValueButton from "./CopyValueButton";
+import { buildLocationSnapshot } from "../utils/widgetSnapshots";
 
-export default function LocationCard({ location, instanceName, zone, projectId, onCopyFailure }) {
+export default function LocationCard({ location, instanceName, zone, projectId, onCopyFailure, onCopySuccess }) {
   const handleRegionZoneClick = () => {
     window.open("https://console.cloud.google.com/cloud-hub/", "_blank");
   };
@@ -29,7 +30,14 @@ export default function LocationCard({ location, instanceName, zone, projectId, 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
     >
-      <Card title="Location" subtitle="Placement and availability">
+      <Card
+        title="Location"
+        subtitle="Placement and availability"
+        snapshotText={buildLocationSnapshot(location)}
+        snapshotLabel="Location snapshot"
+        onCopyFailure={onCopyFailure}
+        onCopySuccess={onCopySuccess}
+      >
         <div className="space-y-3">
           {items.map((item, idx) => (
             <motion.div
@@ -52,6 +60,7 @@ export default function LocationCard({ location, instanceName, zone, projectId, 
                   value={item.value || "unknown"}
                   label={item.label}
                   onCopyFailure={onCopyFailure}
+                  onCopySuccess={onCopySuccess}
                   hoverOnly
                 />
               </div>

@@ -36,6 +36,11 @@ import FilterOverlay, {
 } from "./FilterOverlay";
 import { finopsNavItems } from "../config/finopsNavItems";
 import { mockFinOpsData } from "../data/mockFinOpsDashboard";
+import {
+  buildCpuUtilizationSnapshot,
+  buildIdleResourcesSnapshot,
+  buildRightsizingSnapshot,
+} from "../utils/widgetSnapshots";
 
 const FINOPS_PREVIEW_LIMIT = 10;
 const FINOPS_FALLBACK_DIAGNOSTICS = [
@@ -221,7 +226,7 @@ function FinOpsModal({
   );
 }
 
-function CpuUtilizationRow({ vm, onCopyFailure }) {
+function CpuUtilizationRow({ vm, onCopyFailure, onCopySuccess }) {
   return (
     <div
       className="group flex items-center justify-between gap-2 rounded-lg bg-white/5 p-2 cursor-pointer hover:bg-white/10 transition-colors"
@@ -268,6 +273,7 @@ function CpuUtilizationRow({ vm, onCopyFailure }) {
         value={vm.instance}
         label="instance ID"
         onCopyFailure={onCopyFailure}
+        onCopySuccess={onCopySuccess}
         hoverOnly
       />
     </div>
@@ -324,17 +330,22 @@ function EmptyState({ icon: Icon, title, subtitle }) {
   );
 }
 
-function RecommendationList({ rows }) {
+function RecommendationList({ rows, onCopyFailure, onCopySuccess }) {
   return (
     <div className="space-y-2">
       {rows.map((rec, idx) => (
-        <RecommendationItem key={`${rec.resource}-${idx}`} {...rec} />
+        <RecommendationItem
+          key={`${rec.resource}-${idx}`}
+          {...rec}
+          onCopyFailure={onCopyFailure}
+          onCopySuccess={onCopySuccess}
+        />
       ))}
     </div>
   );
 }
 
-function CpuList({ rows, onCopyFailure }) {
+function CpuList({ rows, onCopyFailure, onCopySuccess }) {
   return (
     <div className="space-y-3">
       {rows.map((vm, idx) => (
@@ -342,6 +353,7 @@ function CpuList({ rows, onCopyFailure }) {
           key={`${vm.instance}-${idx}`}
           vm={vm}
           onCopyFailure={onCopyFailure}
+          onCopySuccess={onCopySuccess}
         />
       ))}
     </div>
@@ -453,6 +465,9 @@ export default function FinOpsDashboard({
   isSidebarCollapsed = false,
   onToggleSidebar,
   onCopyFailure,
+  onCopySuccess,
+  onCopySnapshot,
+  onCopyJsonSnapshot,
 }) {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -718,6 +733,8 @@ export default function FinOpsDashboard({
           monthlyBudget={monthlyBudget}
           onMonthlyBudgetChange={setMonthlyBudget}
           mockDataDiagnostics={finOpsDiagnostics}
+          onCopyJsonSnapshot={() => onCopyJsonSnapshot?.(data)}
+          onCopySnapshot={() => onCopySnapshot?.(data)}
         />
 
         <main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6">
@@ -750,6 +767,8 @@ export default function FinOpsDashboard({
               }
               dailyBudget={dailyBudget}
               data={data.costTrend || []}        // <-- passes the trend data from API/mock
+              onCopyFailure={onCopyFailure}
+              onCopySuccess={onCopySuccess}
             />
 
             <CostBreakdownChart
@@ -761,6 +780,8 @@ export default function FinOpsDashboard({
               }
               dataKey="value"
               nameKey="name"
+              onCopyFailure={onCopyFailure}
+              onCopySuccess={onCopySuccess}
             />
           </section>
 
@@ -769,11 +790,15 @@ export default function FinOpsDashboard({
             className="grid grid-cols-1 gap-6 md:grid-cols-2"
           >
             <div className="space-y-6">
-              <QuoteCard quote={featuredQuote} />
+              <QuoteCard
+                quote={featuredQuote}
+                onCopyFailure={onCopyFailure}
+                onCopySuccess={onCopySuccess}
+              />
               <NetworkParticles />
             </div>
 
-            <ImageGallery />
+            <ImageGallery onCopyFailure={onCopyFailure} onCopySuccess={onCopySuccess} />
           </section>
 
           {data.budgets && data.budgets.length > 0 && (
@@ -803,7 +828,12 @@ export default function FinOpsDashboard({
                       {data.budgets
                         .slice(pageIdx * BUDGETS_PER_PAGE, (pageIdx + 1) * BUDGETS_PER_PAGE)
                         .map((budget, idx) => (
-                          <BudgetCard key={`${budget.name}-${idx}`} {...budget} />
+                          <BudgetCard
+                            key={`${budget.name}-${idx}`}
+                            {...budget}
+                            onCopyFailure={onCopyFailure}
+                            onCopySuccess={onCopySuccess}
+                          />
                         ))}
                     </div>
                   ))}
@@ -842,6 +872,10 @@ export default function FinOpsDashboard({
             <Card
               title={<WidgetTitle icon={Gauge} tone="cyan">CPU Utilization</WidgetTitle>}
               subtitle="Top VMs • Last hour, P95"
+              snapshotText={buildCpuUtilizationSnapshot(sortedUtilizationRows)}
+              snapshotLabel="CPU Utilization snapshot"
+              onCopyFailure={onCopyFailure}
+              onCopySuccess={onCopySuccess}
             >
               {data.utilization && data.utilization.length > 0 ? (
                 <>
@@ -859,7 +893,11 @@ export default function FinOpsDashboard({
                     onViewAll={() => setShowAllCpu(true)}
                   />
                   {utilizationRows.length ? (
-                    <CpuList rows={utilizationRows} onCopyFailure={onCopyFailure} />
+                    <CpuList
+                      rows={utilizationRows}
+                      onCopyFailure={onCopyFailure}
+                      onCopySuccess={onCopySuccess}
+                    />
                   ) : (
                     <div className="py-6 text-center text-sm text-slate-400">
                       No VMs match the active filters.
@@ -878,6 +916,10 @@ export default function FinOpsDashboard({
             <Card
               title={<WidgetTitle icon={Sparkles} tone="emerald">Rightsizing Recommendations</WidgetTitle>}
               subtitle="Estimated monthly savings"
+              snapshotText={buildRightsizingSnapshot(sortedRecommendationRows)}
+              snapshotLabel="Rightsizing Recommendations snapshot"
+              onCopyFailure={onCopyFailure}
+              onCopySuccess={onCopySuccess}
             >
               {data.recommendations && data.recommendations.length > 0 ? (
                 <>
@@ -895,7 +937,11 @@ export default function FinOpsDashboard({
                     onViewAll={() => setShowAllRightsizing(true)}
                   />
                   {recommendationRows.length ? (
-                    <RecommendationList rows={recommendationRows} />
+                    <RecommendationList
+                      rows={recommendationRows}
+                      onCopyFailure={onCopyFailure}
+                      onCopySuccess={onCopySuccess}
+                    />
                   ) : (
                     <div className="py-6 text-center text-sm text-slate-400">
                       No recommendations match the active filters.
@@ -921,6 +967,10 @@ export default function FinOpsDashboard({
               limit={FINOPS_PREVIEW_LIMIT}
               onRowClick="https://console.cloud.google.com/home/dashboard"
               filterResetKey={finOpsRefreshKey}
+              onCopyFailure={onCopyFailure}
+              onCopySuccess={onCopySuccess}
+              snapshotText={buildIdleResourcesSnapshot(idleResourceRows)}
+              snapshotLabel="Idle Resources snapshot"
             />
           </section>
         </main>
@@ -943,7 +993,11 @@ export default function FinOpsDashboard({
           onClose={() => setShowAllCpu(false)}
         >
           {searchedUtilizationRows.length ? (
-            <CpuList rows={searchedUtilizationRows} onCopyFailure={onCopyFailure} />
+            <CpuList
+              rows={searchedUtilizationRows}
+              onCopyFailure={onCopyFailure}
+              onCopySuccess={onCopySuccess}
+            />
           ) : (
             <div className="py-8 text-center text-sm text-slate-400">
               No VMs match the active filters or search.
@@ -969,7 +1023,11 @@ export default function FinOpsDashboard({
           onClose={() => setShowAllRightsizing(false)}
         >
           {searchedRecommendationRows.length ? (
-            <RecommendationList rows={searchedRecommendationRows} />
+            <RecommendationList
+              rows={searchedRecommendationRows}
+              onCopyFailure={onCopyFailure}
+              onCopySuccess={onCopySuccess}
+            />
           ) : (
             <div className="py-8 text-center text-sm text-slate-400">
               No recommendations match the active filters or search.

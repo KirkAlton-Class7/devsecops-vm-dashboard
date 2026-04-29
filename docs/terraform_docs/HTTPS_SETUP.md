@@ -444,7 +444,7 @@ sudo systemctl status nginx
 | Certbot says DNS is wrong | Route 53 record has not propagated or points to old IP | Check `dig +short` and Terraform output |
 | HTTPS by IP fails | Certificate is for hostname, not IP | Use `https://dashboard.kirkdevsecops.com` |
 | Certbot Python/OpenSSL error | OS Certbot package dependency mismatch | Use `/opt/certbot-venv/bin/certbot` |
-| Dashboard shows fallback data | IAM/API/BigQuery prerequisites missing | Review `docs/PREREQUISITES.md` |
+| Dashboard shows fallback data | IAM/API/BigQuery prerequisites missing | Review [GCP prerequisites](../PREREQUISITES.md) |
 
 ---
 

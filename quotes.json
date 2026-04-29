@@ -2198,5 +2198,37 @@
   "author": "Jonathan Trooper",
   "source": "Your Friends & Neighbors",
   "tags": ["morality", "consequence", "ethics", "warning"]
+},
+{
+  "id": 276,
+  "text": "To heal the world, we first have to heal ourselves, and to heal the kids, we first have to heal the child within each and every one of us.",
+  "speaker": "Michael Jackson",
+  "author": "Michael Jackson, Shmuley Boteach",
+  "source": "Oxford Union Speech, Oxford University, 2001",
+  "tags": ["healing", "personal-growth", "children", "humanity"]
+},
+{
+  "id": 277,
+  "text": "To all of you who feel let down by your parents, let down your disappointments. To all of you tonight who feel cheated by your fathers and mothers, I ask you not to cheat yourself further... extend your hand to them instead.",
+  "speaker": "Michael Jackson",
+  "author": "Michael Jackson, Shmuley Boteach",
+  "source": "Oxford Union Speech, Oxford University, 2001",
+  "tags": ["forgiveness", "parents", "healing", "family"]
+},
+{
+  "id": 278,
+  "text": "Cowardice is not just avoiding fear; its allowing fear to control your actions and your life.",
+  "speaker": null,
+  "author": "Sunshine Shoulders (@calroach1)",
+  "source": "COWARDICE Is The Reason Men Struggle In The West!",
+  "tags": ["fear", "cowardice", "self-mastery", "agency"]
+},
+{
+  "id": 279,
+  "text": "Courage is acting, despite fear.",
+  "speaker": null,
+  "author": "Sunshine Shoulders (@calroach1)",
+  "source": "COWARDICE Is The Reason Men Struggle In The West!",
+  "tags": ["courage", "fear", "bravery", "action"]
 }
 ]

@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
-import { RefreshCw, Heart, ChevronLeft, ChevronRight, ImageOff, Plane, X, Home, Info } from "lucide-react";
+import { RefreshCw, Heart, ChevronLeft, ChevronRight, ImageOff, Plane, X, Home, Info, Copy, Check } from "lucide-react";
 import { createPortal } from "react-dom";
 import Card from "./Card";
+import { writeClipboardText } from "../utils/clipboard";
 
 const shuffleArray = (array) => {
   const shuffled = [...array];
@@ -13,7 +14,7 @@ const shuffleArray = (array) => {
   return shuffled;
 };
 
-export default function ImageGallery() {
+export default function ImageGallery({ onCopyFailure, onCopySuccess }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedImageIds, setLikedImageIds] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -23,7 +24,9 @@ export default function ImageGallery() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showLocation, setShowLocation] = useState(true);
+  const [copiedScene, setCopiedScene] = useState(false);
   const hideLocationTimeout = useRef(null);
+  const copiedSceneTimeout = useRef(null);
 
   // --- Define currentImage and imageUrl EARLY so they are available in handlers ---
   const currentImage = shuffledImages[currentIndex];
@@ -55,7 +58,10 @@ export default function ImageGallery() {
   }, [currentIndex]);
 
   useEffect(() => {
-    return () => clearHideTimeout();
+    return () => {
+      clearHideTimeout();
+      if (copiedSceneTimeout.current) clearTimeout(copiedSceneTimeout.current);
+    };
   }, []);
 
   // --- Handlers (now currentImage is already defined) ---
@@ -98,6 +104,35 @@ export default function ImageGallery() {
       : [...likedImageIds, currentImage.id];
     setLikedImageIds(newLiked);
     localStorage.setItem('likedImages', JSON.stringify(newLiked));
+  };
+
+  const handleCopyScene = async () => {
+    if (!currentImage) return;
+
+    const now = new Date();
+    const pad = (item) => String(item).padStart(2, "0");
+    const taken = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const textToCopy = `SCENES FROM AROUND THE WORLD
+
+Taken: ${taken}
+
+Title: ${currentImage.title || "Untitled"}
+Location: ${currentImage.location || "Unknown"}
+Image: ${imageUrl || "N/A"}`;
+
+    try {
+      await writeClipboardText(textToCopy);
+      if (copiedSceneTimeout.current) clearTimeout(copiedSceneTimeout.current);
+      setCopiedScene(true);
+      onCopySuccess?.("Image details copied to clipboard.");
+      copiedSceneTimeout.current = setTimeout(() => {
+        setCopiedScene(false);
+        copiedSceneTimeout.current = null;
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to copy scene:", error);
+      onCopyFailure?.(textToCopy, "Image Details");
+    }
   };
 
   const isLiked = currentImage ? likedImageIds.includes(currentImage.id) : false;
@@ -307,9 +342,25 @@ export default function ImageGallery() {
               </motion.button>
             </div>
 
-            <p className="text-xs text-slate-500">
-              {currentIndex + 1} / {shuffledImages.length}
-            </p>
+            <div className="flex items-center gap-2">
+              <motion.button
+                onClick={handleCopyScene}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="p-2 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-white/10 transition-colors"
+                title="Copy scene details"
+                aria-label="Copy scene details"
+              >
+                {copiedScene ? (
+                  <Check className="w-5 h-5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-5 h-5" />
+                )}
+              </motion.button>
+              <p className="text-xs text-slate-500">
+                {currentIndex + 1} / {shuffledImages.length}
+              </p>
+            </div>
           </div>
         </Card>
       </motion.div>

@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { DollarSign } from "lucide-react";
 import Card from "./Card";
+import { buildTopServicesSnapshot } from "../utils/widgetSnapshots";
 
 const COLORS = ["#06b6d4", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#ec4899"];
 
@@ -44,12 +45,26 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-export default function CostBreakdownChart({ data, title = "Cost by Service", dataKey = "value", nameKey = "name" }) {
+export default function CostBreakdownChart({
+  data,
+  title = "Cost by Service",
+  dataKey = "value",
+  nameKey = "name",
+  onCopyFailure,
+  onCopySuccess,
+}) {
   const hasData = data && data.length > 0;
 
   if (!hasData) {
     return (
-      <Card title={title} subtitle="Cost breakdown by service (USD)">
+      <Card
+        title={title}
+        subtitle="Cost breakdown by service (USD)"
+        snapshotText={buildTopServicesSnapshot(data)}
+        snapshotLabel="Top Services by Cost snapshot"
+        onCopyFailure={onCopyFailure}
+        onCopySuccess={onCopySuccess}
+      >
         <div className="p-8 text-center text-slate-400">
           <DollarSign className="w-12 h-12 mx-auto mb-2 opacity-40" />
           <p>No cost data available.</p>
@@ -67,7 +82,14 @@ export default function CostBreakdownChart({ data, title = "Cost by Service", da
   const formatUSD = (value) => `$${value.toFixed(0)}`;
 
   return (
-    <Card title={title} subtitle="Cost breakdown by service (USD)">
+    <Card
+      title={title}
+      subtitle="Cost breakdown by service (USD)"
+      snapshotText={buildTopServicesSnapshot(data)}
+      snapshotLabel="Top Services by Cost snapshot"
+      onCopyFailure={onCopyFailure}
+      onCopySuccess={onCopySuccess}
+    >
       <div className="w-full" style={{ minHeight: `${chartHeight}px` }}>
         <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart

@@ -2,7 +2,7 @@
 
 > **Prerequisite:** You must already have a dedicated Terraform service account (e.g., `terraform-service@PROJECT_ID.iam.gserviceaccount.com`). This runbook grants that account the ability to manage IAM policies on the billing account.
 
-> **Related:** For the full Terraform deployment model, including GCP VM provisioning, AWS Route 53 DNS, HTTPS, Nginx, and Certbot behavior, see [GCP Route 53 HTTPS Setup](./GCP_ROUTE53_HTTPS_SETUP.md).
+> **Related:** For the full Terraform deployment model, including GCP VM provisioning, AWS Route 53 DNS, HTTPS, Nginx, and Certbot behavior, see [Terraform HTTPS with GCP + Route 53](./HTTPS_SETUP.md).
 
 The Terraform code uses this permission when applying:
 
@@ -15,7 +15,7 @@ resource "google_billing_account_iam_member" "vm_dashboard_billing_viewer" {
 }
 ```
 
-The billing account ID is currently hardcoded in `terraform/iam.tf`; replace it there if you deploy in another billing account.
+The billing account ID is currently set in `terraform/10-service-accounts.tf`; replace it there or refactor it to use `var.billing_account_id` if you deploy in another billing account.
 
 ### **Step 1: Set Environment Variables**
 

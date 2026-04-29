@@ -2,8 +2,9 @@ import { motion } from "framer-motion";
 import { Network, Wifi, Lock, Globe, MapPin, Shield } from "lucide-react";
 import Card from "./Card";
 import CopyValueButton from "./CopyValueButton";
+import { buildNetworkSnapshot } from "../utils/widgetSnapshots";
 
-export default function NetworkCard({ network, onCopyFailure }) {
+export default function NetworkCard({ network, onCopyFailure, onCopySuccess }) {
   const items = [
     { label: "VPC", value: network?.vpc, icon: Shield },
     { label: "Subnet", value: network?.subnet, icon: Wifi },
@@ -21,7 +22,14 @@ export default function NetworkCard({ network, onCopyFailure }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 }}
     >
-      <Card title="Network" subtitle="Connectivity and addressing">
+      <Card
+        title="Network"
+        subtitle="Connectivity and addressing"
+        snapshotText={buildNetworkSnapshot(network)}
+        snapshotLabel="Network snapshot"
+        onCopyFailure={onCopyFailure}
+        onCopySuccess={onCopySuccess}
+      >
         <div className="space-y-3">
           {items.map((item, idx) => (
             <motion.div
@@ -44,6 +52,7 @@ export default function NetworkCard({ network, onCopyFailure }) {
                   value={item.value || "unknown"}
                   label={item.label}
                   onCopyFailure={onCopyFailure}
+                  onCopySuccess={onCopySuccess}
                   hoverOnly
                 />
               </div>

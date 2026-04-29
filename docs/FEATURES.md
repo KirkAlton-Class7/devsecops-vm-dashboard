@@ -122,13 +122,13 @@ Displays health and status of key system components returned by `build_dashboard
 
 ---
 
-### Application Logs
+### System Logs
 
 * Displays the last **30** log entries from `journalctl`
 
 Each entry includes:
 
-* Time (`YYYY-MM-DD HH:MM:SS`)
+* Time (ISO 8601 UTC from the API, displayed locally in the UI)
 
 * Level (info / warning / error)
 
@@ -138,7 +138,7 @@ Each entry includes:
 
 * **View all logs** – opens a modal backed by `/api/logs`
 
-* **Show older logs** – appends paginated logs using the same timestamp format, including year
+* **Show older logs** – appends paginated logs using the same ISO 8601 timestamp contract
 
 * **Refresh logs** – reloads the currently selected time window
 
@@ -174,7 +174,7 @@ Displays:
 * Identity, Overview, Network, Location
 * Monitoring endpoints
 * Services with the same 10-row default, sort, filter, and view-all behavior as DevSecOps mode
-* Application logs with Time, Level, Source, and Message columns
+* System logs with Time, Level, Source, and Message columns
 * `[WARNING]` in the top controls when mock or fallback data diagnostics are active
 
 Exit with `Esc` or `[Esc] EXIT`.
@@ -252,7 +252,7 @@ To enable, press `F` or click the **FinOps** button.
 
 * **Mock / fallback warning** – if `/api/finops` fails and the UI falls back to bundled FinOps data, the header diagnostic pill lists the affected FinOps sections.
 
-> **Note:** Data is sourced from GCP APIs (BigQuery, Monitoring, Recommender, Budgets).
+> Data is sourced from GCP APIs (BigQuery, Monitoring, Recommender, Budgets).
 > Initial data population may be delayed (see below).
 
 ---
@@ -289,9 +289,9 @@ To enable, press `F` or click the **FinOps** button.
 
 Interactive particle background (click to cycle):
 
-* **Drift** – cyan particles + connecting lines
-* **Haze** – purple particles forming patterns
-* **State** – white particles with periodic repositioning
+* **Drift** – drifting cyan particles with connecting lines
+* **Haze** – kinetic purple particles that randomly settle into geometric patterns
+* **State** – white static particles that glow and snap to new positions
 
 ---
 
@@ -322,96 +322,195 @@ Quick reference for built-in endpoints:
 
 The frontend Monitoring Endpoints card currently links to `/healthz` and `/metadata`.
 
----
-
 ## Endpoints (Quick Reference)
 
-| Endpoint         | Method | Description                |
-| ---------------- | ------ | -------------------------- |
-| `/healthz`       | GET    | Returns `ok` (NGINX check) |
-| `/metadata`      | GET    | VM + health JSON           |
-| `/api/dashboard` | GET    | DevSecOps data             |
-| `/api/finops`    | GET    | FinOps data                |
-| `/api/config`    | GET    | API config JSON            |
-| `/api/logs`      | GET    | Paginated journal logs     |
+| Endpoint         | Method | Description                                      |
+| ---------------- | ------ | ------------------------------------------------ |
+| `/healthz`       | GET    | Returns `ok` for Nginx/service health checks     |
+| `/metadata`      | GET    | Returns GCP VM identity, network, location, and health data |
+| `/api/dashboard` | GET    | Returns DevSecOps dashboard data                 |
+| `/api/finops`    | GET    | Returns FinOps cost, budget, and recommendation data |
+| `/api/config`    | GET    | Returns API runtime configuration                |
+| `/api/logs`      | GET    | Returns paginated `journalctl` log rows          |
 
 ---
 
-### Example `/metadata` Response (GCP)
+## Example `/metadata` Response (GCP)
 
-*(unchanged)*
+```json
+{
+  "STUDENT_NAME": "Kirk Alton",
+  "project_id": "kirk-devsecops-sandbox",
+  "instance_id": "1234567890123456789",
+  "instance_name": "vm-dashboard",
+  "hostname": "vm-dashboard.us-central1-a.c.kirk-devsecops-sandbox.internal",
+  "machine_type": "e2-medium",
+  "network": {
+    "vpc": "main",
+    "subnet": "private",
+    "internal_ip": "10.0.1.4",
+    "external_ip": "34.123.45.67"
+  },
+  "region": "us-central1",
+  "zone": "us-central1-a",
+  "startup_utc": "2026-04-29T14:58:42Z",
+  "uptime": "up 2 hours, 14 minutes",
+  "health": {
+    "uptime": "up 2 hours, 14 minutes",
+    "load_avg": "0.12, 0.18, 0.21",
+    "ram_mb": {
+      "used": 812,
+      "free": 2450,
+      "total": 3920
+    },
+    "disk_root": {
+      "size": "20.0 GB",
+      "used": "7.8 GB",
+      "avail": "11.2 GB",
+      "use_pct": "39%"
+    }
+  }
+}
+```
+
+> [!NOTE]
+> `STUDENT_NAME` can be overridden with a GCP custom metadata attribute named `STUDENT_NAME`. If the metadata attribute is missing, the API falls back to the hardcoded value in `scripts/dashboard_api.py`.
 
 ---
 
-## Known Limitation — Clipboard (HTTP vs HTTPS)
+## HTTP vs HTTPS
 
-Clipboard API requires secure context.
+The dashboard can run over plain HTTP or HTTPS.
 
-**Works only on:**
+| Access mode | Example | Result |
+| ----------- | ------- | ------ |
+| Public HTTP | `http://<VM_EXTERNAL_IP>` | Dashboard works, but browser clipboard features may be blocked |
+| Local HTTP | `http://localhost` | Dashboard works, clipboard features usually work |
+| HTTPS | `https://dashboard.kirkdevsecops.com` | Dashboard works, clipboard features work, traffic is encrypted |
+
+---
+
+### Clipboard API Limitation
+
+Modern browsers only allow the Clipboard API in a **secure context**.
+
+Clipboard copy actions generally work on:
 
 * `https://`
 * `http://localhost`
 
-**Fails on:**
+Clipboard copy actions may fail on:
 
 * `http://<public-ip>`
+* `http://dashboard.example.com`
+
+This is a browser security restriction, not an application bug.
 
 ---
 
 ### Impact
 
-* Text Mode → Copy (`C`) unreliable on HTTP
-* Dashboard copy buttons may also fail outside secure browser contexts
-* Dashboard otherwise unaffected
+When the dashboard is accessed over public HTTP:
 
-When the browser rejects a copy action, the UI shows a centered red toast: `Clipboard unavailable on public HTTP. Try HTTPS, SSH tunnel, or manual copy.`
+* Text Mode copy shortcut (`C`) may fail
+* Copy buttons may fail
+* The dashboard still loads normally
+* API calls, charts, logs, metadata, and FinOps data are otherwise unaffected
+
+When the browser blocks a copy action, the UI opens a **Manual Copy** modal with the attempted snapshot or value already selected. The modal explains that clipboard access is unavailable on public HTTP or blocked by the browser and asks the user to highlight and copy the text manually.
 
 ---
 
 ### Fix
 
-Serve via **HTTPS** (NGINX + Certbot)
+Use HTTPS for the public dashboard URL:
+
+```text
+https://dashboard.kirkdevsecops.com
+```
+
+Recommended path:
+
+```text
+Route 53 DNS -> GCP static IP -> Nginx -> Certbot/Let's Encrypt -> HTTPS dashboard
+```
+
+For quick testing without HTTPS, you can:
+
+* access the dashboard locally through `http://localhost`
+* use an SSH tunnel
+* manually copy values from the UI instead of using the Clipboard API
 
 ---
 
-### Workaround
 
-Fallback to `document.execCommand('copy')` (deprecated, requires interaction)
+## HTTPS and Certificates
+
+For HTTPS, the dashboard needs a real DNS name and a trusted TLS certificate.
+
+In this deployment, HTTPS is handled by:
+
+* **Route 53** – points the dashboard hostname to the GCP VM static IP
+* **Nginx** – serves the dashboard and terminates TLS
+* **Certbot** – requests and renews a free Let’s Encrypt certificate
+* **Let’s Encrypt** – issues the trusted certificate
+
+Certificate files live on the VM under:
+
+```text
+/etc/letsencrypt/live/<dashboard-hostname>/
+```
+
+Important files:
+
+| File | Purpose |
+| ---- | ------- |
+| `fullchain.pem` | Public certificate chain used by Nginx |
+| `privkey.pem` | Private key used by Nginx |
+
+> [!IMPORTANT]
+> Let’s Encrypt certificates are issued for DNS names, not raw IP addresses. Use a hostname such as `dashboard.kirkdevsecops.com`, not `https://<VM_EXTERNAL_IP>`.
 
 ---
+
 
 ## Roadmap & Upcoming Features
 
-### Security
+### Security & HTTPS
 
-* [ ] Enable HTTPS (Let’s Encrypt + NGINX)
-* [ ] Self-signed cert mode for labs
+* [x] HTTPS support with Nginx, Certbot, and Let’s Encrypt
+* [x] Route 53 DNS integration for Terraform deployments
+* [ ] Certificate status check in the dashboard
+* [ ] Nginx security headers for HTTPS deployments
 
-### FinOps
+### Deployment
 
-* [ ] CUD coverage widget
-* [ ] Forecast vs Budget sparklines
-* [ ] Cloud Asset Inventory integration
+* [x] HTTP ClickOps deployment path
+* [x] Terraform HTTPS deployment path
+* [ ] Post-deploy validation script for DNS, HTTP, HTTPS, and API health
+* [ ] Deployment status endpoint showing git commit, build time, and service state
+
+### Logs & Observability
+
+* [x] Paginated `/api/logs` endpoint
+* [x] ISO 8601 UTC log timestamps
+* [ ] Nginx and Certbot status/log summary
+* [ ] Optional systemd service status cards for `nginx` and `dashboard-api`
+
+
 
 ### Clipboard & UX
 
-* [ ] Improve HTTP fallback
-* [ ] Add “Copy Snapshot” button
-* [ ] Add “View Snapshot” modal
-* [ ] Add HTTPS warning toast
+* [x] Manual-copy fallback modal for public HTTP or blocked browser clipboard access
+* [x] Header “Copy Snapshot” button
+* [x] Widget-level snapshot buttons
+* [x] Item-level copy buttons with contextual success toasts
 
 ### Export
 
-* [ ] `.txt` snapshot
-* [ ] `.json` snapshot
+* [ ] `.txt` dashboard snapshot
+* [ ] `.json` dashboard snapshot
 * [ ] `/api/snapshot` endpoint
-
-### Future
-
-* Persistent historical metrics
-* Cloud-agnostic provider adapters
-
----
 
 ## License
 

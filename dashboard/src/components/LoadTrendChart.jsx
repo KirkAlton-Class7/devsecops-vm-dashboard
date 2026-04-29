@@ -2,8 +2,9 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Gauge, TrendingUp, Activity } from "lucide-react";
 import Card from "./Card";
+import { buildSystemLoadTrendSnapshot } from "../utils/widgetSnapshots";
 
-export default function LoadTrendChart() {
+export default function LoadTrendChart({ onCopyFailure, onCopySuccess }) {
   const [historicalLoad, setHistoricalLoad] = useState([0.45, 0.52, 0.48, 0.61, 0.55, 0.49, 0.58, 0.62, 0.51, 0.47]);
   const [currentLoad, setCurrentLoad] = useState("0.00");
   const [maxLoad, setMaxLoad] = useState(2.0); // Scale up to 2.0 for the chart
@@ -66,7 +67,14 @@ export default function LoadTrendChart() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card title="System Load Trend" subtitle="Load (1m) • Last 10 samples">
+      <Card
+        title="System Load Trend"
+        subtitle="Load (1m) • Last 10 samples"
+        snapshotText={buildSystemLoadTrendSnapshot({ currentLoad, historicalLoad, maxLoad })}
+        snapshotLabel="System Load Trend snapshot"
+        onCopyFailure={onCopyFailure}
+        onCopySuccess={onCopySuccess}
+      >
         <div className="space-y-4">
           {/* Current Load Indicator */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">

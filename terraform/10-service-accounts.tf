@@ -1,5 +1,28 @@
 # ----------------------------------------------------------------
+# SERVICE ACCOUNTS - IDENTITY LAYER
+# ----------------------------------------------------------------
+# REMEMBER:
+# Service Accounts = WHO you are
+# IAM Roles        = WHAT you can do
+
+# ----------------------------------------------------------------
+# SERVICE ACCOUNT - VM DASHBOARD
+# ----------------------------------------------------------------
+resource "google_service_account" "vm_dashboard" {
+  project      = "kirk-devsecops-sandbox" # Replace with your project
+  account_id   = "vm-dashboard"
+  display_name = "VM Dashboard Service Account"
+}
+
+# ----------------------------------------------------------------
 # IAM ROLES - VM DASHBOARD PROJECT PERMISSIONS
+# ----------------------------------------------------------------
+# These roles allow the dashboard VM to read:
+# - BigQuery billing export data
+# - Cloud Monitoring metrics
+# - Recommender insights and recommendations
+#
+# Keep these read-only where possible.
 # ----------------------------------------------------------------
 
 # ----------------------------------------------------------------
@@ -82,6 +105,13 @@ resource "google_project_iam_member" "vm_dashboard_recommender_viewer" {
 # - Budget definitions
 # - Budget thresholds
 # - Budget read access through the Budgets API
+#
+# IMPORTANT:
+# There is no separate budget viewer role needed for read-only dashboards.
+# roles/billing.viewer includes budget read permissions.
+#
+# Replace var.billing_account_id with your billing account ID variable,
+# or hardcode the billing account ID if that is how your Terraform is set up.
 # ----------------------------------------------------------------
 
 resource "google_billing_account_iam_member" "vm_dashboard_billing_viewer" {

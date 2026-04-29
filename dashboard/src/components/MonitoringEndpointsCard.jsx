@@ -2,24 +2,34 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { Copy, CheckCircle, ExternalLink, Activity, FileCode } from "lucide-react";
 import Card from "./Card";
+import { writeClipboardText } from "../utils/clipboard";
+import { buildMonitoringEndpointsSnapshot } from "../utils/widgetSnapshots";
 
-export default function MonitoringEndpointsCard({ endpoints, onCopyFailure }) {
+export default function MonitoringEndpointsCard({ endpoints, onCopyFailure, onCopySuccess }) {
   const [copiedIndex, setCopiedIndex] = useState(null);
 
   const copyToClipboard = async (text, index) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await writeClipboardText(text);
       setCopiedIndex(index);
+      onCopySuccess?.("Endpoint URL copied to clipboard.");
       setTimeout(() => setCopiedIndex(null), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
-      onCopyFailure?.();
+      onCopyFailure?.(text, "endpoint URL");
     }
   };
 
   if (!endpoints || endpoints.length === 0) {
     return (
-      <Card title="Monitoring Endpoints" subtitle="Health checks, metrics, and instance metadata">
+      <Card
+        title="Monitoring Endpoints"
+        subtitle="Health checks, metrics, and instance metadata"
+        snapshotText={buildMonitoringEndpointsSnapshot(endpoints)}
+        snapshotLabel="Monitoring Endpoints snapshot"
+        onCopyFailure={onCopyFailure}
+        onCopySuccess={onCopySuccess}
+      >
         <div className="text-sm text-slate-400">No endpoints configured</div>
       </Card>
     );
@@ -53,7 +63,14 @@ export default function MonitoringEndpointsCard({ endpoints, onCopyFailure }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card title="Monitoring Endpoints" subtitle="Health checks, metrics, and instance metadata">
+      <Card
+        title="Monitoring Endpoints"
+        subtitle="Health checks, metrics, and instance metadata"
+        snapshotText={buildMonitoringEndpointsSnapshot(endpoints)}
+        snapshotLabel="Monitoring Endpoints snapshot"
+        onCopyFailure={onCopyFailure}
+        onCopySuccess={onCopySuccess}
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {endpoints.map((ep, idx) => {
             const statusDisplay = getStatusDisplay(ep.status);

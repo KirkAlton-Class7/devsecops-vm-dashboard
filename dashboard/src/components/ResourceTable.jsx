@@ -15,6 +15,7 @@ import {
   Copy,
   Check,
   X,
+  Camera,
   ArrowDown,
   ArrowUp
 } from "lucide-react";
@@ -28,6 +29,8 @@ import FilterOverlay, {
 } from "./FilterOverlay";
 import { getPaginatedMockLogs } from "../mockLogs";
 import CopyValueButton from "./CopyValueButton";
+import { writeClipboardText } from "../utils/clipboard";
+import { buildSystemLogsSnapshot, buildIdleResourcesSnapshot } from "../utils/widgetSnapshots";
 
 const getScopeIcon = (scope) => {
   switch (scope?.toLowerCase()) {
@@ -137,13 +140,22 @@ const getLogRawTime = (log) =>
   log?.name ||
   "";
 
+const formatLocalDateTime = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
+
 const formatLogTimestamp = (log) => {
   const raw = getLogRawTime(log);
-  if (typeof raw === "number") return new Date(raw).toLocaleString();
+  if (typeof raw === "number") return formatLocalDateTime(new Date(raw));
 
   const value = String(raw || "").trim();
   if (!value) return "";
-  if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(value)) return value;
+
+  const parsedDate = Date.parse(value);
+  if (!Number.isNaN(parsedDate)) return formatLocalDateTime(new Date(parsedDate));
+
   if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(value)) return value;
   if (/^\d{1,2}:\d{2}/.test(value)) {
     const now = new Date();
@@ -320,6 +332,9 @@ export default function ResourceTable({
   onRowClick,
   filterResetKey,
   onCopyFailure,
+  onCopySuccess,
+  snapshotText,
+  snapshotLabel,
 }) {
   const [showAllLogsModal, setShowAllLogsModal] = useState(false);
   const [showAllResourcesModal, setShowAllResourcesModal] = useState(false);
@@ -547,17 +562,25 @@ export default function ResourceTable({
   };
 
   const handleCopyLog = async (log, index) => {
-    const text = `[${getLogRawTime(log)}] ${getLogLevelValue(log)}: ${getLogSourceValue(log)} - ${getLogMessageValue(log)}`;
+    const text = `[${formatLogTimestamp(log)}] ${getLogLevelValue(log)}: ${getLogSourceValue(log)} - ${getLogMessageValue(log)}`;
     try {
-      if (!navigator.clipboard?.writeText) {
-        throw new Error("Clipboard API unavailable");
-      }
-      await navigator.clipboard.writeText(text);
+      await writeClipboardText(text);
       setCopiedLogId(index);
+      onCopySuccess?.("Log entry copied to clipboard.");
       setTimeout(() => setCopiedLogId(null), 2000);
     } catch (error) {
       console.error("Failed to copy log:", error);
-      onCopyFailure?.();
+      onCopyFailure?.(text, "log entry");
+    }
+  };
+
+  const copyCustomSnapshot = async (text, label, successMessage = "Widget snapshot copied to clipboard.") => {
+    try {
+      await writeClipboardText(text);
+      onCopySuccess?.(successMessage);
+    } catch (error) {
+      console.error(`Failed to copy ${label}:`, error);
+      onCopyFailure?.(text, label);
     }
   };
 
@@ -575,7 +598,14 @@ export default function ResourceTable({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Card title={title} subtitle={subtitle}>
+        <Card
+          title={title}
+          subtitle={subtitle}
+          snapshotText={snapshotText || buildIdleResourcesSnapshot(rows)}
+          snapshotLabel={snapshotLabel || "Idle Resources snapshot"}
+          onCopyFailure={onCopyFailure}
+          onCopySuccess={onCopySuccess}
+        >
           <div className="py-12 text-center text-slate-400">
             <Pause className="w-12 h-12 mx-auto mb-2 opacity-40" />
             <p>No idle resources available yet.</p>
@@ -662,6 +692,19 @@ export default function ResourceTable({
         : sortDirection === "asc"
           ? `Sorted ${RESOURCE_SORT_LABELS[resourceSortField]} A-Z. Click for Z-A.`
           : `Sorted ${RESOURCE_SORT_LABELS[resourceSortField]} Z-A. Click for A-Z.`;
+  const resolvedSnapshotText =
+    snapshotText ||
+    (isLogs
+      ? buildSystemLogsSnapshot(logsToDisplay, "SYSTEM LOGS (LAST 30)")
+      : buildIdleResourcesSnapshot(resourcesToDisplay));
+  const resolvedSnapshotLabel =
+    snapshotLabel || (isLogs ? "System Logs snapshot" : "Idle Resources snapshot");
+  const customLogsSnapshot = buildSystemLogsSnapshot(displayLogs, "SYSTEM LOGS (CUSTOM FILTER)");
+  const customIdleResourcesSnapshot = buildIdleResourcesSnapshot(
+    resourcesToDisplay,
+    "IDLE RESOURCES (CUSTOM FILTER)"
+  );
+  const resourceModalTitle = typeof title === "string" ? title : "Idle Resources";
 
   return (
     <>
@@ -670,7 +713,14 @@ export default function ResourceTable({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Card title={title} subtitle={subtitle}>
+        <Card
+          title={title}
+          subtitle={subtitle}
+          snapshotText={resolvedSnapshotText}
+          snapshotLabel={resolvedSnapshotLabel}
+          onCopyFailure={onCopyFailure}
+          onCopySuccess={onCopySuccess}
+        >
           {isLogs ? (
             <div className="flex justify-between items-center mb-3 px-1">
               <div className="text-xs text-slate-500">
@@ -825,9 +875,10 @@ export default function ResourceTable({
                         <td className="px-4 py-3 text-slate-300">{message}</td>
                         <td className="px-4 py-3">
                           <CopyValueButton
-                            value={`[${getLogRawTime(row)}] ${level}: ${source} - ${message}`}
+                            value={`[${timestamp}] ${level}: ${source} - ${message}`}
                             label="log entry"
                             onCopyFailure={onCopyFailure}
+                            onCopySuccess={onCopySuccess}
                             hoverOnly
                           />
                         </td>
@@ -875,9 +926,10 @@ export default function ResourceTable({
                       </td>
                       <td className="px-4 py-3">
                         <CopyValueButton
-                          value={row.name}
-                          label="resource name"
+                          value={`${row.name || "Unknown"} | Type: ${row.type || "N/A"} | Scope: ${row.scope || "N/A"} | Status: ${row.status || "N/A"}`}
+                          label="resource details"
                           onCopyFailure={onCopyFailure}
+                          onCopySuccess={onCopySuccess}
                           hoverOnly
                         />
                       </td>
@@ -972,6 +1024,20 @@ export default function ResourceTable({
                     >
                       <Filter className="w-3 h-3" />
                       Filter
+                    </button>
+                    <button
+                      onClick={() =>
+                        copyCustomSnapshot(
+                          customLogsSnapshot,
+                          "System Logs Custom Filter snapshot",
+                          "Logs snapshot copied to clipboard."
+                        )
+                      }
+                      className="flex items-center gap-1 px-3 py-1 text-xs rounded border border-slate-700 text-slate-300 hover:text-cyan-300 hover:border-cyan-500/50 transition-colors"
+                      title="Copy System Logs custom filter snapshot"
+                    >
+                      <Camera className="w-3 h-3" />
+                      Snapshot
                     </button>
                   <button
                     onClick={closeModal}
@@ -1111,7 +1177,7 @@ export default function ResourceTable({
               <div className="flex items-center justify-between p-4 border-b border-white/10 flex-wrap gap-2">
                 <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
                   <Server className="w-5 h-5 text-cyan-400" />
-                  {title} ({resourcesToDisplay.length} of {totalRowsCount} shown)
+                  {resourceModalTitle} ({resourcesToDisplay.length} of {totalRowsCount} shown)
                 </h2>
                 <div className="flex items-center gap-2">
                   <button
@@ -1140,6 +1206,20 @@ export default function ResourceTable({
                   >
                     <Filter className="w-3 h-3" />
                     Filter
+                  </button>
+                  <button
+                    onClick={() =>
+                      copyCustomSnapshot(
+                        customIdleResourcesSnapshot,
+                        "Idle Resources Custom Filter snapshot",
+                        "Widget snapshot copied to clipboard."
+                      )
+                    }
+                    className="flex items-center gap-1 px-3 py-1 text-xs rounded border border-slate-700 text-slate-300 hover:text-cyan-300 hover:border-cyan-500/50 transition-colors"
+                    title="Copy Idle Resources custom filter snapshot"
+                  >
+                    <Camera className="w-3 h-3" />
+                    Snapshot
                   </button>
                   <button
                     onClick={() => setShowAllResourcesModal(false)}
@@ -1214,9 +1294,10 @@ export default function ResourceTable({
                           </td>
                           <td className="px-4 py-3">
                             <CopyValueButton
-                              value={row.name}
-                              label="resource name"
+                              value={`${row.name || "Unknown"} | Type: ${row.type || "N/A"} | Scope: ${row.scope || "N/A"} | Status: ${row.status || "N/A"}`}
+                              label="resource details"
                               onCopyFailure={onCopyFailure}
+                              onCopySuccess={onCopySuccess}
                               hoverOnly
                             />
                           </td>

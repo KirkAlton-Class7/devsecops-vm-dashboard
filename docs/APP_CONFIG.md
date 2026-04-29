@@ -42,32 +42,34 @@ Update these values as needed:
 
 ---
 
-## Configuration Boundary (Important)
+## Configuration Boundary
 
 ```bash
-# ---------------------------------------------------------------------------------------------
-# !!! END OF CONFIGURATION - DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING !!!
-# ---------------------------------------------------------------------------------------------
+# =================================
+# END OF CONFIGURATION
+# ---------------------------------
+# Modify sections below with caution.
+# ==================================
 ```
 
 > [!IMPORTANT]
-> Treat this marker as a **hard boundary**.
-> Everything above it is safe to modify. Everything below it is part of the deployment logic.
-
+> Treat this as a **hard boundary**:
+>
+> * Above → safe for customizing dashboard branding and React build links
+> * Below → deployment automation logic (package installation, repository sync, file paths, services, Nginx, cron jobs, and build/deploy steps)
 ---
 
-## Other Configurable Values
-
-Immediately below the configuration boundary, you will see:
+## GitHub Content Source
 
 ```bash
 GITHUB_QUOTES_URL="https://raw.githubusercontent.com/KirkAlton-Class7/devsecops-vm-dashboard/main/quotes.json"
 ```
 
-* **`GITHUB_QUOTES_URL`** – Must point to a valid `quotes.json` file accessible over HTTP.
+* **`GITHUB_QUOTES_URL`** – Raw GitHub URL used to download the dashboard quote dataset. It must point to a valid, publicly accessible `quotes.json` file.
 
 > [!NOTE]
-> The wrapper script (`infra/startup/gcp_startup.sh`) hardcodes the repository clone URL. Change that wrapper if you deploy from a fork.
+> This value only controls where quote data is downloaded from.
+> The repository clone URL is configured separately in the VM startup wrapper (`infra/startup/gcp_startup.sh`). If you deploy from a fork, update the wrapper script as well.
 
 ---
 
@@ -121,10 +123,10 @@ sudo /opt/dashboard-deploy.sh
 If running the Python API outside of the startup script, define the dashboard branding variables before starting it:
 
 ```bash
-export DASHBOARD_APP_NAME="Stock Dashboard"
-export DASHBOARD_TAGLINE="Real-time price monitoring"
-export DASHBOARD_USER="Carlton Banks"
-export DASHBOARD_NAME="FinOps Insights"
+export DASHBOARD_APP_NAME="GCP Deployment"
+export DASHBOARD_TAGLINE="Infrastructure health and activity"
+export DASHBOARD_USER="Kirk Alton"
+export DASHBOARD_NAME="DevSecOps Dashboard"
 ```
 
 These values are returned by the Python API in the `/api/dashboard` response and consumed by the frontend at runtime.
