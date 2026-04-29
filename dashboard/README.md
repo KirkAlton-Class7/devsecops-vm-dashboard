@@ -10,6 +10,7 @@ It renders:
 - Quotes from `/data/quotes.json`
 - Gallery images from `/data/images.json` and `/data/images/*`
 - Client-side sort, filter, search, and view-all modals for logs, services, and FinOps tables
+- Clipboard actions for dashboard snapshots, dashboard JSON payloads, widget snapshots, and JSON System Logs payloads
 
 ## Local Development
 
@@ -51,6 +52,23 @@ export default defineConfig({
 Because frontend requests use relative paths like `/api/dashboard`, local development falls back to bundled mock data unless the app is served behind NGINX or a local proxy is added.
 
 In Vite development mode, `/api/logs` is intercepted by `dashboard/src/mockLogs.js` so the log modals can still demonstrate pagination, filtering, sorting, and older-log loading without a live `journalctl` API.
+
+System Logs copy actions intentionally output JSON instead of plain text:
+
+```json
+{
+  "system_logs": [
+    {
+      "timestamp": "2026-04-27T14:58:42Z",
+      "level": "WARN",
+      "component": "storage",
+      "message": "Root disk at 92% after npm build artifacts; 4.0 GB free"
+    }
+  ]
+}
+```
+
+Header controls include a camera icon for the dashboard snapshot and a `{}` icon for the JSON payload. Text mode mirrors this with `[C] COPY`, `[J] COPY JSON`, and `[LS] SNAPSHOT` inside the all-logs modal.
 
 ## Build
 

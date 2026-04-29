@@ -8,6 +8,19 @@ To enable, press `D` or click the **DevSecOps** button in the mode dropdown menu
 
 ---
 
+### Header Copy Controls
+
+DevSecOps and FinOps modes share the same header copy controls:
+
+| Button | Output |
+| ------ | ------ |
+| Camera icon | Copies the current dashboard snapshot |
+| `{}` icon | Copies the current dashboard JSON payload |
+
+Both buttons use the same clipboard handling as widget-level copy actions. If the browser blocks clipboard access, the dashboard opens the Manual Copy modal with the generated snapshot or JSON payload selected.
+
+---
+
 ### Summary Cards
 
 * Four interactive summary cards:
@@ -148,8 +161,25 @@ Each entry includes:
 
 * **Search logs** – searches loaded modal rows by time, level, source, or message
 
+* **Copy logs** – individual log copies, widget snapshots, and custom-filter log snapshots use JSON with a top-level `system_logs` array
+
 > Filters are client-side and apply to the logs currently loaded in the modal. They persist while paging older logs and reset on full refresh.
 > When a filter modal is opened from another modal, closing it restores focus to the previous modal layer.
+
+Example copied System Logs payload:
+
+```json
+{
+  "system_logs": [
+    {
+      "timestamp": "2026-04-27T14:58:42Z",
+      "level": "WARN",
+      "component": "storage",
+      "message": "Root disk at 92% after npm build artifacts; 4.0 GB free"
+    }
+  ]
+}
+```
 
 ---
 
@@ -175,6 +205,7 @@ Displays:
 * Monitoring endpoints
 * Services with the same 10-row default, sort, filter, and view-all behavior as DevSecOps mode
 * System logs with Time, Level, Source, and Message columns
+* Copy controls for dashboard text snapshots, dashboard JSON payloads, and loaded log snapshots
 * `[WARNING]` in the top controls when mock or fallback data diagnostics are active
 
 Exit with `Esc` or `[Esc] EXIT`.
@@ -187,10 +218,12 @@ Exit with `Esc` or `[Esc] EXIT`.
 | ----- | ------------------------------------------ |
 | `Esc` | Exit text mode                             |
 | `C`   | Copy dashboard snapshot                    |
+| `J`   | Copy dashboard JSON payload                |
 | `H`   | Toggle help overlay                        |
 | `L`   | Sort logs                                  |
 | `FL`  | Filter logs                                |
 | `LL`  | View all logs                              |
+| `LS`  | Copy loaded logs snapshot as JSON          |
 | `S`   | Sort services                              |
 | `FS`  | Filter services                            |
 | `SS`  | View all services                          |
@@ -204,7 +237,7 @@ Text mode filter popups use the same filter options as the graphical dashboard:
 
 Text mode log sorting cycles through Time Newest, Time Oldest, Level Error-Debug, and Level Debug-Error.
 
-When `ALL SYSTEM LOGS` is open, press `R` to refresh the loaded log window.
+When `ALL SYSTEM LOGS` is open, press `R` to refresh the loaded log window and `LS` to copy the currently loaded/filter-matched logs as JSON.
 
 > [!TIP]
 > Favorite quotes are saved in `localStorage` and persist across sessions.
@@ -413,6 +446,7 @@ This is a browser security restriction, not an application bug.
 When the dashboard is accessed over public HTTP:
 
 * Text Mode copy shortcut (`C`) may fail
+* Text Mode JSON copy (`J`) and log snapshot copy (`LS`) may fail
 * Copy buttons may fail
 * The dashboard still loads normally
 * API calls, charts, logs, metadata, and FinOps data are otherwise unaffected
@@ -503,13 +537,16 @@ Important files:
 
 * [x] Manual-copy fallback modal for public HTTP or blocked browser clipboard access
 * [x] Header “Copy Snapshot” button
+* [x] Header JSON payload button
 * [x] Widget-level snapshot buttons
 * [x] Item-level copy buttons with contextual success toasts
+* [x] JSON System Logs copy payloads
 
 ### Export
 
-* [ ] `.txt` dashboard snapshot
-* [ ] `.json` dashboard snapshot
+* [x] Plain-text dashboard snapshot
+* [x] JSON dashboard snapshot
+* [x] JSON System Logs snapshots
 * [ ] `/api/snapshot` endpoint
 
 ## License

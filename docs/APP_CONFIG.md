@@ -45,7 +45,7 @@ Update these values as needed:
 ## Configuration Boundary
 
 ```bash
-# =================================
+# ==================================
 # END OF CONFIGURATION
 # ---------------------------------
 # Modify sections below with caution.
@@ -101,7 +101,7 @@ DATA_DIR="${APP_DIR}/data"
 ## Applying Changes
 
 1. Edit `app_bootstrap.sh` in your local repository.
-2. Commit and push the changes to the Git repository cloned by `infra/startup/gcp_startup.sh`.
+2. Commit and push the changes to the Git repository cloned by the VM startup wrapper (`infra/startup/gcp_startup.sh`).
 3. The VM’s auto-deploy cron job runs `/opt/dashboard-deploy.sh` every 15 minutes and rebuilds when the local checkout differs from `origin/main`.
 
 To trigger an immediate update:

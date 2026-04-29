@@ -10,7 +10,7 @@ Provides:
 * **FinOps insights** (BigQuery cost trends, budgets, rightsizing, idle resources)
 * API-driven observability with paginated system logs
 * Sort, filter, search, and view-all workflows for logs, services, and FinOps lists
-* Clipboard-friendly dashboard, widget, and row snapshots with Manual Copy fallback on public HTTP
+* Clipboard-friendly dashboard snapshots, JSON payload exports, widget snapshots, and row copies with Manual Copy fallback on public HTTP
 * Header diagnostic warning when mock or fallback data is being displayed
 * Lightweight UI modes (terminal + visual)
 
@@ -68,6 +68,13 @@ Terraform setup docs:
   * `/api/finops` – cost + optimization data
   * `/api/config` – static API settings
   * `/api/logs` – paginated journal logs with `limit`, `offset`, and optional `minutes`
+
+* **Copy/export controls**
+
+  * Header camera button – copies the current DevSecOps or FinOps dashboard snapshot
+  * Header `{}` button – copies the current DevSecOps or FinOps dashboard JSON payload
+  * System Logs copy actions – copy JSON with a top-level `system_logs` array
+  * Text mode – `[C] COPY`, `[J] COPY JSON`, and `[LS] SNAPSHOT` inside the `[LL] ALL LOGS` modal
 
 * **Repository**
   [https://github.com/KirkAlton-Class7/devsecops-vm-dashboard](https://github.com/KirkAlton-Class7/devsecops-vm-dashboard)

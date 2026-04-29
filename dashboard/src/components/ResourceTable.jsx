@@ -562,7 +562,7 @@ export default function ResourceTable({
   };
 
   const handleCopyLog = async (log, index) => {
-    const text = `[${formatLogTimestamp(log)}] ${getLogLevelValue(log)}: ${getLogSourceValue(log)} - ${getLogMessageValue(log)}`;
+    const text = buildSystemLogsSnapshot([log]);
     try {
       await writeClipboardText(text);
       setCopiedLogId(index);
@@ -695,11 +695,11 @@ export default function ResourceTable({
   const resolvedSnapshotText =
     snapshotText ||
     (isLogs
-      ? buildSystemLogsSnapshot(logsToDisplay, "SYSTEM LOGS (LAST 30)")
+      ? buildSystemLogsSnapshot(logsToDisplay)
       : buildIdleResourcesSnapshot(resourcesToDisplay));
   const resolvedSnapshotLabel =
     snapshotLabel || (isLogs ? "System Logs snapshot" : "Idle Resources snapshot");
-  const customLogsSnapshot = buildSystemLogsSnapshot(displayLogs, "SYSTEM LOGS (CUSTOM FILTER)");
+  const customLogsSnapshot = buildSystemLogsSnapshot(displayLogs);
   const customIdleResourcesSnapshot = buildIdleResourcesSnapshot(
     resourcesToDisplay,
     "IDLE RESOURCES (CUSTOM FILTER)"
@@ -875,7 +875,7 @@ export default function ResourceTable({
                         <td className="px-4 py-3 text-slate-300">{message}</td>
                         <td className="px-4 py-3">
                           <CopyValueButton
-                            value={`[${timestamp}] ${level}: ${source} - ${message}`}
+                            value={buildSystemLogsSnapshot([row])}
                             label="log entry"
                             onCopyFailure={onCopyFailure}
                             onCopySuccess={onCopySuccess}

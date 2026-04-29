@@ -498,22 +498,6 @@ export default function Header({
                 )}
             </div>
 
-            {/* Copy JSON snapshot */}
-            <motion.button
-              onClick={handleJsonSnapshotClick}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`flex h-8 w-8 items-center justify-center rounded-full border bg-white/5 text-slate-300 transition-all hover:border-white/40 hover:text-cyan-300 ${
-                jsonSnapshotFlash
-                  ? "border-cyan-300 text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.75)]"
-                  : "border-white/20"
-              }`}
-              title="Copy JSON snapshot"
-              aria-label="Copy JSON snapshot"
-            >
-              <Braces className="h-3.5 w-3.5" />
-            </motion.button>
-
             {/* Copy snapshot */}
             <motion.button
               onClick={handleSnapshotClick}
@@ -528,6 +512,22 @@ export default function Header({
               aria-label="Copy snapshot"
             >
               <Camera className="h-3.5 w-3.5" />
+            </motion.button>
+
+            {/* Copy JSON snapshot */}
+            <motion.button
+              onClick={handleJsonSnapshotClick}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex h-8 w-8 items-center justify-center rounded-full border bg-white/5 text-slate-300 transition-all hover:border-white/40 hover:text-cyan-300 ${
+                jsonSnapshotFlash
+                  ? "border-cyan-300 text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.75)]"
+                  : "border-white/20"
+              }`}
+              title="Copy JSON snapshot"
+              aria-label="Copy JSON snapshot"
+            >
+              <Braces className="h-3.5 w-3.5" />
             </motion.button>
           </div>
         </div>

@@ -62,16 +62,16 @@ STUDENT_NAME in Python
 > [!TIP]
 > This allows you to set `STUDENT_NAME` **without modifying code**, using instance metadata instead.
 
-#### Examle via gCloud CLI
+#### Example via gcloud CLI
 
 Add instance metadata attribute for `STUDENT_NAME`
 
-``` bash
-gcloud
+```bash
 gcloud compute instances add-metadata vm-dashboard \
   --zone us-central1-a \
   --metadata STUDENT_NAME="Notla Krik"
 ```
+
 Then restart the API on the VM:
 
 ```bash
@@ -230,6 +230,25 @@ Each log row includes `time`, `level`, `source`, and `message`. The `time` field
 ```
 
 `time` uses the `YYYY-MM-DDTHH:MM:SSZ` shape. The trailing `Z` indicates UTC. When `minutes` is provided, the API asks `journalctl` for logs from that relative time window with `--since`, then applies pagination to the returned rows. The frontend keeps the ISO value as the data contract for sorting and filtering, but formats it into local time for display. Refreshing the logs reloads the selected time window and clears active log filters.
+
+### Frontend Log Copy Format
+
+The API returns raw log rows with `time`, `level`, `source`, and `message`. For clipboard actions, the frontend converts selected log rows into a JSON snapshot payload with a top-level `system_logs` array:
+
+```json
+{
+  "system_logs": [
+    {
+      "timestamp": "2026-04-27T14:58:42Z",
+      "level": "WARN",
+      "component": "storage",
+      "message": "Root disk at 92% after npm build artifacts; 4.0 GB free"
+    }
+  ]
+}
+```
+
+This JSON format is used for individual System Logs row copies, the System Logs widget snapshot, the System Logs custom-filter modal snapshot, and the Text Mode `[LS] SNAPSHOT` action.
 
 ---
 

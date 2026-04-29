@@ -210,6 +210,38 @@ curl -s "http://127.0.0.1:8080/api/logs?limit=5&offset=0&minutes=10" | jq '.logs
 **Expected result:** A log object with `time`, `level`, `source`, and `message`.  
 **Note:** Log timestamps are emitted as ISO 8601 UTC strings, such as `2026-04-27T14:58:42Z`. The React UI formats them for local display.
 
+### Verify Copy and Snapshot Controls
+
+The graphical DevSecOps and FinOps headers include two copy controls:
+
+| Button | Purpose |
+| ------ | ------- |
+| Camera icon | Copies the current dashboard snapshot |
+| `{}` icon | Copies the current dashboard JSON payload |
+
+Text Mode includes:
+
+| Control | Purpose |
+| ------- | ------- |
+| `[C] COPY` | Copies the DevSecOps dashboard text snapshot |
+| `[J] COPY JSON` | Copies the DevSecOps dashboard JSON payload |
+| `[LL]` then `[LS] SNAPSHOT` | Opens all logs, then copies the loaded/filter-matched logs as JSON |
+
+System Logs copy actions use this JSON shape:
+
+```json
+{
+  "system_logs": [
+    {
+      "timestamp": "2026-04-27T14:58:42Z",
+      "level": "WARN",
+      "component": "storage",
+      "message": "Root disk at 92% after npm build artifacts; 4.0 GB free"
+    }
+  ]
+}
+```
+
 ---
 
 ## Local Development
@@ -334,5 +366,5 @@ devsecops-vm-dashboard/
 - **Cost estimation** (DevSecOps card) is heuristic (static price × uptime). It is **not** a real billing API call. For real cost data, use the FinOps dashboard.
 - **External IP fallback** uses `ifconfig.me`; if the VM has no internet, external IP will show `unknown`.
 - **Azure / AWS** provider adapters are not implemented in the current codebase.
-- **Clipboard** requires HTTPS (see the dedicated section above).
+- **Clipboard API access** usually requires HTTPS or localhost. On public HTTP, copy actions fall back to the Manual Copy modal when the browser blocks clipboard access.
 - **FinOps data** requires BigQuery billing export, which takes up to 24 hours to populate after first setup.

@@ -9,6 +9,7 @@ import {
 import { getPaginatedMockLogs } from "../mockLogs";
 import { generateDashboardJsonSnapshot, generateDashboardSnapshot } from "../utils/snapshot";
 import { writeClipboardText } from "../utils/clipboard";
+import { buildSystemLogsSnapshot } from "../utils/widgetSnapshots";
 
 // Helper: format bytes (MB → GB/MB)
 const formatBytes = (mb) => {
@@ -545,6 +546,20 @@ export default function TextDashboard({
     }
   }, [dashboard, lastRefresh, logLimit, serviceLimit, dashboardName, tagline, onCopyFailure, onCopySuccess]);
 
+  const copyLiveLogsSnapshot = useCallback(async () => {
+    const currentFilteredLogs = applyOptionFilters(liveLogs, logFilters, LOG_FILTER_ACCESSORS);
+    const currentSortedLogs = sortLogs(currentFilteredLogs, logSortMode);
+    const snapshot = buildSystemLogsSnapshot(currentSortedLogs);
+
+    try {
+      await writeClipboardText(snapshot);
+      onCopySuccess?.("Logs snapshot copied to clipboard.");
+    } catch (error) {
+      console.error("Failed to copy logs snapshot:", error);
+      onCopyFailure?.(snapshot, "System Logs snapshot");
+    }
+  }, [liveLogs, logFilters, logSortMode, onCopyFailure, onCopySuccess]);
+
   useEffect(() => {
     return () => {
       if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
@@ -817,6 +832,13 @@ export default function TextDashboard({
         }, 240);
       }
       else if (e.key === "s" || e.key === "S") {
+        if (showLiveLogs && pendingLiveLogOpenRef.current) {
+          clearTimeout(pendingLiveLogOpenRef.current);
+          pendingLiveLogOpenRef.current = null;
+          copyLiveLogsSnapshot();
+          return;
+        }
+
         if (pendingLogFilterRef.current) {
           clearTimeout(pendingLogFilterRef.current);
           pendingLogFilterRef.current = null;
@@ -858,6 +880,7 @@ export default function TextDashboard({
   }, [
     copySnapshot,
     copyJsonSnapshot,
+    copyLiveLogsSnapshot,
     logFilterCursor,
     logFilterItems,
     serviceFilterCursor,
@@ -1063,6 +1086,7 @@ export default function TextDashboard({
                 <div>L - Sort logs</div>
                 <div>FL - Filter logs</div>
                 <div>LL - View all logs</div>
+                <div>LS - Copy logs snapshot</div>
                 <div>S - Sort services</div>
                 <div>FS - Filter services</div>
                 <div>SS - View all services</div>
@@ -1483,6 +1507,13 @@ export default function TextDashboard({
                     [L] SORT {logSortLabel}
                   </button>
                   <button
+                    onClick={copyLiveLogsSnapshot}
+                    className="border border-white/20 px-2 py-1 text-white/60 hover:bg-white/10 hover:text-cyan-300"
+                    title="Copy System Logs snapshot"
+                  >
+                    [LS] SNAPSHOT
+                  </button>
+                  <button
                     onClick={() => setShowLiveLogs(false)}
                     className="border border-white/20 px-2 py-1 text-white/60 hover:bg-white/10 hover:text-red-300"
                   >
@@ -1528,7 +1559,7 @@ export default function TextDashboard({
               </div>
 
               <div className="border-t border-white/20 p-2 text-center text-xs text-white/30">
-                Press R to refresh logs. Press FL to filter logs. Press L to sort logs. Press Esc to close.
+                Press R to refresh logs. Press FL to filter logs. Press L to sort logs. Press LS to copy logs. Press Esc to close.
               </div>
             </motion.div>
           </motion.div>

@@ -156,6 +156,20 @@ export const buildServicesSnapshot = (services = []) => `${snapshotHeader("SERVI
 
 ${formatRows(services, (service) => `${service.label}: ${service.value || "N/A"} [${service.status}]`)}`;
 
-export const buildSystemLogsSnapshot = (logs = [], heading = "SYSTEM LOGS (LAST 30)") => `${snapshotHeader(heading)}
+export const buildSystemLogsPayload = (logs = []) => ({
+  system_logs: (logs || []).map((log) => ({
+    timestamp:
+      log?.timestamp ||
+      log?.time ||
+      log?.datetime ||
+      log?.createdAt ||
+      log?.name ||
+      "N/A",
+    level: String(log?.level || log?.type || "INFO").toUpperCase(),
+    component: log?.component || log?.scope || log?.source || "app",
+    message: log?.message || log?.status || "",
+  })),
+});
 
-${formatRows(logs, (log) => `[${log.time || log.name || "N/A"}] [${log.level || log.type || "INFO"}] [${log.scope || log.source || "app"}] ${log.message || log.status || ""}`)}`;
+export const buildSystemLogsSnapshot = (logs = []) =>
+  JSON.stringify(buildSystemLogsPayload(logs), null, 2);
