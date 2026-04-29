@@ -32,6 +32,31 @@ All detailed setup and configuration lives in `docs/`. Review in this order:
 
 ---
 
+## Terraform Deployment
+
+This project supports both manual HTTP deployment and Terraform-managed HTTPS deployment.
+
+| Deployment path | Result | Notes |
+| --- | --- | --- |
+| **HTTP ClickOps VM** | `http://<VM_EXTERNAL_IP>` | Use `infra/startup/gcp_startup.sh` as a GCP VM startup script. Requires APIs, IAM, service account scopes, and firewall port `80`. |
+| **Terraform HTTPS** | `https://dashboard.<domain>` | Uses GCP for the VM/dashboard infrastructure and AWS Route 53 for DNS. Certbot runs on the VM to issue the Let's Encrypt certificate. |
+
+The Terraform stack can manage:
+
+* GCP VM, VPC/subnet, NAT, firewall, static IP, service account, and IAM roles
+* AWS Route 53 `A` record for the dashboard hostname
+* VM metadata used by the startup script for hostname and Let's Encrypt email
+* HTTPS firewall access on port `443`
+
+Certificate private keys are intentionally **not** managed directly by Terraform. Certbot stores them on the VM under `/etc/letsencrypt`.
+
+Terraform setup docs:
+
+* **[Terraform HTTPS with GCP + Route 53](./terraform/terraform_docs/GCP_ROUTE53_HTTPS_SETUP.md)** – full HTTPS deployment flow
+* **[Terraform Service Account Billing Admin Setup](./terraform/terraform_docs/SA_CONFIG.md)** – one-time billing IAM setup
+
+---
+
 ## Quick Reference
 
 * **Endpoints**
