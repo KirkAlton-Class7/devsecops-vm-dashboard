@@ -133,7 +133,7 @@ sudo /opt/dashboard-deploy.sh
 If running the Python API outside of the startup script, define the dashboard branding variables before starting it:
 
 ```bash
-export DASHBOARD_APP_NAME="Custom Dashboard"
+export DASHBOARD_APP_NAME="Custom App"
 export DASHBOARD_TAGLINE="Tagline with customized text"
 export DASHBOARD_USER="Notla Krik"
 export DASHBOARD_NAME="Custom Dashboard"
