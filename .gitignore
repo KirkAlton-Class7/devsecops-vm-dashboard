@@ -57,6 +57,7 @@ rpm_packages/
 *.zip
 
 venv/
+.venv/
 
 # Ignore backup folder
 backup/
