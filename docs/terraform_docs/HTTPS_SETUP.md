@@ -25,16 +25,12 @@ The certificate itself is issued on the VM by Certbot. Terraform does not store 
    - `letsencrypt-email`
 5. The VM startup script installs the dashboard over HTTP.
 6. The HTTPS helper waits until DNS resolves to the VM public IP.
-7. Certbot requests a Let's Encrypt certificate.
+7. Certbot requests a Let’s Encrypt certificate.
 8. Certbot updates Nginx for HTTPS and HTTP-to-HTTPS redirect.
 
-Expected result:
+Expected result: `https://dashboard.kirkdevsecops.com`
 
-```text
-https://dashboard.kirkdevsecops.com
-```
-
-[PICTURE: Screenshot of a successful Terraform apply showing dashboard_url and vm_external_ip outputs]
+![Successful Terraform apply showing dashboard URL and VM external IP outputs](../assets/38_terraform_apply_outputs.png)
 
 ---
 
@@ -112,43 +108,23 @@ variable "manage_route53_in_terraform" {
 }
 ```
 
-By default, Terraform builds the hostname from:
+By default, Terraform builds the hostname from `dashboard_subdomain.root_domain`.
 
-```text
-dashboard_subdomain.root_domain
-```
+Default result: `dashboard.kirkdevsecops.com`
 
-Default result:
-
-```text
-dashboard.kirkdevsecops.com
-```
-
-If you want to override the full hostname directly, set:
-
-```hcl
-dashboard_hostname = "custom.kirkdevsecops.com"
-```
+If you want to override the full hostname directly, set `dashboard_hostname = "custom.kirkdevsecops.com"`.
 
 ---
 
 ## Route 53 Hosted Zone Behavior
 
-The default behavior assumes the public hosted zone already exists in Route 53:
-
-```hcl
-manage_route53_in_terraform = false
-```
+The default behavior assumes the public hosted zone already exists in Route 53 with `manage_route53_in_terraform = false`.
 
 Terraform looks up the hosted zone and creates the dashboard `A` record.
 
 Use this if the domain was already registered and configured in AWS.
 
-If you intentionally want Terraform to create the hosted zone, set:
-
-```hcl
-manage_route53_in_terraform = true
-```
+If you intentionally want Terraform to create the hosted zone, set `manage_route53_in_terraform = true`.
 
 Only use this when you understand the Route 53 nameserver implications. Creating a new hosted zone does not automatically update registrar nameservers.
 
@@ -171,15 +147,9 @@ resource "aws_route53_record" "vm_dashboard" {
 }
 ```
 
-This points:
+This points `dashboard.kirkdevsecops.com` to the GCP VM static external IP.
 
-```text
-dashboard.kirkdevsecops.com
-```
-
-to the GCP VM static external IP.
-
-[PICTURE: Screenshot of the AWS Route 53 hosted zone showing the dashboard A record pointing to the GCP static IP]
+![AWS Route 53 hosted zone showing the dashboard A record pointing to the GCP static IP](../assets/39_route53_dashboard_record.png)
 
 ---
 
@@ -204,7 +174,7 @@ access_config {
 
 This matters because DNS should point at a stable IP, not an ephemeral IP that changes after rebuilds.
 
-[PICTURE: Screenshot of the GCP external IP addresses page showing vm-dashboard-ip reserved as a static IP]
+![GCP external IP addresses page showing vm-dashboard-ip reserved as a static IP](../assets/40_gcp_static_ip_reserved.png)
 
 ---
 
@@ -214,7 +184,7 @@ The dashboard needs:
 
 | Port | Purpose |
 | --- | --- |
-| `80` | HTTP dashboard access and Let's Encrypt HTTP validation |
+| `80` | HTTP dashboard access and Let’s Encrypt HTTP validation |
 | `443` | HTTPS dashboard access |
 | `22` | SSH access, if needed |
 
@@ -234,7 +204,7 @@ resource "google_compute_firewall" "allow_https" {
 }
 ```
 
-[PICTURE: Screenshot of GCP firewall rules showing inbound TCP 80 and 443 allowed for the dashboard VM]
+![GCP firewall rules showing inbound TCP 80 and 443 allowed for the dashboard VM](../assets/41_gcp_firewall_http_https.png)
 
 ---
 
@@ -253,29 +223,17 @@ The startup script reads these values from the GCP metadata service.
 
 If these values are missing, the dashboard remains HTTP-only.
 
-[PICTURE: Screenshot of the GCP VM custom metadata showing dashboard-hostname and letsencrypt-email]
+![GCP VM custom metadata showing dashboard hostname and letsencrypt email](../assets/42_vm_https_metadata.png)
 
 ---
 
 ## Certbot and Certificate Storage
 
-Certbot runs on the VM from an isolated Python virtual environment:
+Certbot runs on the VM from an isolated Python virtual environment at `/opt/certbot-venv`.
 
-```text
-/opt/certbot-venv
-```
+The Certbot binary is `/opt/certbot-venv/bin/certbot`.
 
-The Certbot binary is:
-
-```text
-/opt/certbot-venv/bin/certbot
-```
-
-Certificate files are stored under:
-
-```text
-/etc/letsencrypt/live/dashboard.kirkdevsecops.com/
-```
+Certificate files are stored under `/etc/letsencrypt/live/dashboard.kirkdevsecops.com/`.
 
 Important files:
 
@@ -299,19 +257,11 @@ listen 80 default_server;
 server_name _;
 ```
 
-The HTTPS helper later changes the server name to:
-
-```nginx
-server_name dashboard.kirkdevsecops.com;
-```
+The HTTPS helper later changes the server name to `server_name dashboard.kirkdevsecops.com;`.
 
 Then Certbot updates Nginx to serve HTTPS and redirect HTTP to HTTPS.
 
-Nginx handles TLS termination. The browser connects to Nginx over HTTPS, and Nginx proxies backend API calls to the local API over HTTP:
-
-```text
-Browser -> HTTPS -> Nginx -> HTTP localhost:8080
-```
+Nginx handles TLS termination. The browser connects to Nginx over HTTPS, and Nginx proxies backend API calls to the local API over HTTP: `Browser -> HTTPS -> Nginx -> HTTP localhost:8080`.
 
 This is acceptable because the backend API traffic stays inside the VM.
 
@@ -319,11 +269,7 @@ This is acceptable because the backend API traffic stays inside the VM.
 
 ## HTTP-Only Behavior
 
-If the VM is deployed without Route 53, hostname metadata, or Certbot, the dashboard still works over HTTP:
-
-```text
-http://<VM_EXTERNAL_IP>
-```
+If the VM is deployed without Route 53, hostname metadata, or Certbot, the dashboard still works over HTTP at `http://<VM_EXTERNAL_IP>`.
 
 This is the expected behavior for ClickOps/manual VM deployments.
 
@@ -394,7 +340,7 @@ On a fresh apply:
 - the new VM starts over HTTP
 - Certbot requests a new certificate after DNS points to the VM
 
-Avoid repeated destroy/apply loops in a short time window because Let's Encrypt has rate limits.
+Avoid repeated destroy/apply loops in a short time window because Let’s Encrypt has rate limits.
 
 ---
 
@@ -431,7 +377,7 @@ Check Certbot:
 sudo /opt/certbot-venv/bin/certbot certificates
 ```
 
-[PICTURE: Screenshot of certbot certificates output showing dashboard.kirkdevsecops.com certificate paths and expiry]
+![Certbot certificates output showing dashboard certificate paths and expiry](../assets/43_certbot_certificate_output.png)
 
 Test renewal:
 

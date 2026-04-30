@@ -2,7 +2,7 @@
 
 ## **Purpose**
 
-This runbook defines all prerequisite configuration required **before** deploying the VM dashboard infrastructure. It ensures a dedicated service account is created, properly permissioned, and ready to be attached **at VM deployment time** (covered in a separate runbook).
+This runbook defines all prerequisite configuration required **before** deploying the VM dashboard infrastructure. It ensures a dedicated service account is created, assigned the required permissions, and ready to be attached **at VM deployment time** (covered in a separate runbook).
 
 ---
 
@@ -16,7 +16,7 @@ This runbook defines all prerequisite configuration required **before** deployin
 | **Rightsizing recommendations** | `recommender.viewer`, `recommender.googleapis.com` | 3.2, 1 |
 | **Cost trends & forecasts** | BigQuery billing export | 4 |
 | **Idle resources** | `recommender.viewer` | 3.2 |
-| **Service account identity** | Custom SA created | 2.1 |
+| **Service account identity** | Custom service account created | 2.1 |
 
 ---
 
@@ -45,11 +45,7 @@ For a manual GCP Console VM deployment using `infra/startup/gcp_startup.sh`, you
 - A service account attached to the VM with the roles listed in Stage 3
 - VM OAuth scopes that include `https://www.googleapis.com/auth/cloud-platform`
 
-This path serves the dashboard at:
-
-```text
-http://<VM_EXTERNAL_IP>
-```
+This path serves the dashboard at `http://<VM_EXTERNAL_IP>`.
 
 It does not configure DNS, HTTPS, Certbot, or a TLS certificate.
 
@@ -61,16 +57,13 @@ For the Terraform-based HTTPS path, you also need:
 - A public DNS name, such as `dashboard.kirkdevsecops.com`
 - An AWS Route 53 public hosted zone for the root domain, or a manually managed DNS record
 - AWS credentials with permission to read the hosted zone and create/update the `A` record, if Terraform manages DNS
-- A Let's Encrypt contact email
+- A Let’s Encrypt contact email
 - DNS pointing the dashboard hostname to the GCP VM static external IP
 
-This path serves the dashboard at:
+This path serves the dashboard at `https://dashboard.kirkdevsecops.com`.
 
-```text
-https://dashboard.kirkdevsecops.com
-```
-
-> **Important:** HTTPS does not determine whether the dashboard shows real or fallback data. Real data depends on GCP IAM, APIs, service account scopes, and BigQuery billing export.
+> [!IMPORTANT]
+> HTTPS does not determine whether the dashboard shows real or fallback data. Real data depends on GCP IAM, APIs, service account scopes, and BigQuery billing export.
 
 ---
 
@@ -87,9 +80,10 @@ gcloud services enable \
   logging.googleapis.com
 ```
 
-[PICTURE: Screenshot of the GCP APIs & Services page showing Compute, BigQuery, Monitoring, Logging, Recommender, Billing Budgets, and Cloud Billing APIs enabled]
+![GCP APIs and Services page showing required dashboard APIs enabled](assets/25_gcp_apis_enabled.png)
 
-> **Note:** This step is required once per project. If any API fails, check your project owner permissions.
+> [!NOTE]
+> This step is required once per project. If any API fails, check your project owner permissions.
 > The Terraform snippet in `terraform/02-required-api.tf` enables this same API set.
 
 ---
@@ -106,7 +100,8 @@ gcloud iam service-accounts create vm-dashboard \
   --display-name="VM Dashboard Service Account"
 ```
 
-> **Result:** `vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com`
+> [!NOTE]
+> Result: `vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com`
 
 ### **2.2 Set Environment Variables**
 
@@ -115,10 +110,10 @@ export BILLING_ACCOUNT_ID="01BB2F-8195CD-645BC0"   # Your billing account ID
 export SA_EMAIL="vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com"
 ```
 
-> **Why a custom SA?**<br>
-> Using the default Compute Engine service account is **not recommended** for production. A dedicated SA improves audit clarity and follows least privilege.
+> [!TIP]
+> A dedicated service account is recommended for production. It improves audit clarity and follows least privilege more closely than the default Compute Engine service account.
 
-[PICTURE: Screenshot of the GCP IAM service account list showing the vm-dashboard service account]
+![GCP IAM service account list showing the vm-dashboard service account](assets/26_gcp_service_account_list.png)
 
 ---
 
@@ -134,9 +129,9 @@ gcloud beta billing accounts add-iam-policy-binding ${BILLING_ACCOUNT_ID} \
 
 **Enables:** Budgets, billing account metadata, cost data (via BigQuery export)
 
-> **Note**: Budgets API read access is included in roles/billing.viewer. <br>
-No additional role is required for listing or viewing budgets within the billing account.
-
+> [!NOTE]
+> Budgets API read access is included in `roles/billing.viewer`.
+> No additional role is required for listing or viewing budgets within the billing account.
 
 ### **3.2 Project-Level Roles**
 
@@ -145,7 +140,7 @@ No additional role is required for listing or viewing budgets within the billing
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
     --member="serviceAccount:${SA_EMAIL}" \
     --role="roles/compute.viewer"
-    
+
 # BigQuery Data Viewer – read billing export tables
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:${SA_EMAIL}" \
@@ -167,9 +162,10 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --role="roles/recommender.viewer"
 ```
 
-> **Enables:** BigQuery cost queries, CPU utilization metrics, rightsizing & idle resource recommendations.
+> [!NOTE]
+> Enables BigQuery cost queries, CPU utilization metrics, rightsizing recommendations, and idle resource recommendations.
 
-[PICTURE: Screenshot of the GCP IAM permissions page showing the vm-dashboard service account with Compute Viewer, BigQuery, Monitoring, and Recommender roles]
+![GCP IAM permissions page showing vm-dashboard service account roles](assets/27_gcp_service_account_roles.png)
 
 ---
 
@@ -184,11 +180,13 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 3. Choose your project (`${PROJECT_ID}`) and dataset name `billing_export`
 4. Click **Save**
 
-[PICTURE: Screenshot of the Cloud Billing BigQuery Export settings showing the billing_export dataset selected]
+![Cloud Billing BigQuery Export settings showing the billing_export dataset selected](assets/28_billing_bigquery_export.png)
 
-> **Warning:** Enabling Cloud Billing export to BigQuery can only be done through the GCP Console UI. There is no gcloud CLI command or stable REST API endpoint to configure it, so the`/v1/billingAccounts/{id}/exportSettings` endpoint returns 404. There is no Terraform resource for this either.
+> [!WARNING]
+> Enabling Cloud Billing export to BigQuery can only be done through the GCP Console UI. There is no `gcloud` CLI command or stable REST API endpoint to configure it, so the `/v1/billingAccounts/{id}/exportSettings` endpoint returns 404. There is no Terraform resource for this either.
 
-> **Important:** After enabling, data appears within **24 hours**. The dashboard will show `[]` (empty) until then.
+> [!IMPORTANT]
+> After enabling, data appears within **24 hours**. The dashboard will show `[]` (empty) until then.
 
 ---
 
@@ -223,7 +221,8 @@ gcloud beta billing budgets list --billing-account=${BILLING_ACCOUNT_ID}
 
 ```
 
-> **Warning:** `gcloud` does not support Monitoring time series queries. Use the Monitoring API via curl.
+> [!WARNING]
+> `gcloud` does not support Monitoring time series queries. Use the Monitoring API via curl.
 
 ```bash
 # 9. Monitoring API access (may return empty array)
@@ -243,7 +242,10 @@ $token = gcloud auth print-access-token
 
 curl -H "Authorization: Bearer $token" "https://monitoring.googleapis.com/v3/projects/$env:PROJECT_ID/timeSeries?filter=metric.type=""compute.googleapis.com/instance/cpu/utilization""&interval.endTime=$end&interval.startTime=$start"
 ```
-> **Note:** Warning: Errors indicating the absence of a gcloud command for Monitoring time series do not indicate missing permissions. Successful API calls (no 401/403) confirm access.
+
+> [!NOTE]
+> Errors indicating the absence of a `gcloud` command for Monitoring time series do not indicate missing permissions. Successful API calls (no 401/403) confirm access.
+
 ---
 
 ## **Stage 6: Pre-Deployment Checklist**
@@ -254,12 +256,21 @@ curl -H "Authorization: Bearer $token" "https://monitoring.googleapis.com/v3/pro
 - [ ] BigQuery billing export configured
 - [ ] API access verified
 
-[PICTURE: Screenshot of the FinOps dashboard showing real cost trend and budget data after prerequisites are configured]
+---
 
-
-**Next step:** Use the **[Quick Start](./QUICKSTART.md)** runbook to create the VM and **attach the service account at creation time**.
+## **Stage 7: Deployment**
+Use the **[Quick Start](./QUICKSTART.md)** runbook to create the VM and **attach the service account at creation time**.
 
 > **Crucial:** Do not create the VM before setting up this service account. The service account should be attached **during VM creation** to avoid unnecessary troubleshooting or reconfiguration.
+
+---
+
+## **Expected Outcome**
+When deployed, the FinOps dashboard will display real-time system metrics.
+
+![FinOps dashboard showing real cost trend data after prerequisites are configured](assets/29_finops_cost_trend.png)
+
+![FinOps dashboard showing real budget data after prerequisites are configured](assets/29_finops_budget_data.png)
 
 ---
 
@@ -294,7 +305,7 @@ unset PROJECT_ID BILLING_ACCOUNT_ID SA_EMAIL
 ## **Key Takeaways**
 
 - **Create the service account first**, then attach it during VM creation.
-- **Use least privilege**; custom SA with only `billing.viewer` and project‑level read roles.
+- **Use least privilege**; configure the custom service account with only `billing.viewer` and project-level read roles.
 - **Billing export takes up to 24 hours**. The dashboard will not show cost data until then.
 - **Budgets API is included in `billing.viewer`**. No extra role needed for read‑only access.
 

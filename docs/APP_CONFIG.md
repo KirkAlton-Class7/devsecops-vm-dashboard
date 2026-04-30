@@ -26,7 +26,7 @@ export VITE_GITHUB_URL="https://github.com/KirkAlton-Class7"
 export VITE_LINKEDIN_URL="https://www.linkedin.com/in/kirkcochranjr/"
 ```
 
-[PICTURE: Screenshot of app_bootstrap.sh open in an editor showing the Dashboard Customization variables]
+![app_bootstrap.sh open in an editor showing Dashboard Customization variables](assets/20_app_bootstrap_customization_vars.png)
 
 Update these values as needed:
 
@@ -95,7 +95,7 @@ DATA_DIR="${APP_DIR}/data"
 ```
 
 > [!CAUTION]
-> These values affect system-level behavior (NGINX, file paths, permissions).
+> These values affect system-level behavior (Nginx, file paths, permissions).
 > Modify only if you understand the implications on your deployment environment.
 
 ---
@@ -133,15 +133,15 @@ sudo /opt/dashboard-deploy.sh
 If running the Python API outside of the startup script, define the dashboard branding variables before starting it:
 
 ```bash
-export DASHBOARD_APP_NAME="GCP Deployment"
-export DASHBOARD_TAGLINE="Infrastructure health and activity"
-export DASHBOARD_USER="Kirk Alton"
-export DASHBOARD_NAME="DevSecOps Dashboard"
+export DASHBOARD_APP_NAME="Custom Dashboard"
+export DASHBOARD_TAGLINE="Tagline with customized text"
+export DASHBOARD_USER="Notla Krik"
+export DASHBOARD_NAME="Custom Dashboard"
 ```
 
 These values are returned by the Python API in the `/api/dashboard` response and consumed by the frontend at runtime.
 
-[PICTURE: Screenshot of the deployed dashboard header and sidebar showing customized app name, dashboard name, and user attribution]
+![Deployed dashboard showing customized app name dashboard name and user attribution](assets/21_customized_dashboard_branding.png)
 
 > [!NOTE]
 > `VITE_GITHUB_URL` and `VITE_LINKEDIN_URL` are build-time React variables. Set them before `npm run build`; changing them after the site is built will not update the deployed frontend.

@@ -16,7 +16,7 @@ Provides:
 
 DevSecOps system health is collected locally from the VM and GCP metadata. FinOps data uses GCP APIs and BigQuery billing export when configured.
 
-[PICTURE: Screenshot of the DevSecOps dashboard overview showing CPU, memory, disk, estimated cost, and header mode controls]
+![DevSecOps dashboard overview showing CPU memory disk estimated cost and header mode controls](docs/assets/01_devsecops_overview.png)
 
 ---
 
@@ -42,15 +42,15 @@ This project supports both manual HTTP deployment and Terraform-managed HTTPS de
 | Deployment path | Result | Notes |
 | --- | --- | --- |
 | **HTTP ClickOps VM** | `http://<VM_EXTERNAL_IP>` | Use `infra/startup/gcp_startup.sh` as a GCP VM startup script. Requires APIs, IAM, service account scopes, and firewall port `80`. |
-| **Terraform HTTPS** | `https://dashboard.<domain>` | Uses GCP for the VM/dashboard infrastructure and AWS Route 53 for DNS. Certbot runs on the VM to issue the Let's Encrypt certificate. |
+| **Terraform HTTPS** | `https://dashboard.<domain>` | Uses GCP for the VM/dashboard infrastructure and AWS Route 53 for DNS. Certbot runs on the VM to issue the Let’s Encrypt certificate. |
 
-[PICTURE: Screenshot of the dashboard opened over HTTPS at dashboard.kirkdevsecops.com with the browser lock icon visible]
+![Dashboard opened over HTTPS with the browser security indicator visible](docs/assets/02_https_dashboard_lock.png)
 
 The Terraform stack can manage:
 
 * GCP VM, VPC/subnet, NAT, firewall, static IP, service account, and IAM roles
 * AWS Route 53 `A` record for the dashboard hostname
-* VM metadata used by the startup script for hostname and Let's Encrypt email
+* VM metadata used by the startup script for hostname and Let’s Encrypt email
 * HTTPS firewall access on port `443`
 
 Certificate private keys are intentionally **not** managed directly by Terraform. Certbot stores them on the VM under `/etc/letsencrypt`.
@@ -80,13 +80,10 @@ Terraform setup docs:
   * System Logs copy actions – copy JSON with a top-level `system_logs` array
   * Text mode – `[C] COPY`, `[J] COPY JSON`, and `[LS] SNAPSHOT` inside the `[LL] ALL LOGS` modal
 
+  JSON payload structure is documented in **[API Configuration](./docs/API_CONFIG.md#clipboard-json-payload-structure)**.
+
 * **Repository**
   [https://github.com/KirkAlton-Class7/devsecops-vm-dashboard](https://github.com/KirkAlton-Class7/devsecops-vm-dashboard)
-
-* **License**
-  MIT
-
----
 
 ## License
 

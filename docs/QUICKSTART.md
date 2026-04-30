@@ -7,7 +7,7 @@
 **Quick summary:**
 
 * **Enable APIs**: `compute`, `bigquery`, `monitoring`, `logging`, `recommender`, `billingbudgets`, `cloudbilling`.
-* **Create a custom service account** (recommended) or use the default Compute Engine SA.
+* **Create a custom service account** (recommended) or use the default Compute Engine service account.
 * **Grant IAM roles**:
   * `roles/billing.viewer` on the **billing account**
   * `roles/compute.viewer`, `roles/bigquery.dataViewer`, `roles/bigquery.jobUser`, `roles/monitoring.viewer`, `roles/recommender.viewer` on the **project**.
@@ -41,7 +41,7 @@ Use this path when creating a VM manually in the GCP Console and pasting a start
 1. **Copy the appropriate bootstrap script** into your VM’s user‑data / startup script field.
    * Use `infra/startup/gcp_startup.sh` as the **wrapper** – it installs `git`, clones the repo to `/opt/deploy`, and then runs the main bootstrap.
 
-[PICTURE: Screenshot of the GCP VM creation page showing the startup script metadata field populated with gcp_startup.sh]
+![GCP VM creation page showing the startup script metadata field populated with gcp_startup.sh](assets/32_gcp_vm_startup_script.png)
 
 2. **Launch a VM** (Debian 11 or Ubuntu 20.04/22.04 recommended).
 
@@ -51,17 +51,13 @@ Use this path when creating a VM manually in the GCP Console and pasting a start
    * Install Python packages (`google-cloud-bigquery`, `google-cloud-monitoring`, etc.)
    * Create a systemd service for the Python API (`dashboard-api.service`) on port 8080
    * Build the React frontend
-   * Configure NGINX to serve the dashboard and proxy `/api/` and `/metadata` to the Python API
+   * Configure Nginx to serve the dashboard and proxy `/api/` and `/metadata` to the Python API
    * Set up cron jobs for quotes (every 10 min), pricing (monthly), and auto‑deploy (every 15 min)
    * Start everything
 
-4. **Open the VM’s public IP** in your browser:
+4. **Open the VM’s public IP** in your browser at `http://<VM_EXTERNAL_IP>`.
 
-```text
-http://<VM_EXTERNAL_IP>
-```
-
-[PICTURE: Screenshot of the dashboard loading successfully over HTTP using the VM external IP]
+![Dashboard loading successfully over HTTP using the VM external IP](assets/33_http_dashboard_external_ip.png)
 
 The HTTP ClickOps path does **not** configure HTTPS, Certbot, Route 53, or a TLS certificate.
 
@@ -85,7 +81,7 @@ The Terraform deployment can coordinate:
 - firewall rules for `80` and `443`
 - GCP service account and IAM roles
 - AWS Route 53 `A` record
-- instance metadata for the dashboard hostname and Let's Encrypt email
+- instance metadata for the dashboard hostname and Let’s Encrypt email
 
 The VM startup script then:
 
@@ -93,27 +89,23 @@ The VM startup script then:
 2. reads `dashboard-hostname` and `letsencrypt-email` from GCP metadata
 3. waits until DNS resolves to the VM public IP
 4. installs Certbot in `/opt/certbot-venv`
-5. requests a Let's Encrypt certificate
+5. requests a Let’s Encrypt certificate
 6. updates Nginx to redirect HTTP to HTTPS
 
-Expected HTTPS URL:
+Expected HTTPS URL: `https://dashboard.kirkdevsecops.com`
 
-```text
-https://dashboard.kirkdevsecops.com
-```
-
-[PICTURE: Screenshot of the dashboard loading successfully over HTTPS at dashboard.kirkdevsecops.com]
+![Dashboard loading successfully over HTTPS at the dashboard hostname](assets/34_https_dashboard_success.png)
 
 > [!NOTE]
-> Let's Encrypt certificates are issued for domain names, not raw IP addresses. Test HTTPS with the hostname, not `https://<VM_EXTERNAL_IP>`.
+> Let’s Encrypt certificates are issued for domain names, not raw IP addresses. Test HTTPS with the hostname, not `https://<VM_EXTERNAL_IP>`.
 
 ### HTTPS Requirements
 
 - A public domain name, such as `kirkdevsecops.com`
 - A public DNS record pointing the dashboard hostname to the VM static IP
 - inbound firewall access for ports `80` and `443`
-- VM internet egress so Certbot can reach Let's Encrypt
-- a Let's Encrypt contact email
+- VM internet egress so Certbot can reach Let’s Encrypt
+- a Let’s Encrypt contact email
 - Nginx serving HTTP before Certbot runs
 
 ### HTTPS Troubleshooting
@@ -187,36 +179,41 @@ VM_NAME=$(gcloud compute instances list --limit=1 --format="value(name)")
 ZONE=$(gcloud compute instances list --limit=1 --format="value(zone)")
 gcloud compute instances describe ${VM_NAME} --zone=${ZONE} --format="json" | jq '.networkInterfaces[0].subnetwork'
 ```
-**Expected result:** A subnetwork URL (e.g., `"projects/your-project/regions/us-central1/subnetworks/default"`).  
-**Note:** If empty or `null`, the service account lacks `roles/compute.viewer` or the VM has no subnet (rare).
+> [!NOTE]
+> Expected result: a subnetwork URL, such as `"projects/your-project/regions/us-central1/subnetworks/default"`.
+> If empty or `null`, the service account lacks `roles/compute.viewer` or the VM has no subnet.
 
 ```bash
 # 2. VM Service Account Scopes (run from the VM itself)
 curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/scopes | grep cloud-platform
 ```
-**Expected result:** Output contains `https://www.googleapis.com/auth/cloud-platform`.  
-**Note:** If missing, the VM was created with insufficient scopes. Stop the VM and update scopes to `cloud-platform`.
+> [!NOTE]
+> Expected result: output contains `https://www.googleapis.com/auth/cloud-platform`.
+> If missing, the VM was created with insufficient scopes. Stop the VM and update scopes to `cloud-platform`.
 
-[PICTURE: Screenshot of the GCP VM details page showing the service account and cloud-platform OAuth scope]
+![GCP VM details page showing service account and cloud-platform OAuth scope](assets/35_gcp_vm_service_account_scope.png)
 
 ```bash
 # 3. Final API Tests (run after VM deployment, on the VM)
 curl -s http://127.0.0.1:8080/api/dashboard | jq '.meta.dashboardName'
 ```
-**Expected result:** The dashboard name you configured (e.g., `"DevSecOps Dashboard"`).  
-**Note:** If empty or error, the API service is not running. Check with `sudo systemctl status dashboard-api.service`.
+> [!NOTE]
+> Expected result: the dashboard name you configured, such as `"DevSecOps Dashboard"`.
+> If empty or error, the API service is not running. Check with `sudo systemctl status dashboard-api.service`.
 
 ```bash
 curl -s http://127.0.0.1:8080/api/finops | jq '.summaryCards'
 ```
-**Expected result:** A JSON array with four summary cards (Total Cost MTD, Forecast EOM, Potential Savings, CUD Coverage). Values may be `"0.00"` if no data yet.  
-**Note:** If you see `"Error building FinOps data"`, check the API logs (`sudo journalctl -u dashboard-api.service -n 50`). This often indicates missing IAM roles or BigQuery export not configured.
+> [!NOTE]
+> Expected result: a JSON array with four summary cards: Total Cost MTD, Forecast EOM, Potential Savings, and CUD Coverage.
+> Values may be `"0.00"` if no data is available yet. If you see `"Error building FinOps data"`, check the API logs with `sudo journalctl -u dashboard-api.service -n 50`. This often indicates missing IAM roles or an unconfigured BigQuery export.
 
 ```bash
 curl -s "http://127.0.0.1:8080/api/logs?limit=5&offset=0&minutes=10" | jq '.logs[0]'
 ```
-**Expected result:** A log object with `time`, `level`, `source`, and `message`.  
-**Note:** Log timestamps are emitted as ISO 8601 UTC strings, such as `2026-04-27T14:58:42Z`. The React UI formats them for local display.
+> [!NOTE]
+> Expected result: a log object with `time`, `level`, `source`, and `message`.
+> Log timestamps are emitted as ISO 8601 UTC strings, such as `2026-04-27T14:58:42Z`. The React UI formats them for local display.
 
 ### Verify Copy and Snapshot Controls
 
@@ -235,7 +232,9 @@ Text Mode includes:
 | `[J] COPY JSON` | Copies the DevSecOps dashboard JSON payload |
 | `[LL]` then `[LS] SNAPSHOT` | Opens all logs, then copies the loaded/filter-matched logs as JSON |
 
-[PICTURE: Screenshot of Text Mode controls showing C copy, J copy JSON, and the ALL SYSTEM LOGS modal with LS SNAPSHOT]
+![Text Mode dashboard showing copy controls in context](assets/36_text_mode.png)
+
+![Text Mode all logs view showing loaded log rows](assets/36_text_mode_all_logs.png)
 
 System Logs copy actions use this JSON shape:
 
@@ -251,6 +250,8 @@ System Logs copy actions use this JSON shape:
   ]
 }
 ```
+
+Dashboard JSON payload structure is documented in [API Configuration](./API_CONFIG.md#clipboard-json-payload-structure).
 
 ---
 
@@ -282,18 +283,14 @@ python3 scripts/dashboard_api.py
 The API will listen on `http://localhost:8080`.
 
 > [!NOTE]
-> The Vite dev server does not define an API proxy. In local development, frontend calls to `/api/dashboard` on `localhost:5173` fall back to mock dashboard data unless you serve through NGINX or add a local proxy.
+> The Vite dev server does not define an API proxy. In local development, frontend calls to `/api/dashboard` on `localhost:5173` fall back to mock dashboard data unless you serve through Nginx or add a local proxy.
 > `/api/logs` is intercepted in Vite development mode and served from `dashboard/src/mockLogs.js`, which keeps the all-logs modal useful for demos without a live `journalctl` backend.
 
 ### Test Manual Copy Fallback Locally
 
-To simulate an HTTP/blocked-clipboard browser context during local development, open:
+To simulate an HTTP/blocked-clipboard browser context during local development, open `http://localhost:5173/?HttpTest=1`.
 
-```text
-http://localhost:5173/?HttpTest=1
-```
-
-[PICTURE: Screenshot of the Manual Copy modal triggered locally with HttpTest=1]
+![Manual Copy modal triggered locally with HttpTest enabled](assets/37_manual_copy_http_test_modal.png)
 
 Copy buttons will use the same Manual Copy modal path that public HTTP deployments use when the browser blocks Clipboard API access. This test flag is local-only and is ignored on the deployed HTTPS dashboard.
 

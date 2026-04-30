@@ -21,7 +21,7 @@ npm run dev
 
 Access: `http://localhost:5173`
 
-[PICTURE: Screenshot of the local Vite dashboard running at localhost:5173 with mock DevSecOps data visible]
+![Local Vite dashboard running at localhost with mock DevSecOps data visible](../docs/assets/03_local_vite_mock_data.png)
 
 The Vite dev server has no proxy configured:
 
@@ -51,7 +51,7 @@ export default defineConfig({
 })
 ```
 
-Because frontend requests use relative paths like `/api/dashboard`, local development falls back to bundled mock data unless the app is served behind NGINX or a local proxy is added.
+Because frontend requests use relative paths like `/api/dashboard`, local development falls back to bundled mock data unless the app is served behind Nginx or a local proxy is added.
 
 In Vite development mode, `/api/logs` is intercepted by `dashboard/src/mockLogs.js` so the log modals can still demonstrate pagination, filtering, sorting, and older-log loading without a live `journalctl` API.
 
@@ -70,9 +70,9 @@ System Logs copy actions intentionally output JSON instead of plain text:
 }
 ```
 
-Header controls include a camera icon for the dashboard snapshot and a `{}` icon for the JSON payload. Text mode mirrors this with `[C] COPY`, `[J] COPY JSON`, and `[LS] SNAPSHOT` inside the all-logs modal.
+Header controls include a camera icon for the dashboard snapshot and a `{}` icon for the JSON payload. Text mode mirrors this with `[C] COPY`, `[J] COPY JSON`, and `[LS] SNAPSHOT` inside the all-logs modal. The JSON payload structure is documented in [`docs/API_CONFIG.md`](../docs/API_CONFIG.md#clipboard-json-payload-structure).
 
-[PICTURE: Screenshot of the dashboard header showing the camera snapshot button and the JSON payload button]
+![Dashboard header showing snapshot and JSON payload buttons](../docs/assets/04_header_snapshot_json_buttons.png)
 
 ## Build
 

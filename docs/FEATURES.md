@@ -1,10 +1,11 @@
 # Features and Roadmap
 
-
 ## DevSecOps Mode
 
 **DevSecOps Mode (default view)** – A real-time, graphical dashboard of infrastructure health. Optimized for live system metrics and quick access to VM information.
 To enable, press `D` or click the **DevSecOps** button in the mode dropdown menu.
+
+![Header copy controls showing snapshot JSON payload and mode selector buttons](assets/05_devsecops_mode.png)
 
 ---
 
@@ -17,9 +18,9 @@ DevSecOps and FinOps modes share the same header copy controls:
 | Camera icon | Copies the current dashboard snapshot |
 | `{}` icon | Copies the current dashboard JSON payload |
 
-[PICTURE: Close-up screenshot of the dashboard header showing the camera snapshot button, JSON payload button, and mode selector]
+![Header copy controls showing snapshot JSON payload and mode selector buttons](assets/05_header_copy_controls_closeup.png)
 
-Both buttons use the same clipboard handling as widget-level copy actions. If the browser blocks clipboard access, the dashboard opens the Manual Copy modal with the generated snapshot or JSON payload selected.
+Both buttons use the same clipboard handling as widget-level copy actions. If the browser blocks clipboard access, the dashboard opens the Manual Copy modal with the generated snapshot or JSON payload selected. See [API Configuration](./API_CONFIG.md#clipboard-json-payload-structure) for the JSON payload structure.
 
 ---
 
@@ -32,7 +33,7 @@ Both buttons use the same clipboard handling as widget-level copy actions. If th
   * **Disk Usage** – root partition utilization
   * **Estimated Cost** – heuristic, cloud-specific running cost (approximate)
 
-[PICTURE: Screenshot of the four DevSecOps summary cards showing CPU, memory, disk, and estimated cost statuses]
+![DevSecOps summary cards showing CPU memory disk and estimated cost status](assets/06_devsecops_summary_cards.png)
 
 * Each card updates every **10 seconds** via the live API.
 
@@ -57,7 +58,7 @@ Both buttons use the same clipboard handling as widget-level copy actions. If th
 
 * Chart auto-rescales to peak load (capped at 5.0)
 
-[PICTURE: Screenshot of the System Load Trend widget showing current load, peak load, average load, and the bar chart]
+![System Load Trend widget showing current peak and average load with bar chart](assets/07_system_load_trend.png)
 
 ---
 
@@ -89,7 +90,7 @@ Grouped into three compact cards:
 
 > All fields are fetched from the cloud metadata service (with fallbacks) and update live.
 
-[PICTURE: Screenshot of the Identity, Network, and Location cards showing GCP project, IP addresses, region, and zone]
+![Identity Network and Location cards showing GCP project IP addresses region and zone](assets/08_identity_network_location.png)
 
 ---
 
@@ -113,7 +114,7 @@ A detailed widget with three sections:
   * Total / Used / Available (MB or GB)
   * Usage bar
 
-[PICTURE: Screenshot of the System Resources widget showing CPU trend, memory usage, and disk usage sections]
+![System Resources widget showing CPU trend memory usage and disk usage](assets/09_system_resources_widget.png)
 
 ---
 
@@ -121,7 +122,7 @@ A detailed widget with three sections:
 
 Displays health and status of key system components returned by `build_dashboard_data()`:
 
-* **nginx** – running / stopped
+* **Nginx** – running / stopped
 
 * **Python** – installed
 
@@ -143,7 +144,7 @@ Displays health and status of key system components returned by `build_dashboard
 
 * **Filter services** – filters by service name and status
 
-[PICTURE: Screenshot of the Services widget with the hover snapshot button and several service health rows visible]
+![Services widget showing service health rows and hover snapshot button](assets/10_services_widget_snapshot.png)
 
 ---
 
@@ -175,7 +176,7 @@ Each entry includes:
 
 * **Copy logs** – individual log copies, widget snapshots, and custom-filter log snapshots use JSON with a top-level `system_logs` array
 
-[PICTURE: Screenshot of the System Logs widget showing time, level, source, message, and the widget snapshot button]
+![System Logs widget showing time level source message and widget snapshot button](assets/11_system_logs_widget_snapshot.png)
 
 > Filters are client-side and apply to the logs currently loaded in the modal. They persist while paging older logs and reset on full refresh.
 > When a filter modal is opened from another modal, closing it restores focus to the previous modal layer.
@@ -203,7 +204,7 @@ When any visible dashboard section is using bundled mock data or API fallback da
 
 Clicking the pill opens a diagnostic panel that lists the affected sections and remediation guidance, including deployment configuration, API/service health, environment variables, and restart/redeploy steps.
 
-[PICTURE: Screenshot of the Mock Data Active diagnostic panel listing fallback data sections and remediation guidance]
+![Mock Data Active diagnostic panel listing fallback sections and remediation guidance](assets/12_mock_data_diagnostic_panel.png)
 
 The warning hides automatically after the relevant live API responds successfully.
 
@@ -217,7 +218,7 @@ A minimalist, terminal-style view of DevSecOps data. Optimized for keyboard navi
 
 To enable, press `T` or click **TEXT MODE** (top-right).
 
-[PICTURE: Screenshot of Text Mode showing the terminal-style dashboard, top controls, and keyboard shortcut buttons]
+![Text Mode dashboard showing terminal-style layout top controls and keyboard shortcuts](assets/13_text_mode_dashboard.png)
 
 Displays:
 
@@ -259,7 +260,7 @@ Text mode log sorting cycles through Time Newest, Time Oldest, Level Error-Debug
 
 When `ALL SYSTEM LOGS` is open, press `R` to refresh the loaded log window and `LS` to copy the currently loaded/filter-matched logs as JSON.
 
-[PICTURE: Screenshot of the Text Mode ALL SYSTEM LOGS modal showing the R refresh, FL filter, L sort, and LS snapshot controls]
+![Text Mode ALL SYSTEM LOGS modal showing refresh filter sort and snapshot controls](assets/14_text_mode_logs_modal_controls.png)
 
 > [!TIP]
 > Favorite quotes are saved in `localStorage` and persist across sessions.
@@ -271,7 +272,7 @@ When `ALL SYSTEM LOGS` is open, press `R` to refresh the loaded log window and `
 **FinOps Mode** – A cost-optimization dashboard for cloud spend, budgets, and usage.
 To enable, press `F` or click the **FinOps** button.
 
-[PICTURE: Screenshot of the FinOps dashboard overview showing total cost, forecast, potential savings, and CUD coverage cards]
+![FinOps dashboard overview showing total cost forecast potential savings and CUD coverage cards](assets/15_finops_overview_cards.png)
 
 ---
 
@@ -309,7 +310,9 @@ To enable, press `F` or click the **FinOps** button.
 
 * **Mock / fallback warning** – if `/api/finops` fails and the UI falls back to bundled FinOps data, the header diagnostic pill lists the affected FinOps sections.
 
-[PICTURE: Screenshot of the FinOps Rightsizing Recommendations and Idle Resources widgets with item-level copy buttons visible]
+![FinOps Rightsizing Recommendations widget showing item-level copy buttons](assets/16_rightsizing_copy_buttons.png)
+
+![FinOps Idle Resources widget showing item-level copy buttons](assets/16_idle_resources_copy_buttons.png)
 
 > Data is sourced from GCP APIs (BigQuery, Monitoring, Recommender, Budgets).
 > Initial data population may be delayed (see below).
@@ -349,8 +352,16 @@ To enable, press `F` or click the **FinOps** button.
 Interactive particle background (click to cycle):
 
 * **Drift** – drifting cyan particles with connecting lines
+
+![Screensaver Drift mode showing cyan particles with connecting lines](assets/17_screensaver_drift.png)
+
 * **Haze** – kinetic purple particles that randomly settle into geometric patterns
+
+![Screensaver Haze mode showing purple particles forming geometric patterns](assets/17_screensaver_haze.png)
+
 * **State** – white static particles that glow and snap to new positions
+
+![Screensaver State mode showing white static particles](assets/17_screensaver_state.png)
 
 ---
 
@@ -366,7 +377,7 @@ Features:
 * ✈️ Open Google Travel Explore for liked destinations
 * 🏠 “Living info” Google search
 
-[PICTURE: Screenshot of the Scenes from Around the World card showing image metadata, favorites, travel controls, and the copy button near the image counter]
+![Scenes from Around the World card showing image metadata travel controls favorites and copy button](assets/17_world_scenes_card.png)
 
 ---
 
@@ -481,31 +492,21 @@ When the dashboard is accessed over public HTTP:
 
 When the browser blocks a copy action, the UI opens a **Manual Copy** modal with the attempted snapshot or value already selected. The modal explains that clipboard access is unavailable on public HTTP or blocked by the browser and asks the user to highlight and copy the text manually.
 
-[PICTURE: Screenshot of the Manual Copy modal showing selected snapshot text after clipboard access is blocked]
+![Manual Copy modal showing selected snapshot text after clipboard access is blocked](assets/18_manual_copy_modal.png)
 
 ---
 
 ### Fix
 
-Use HTTPS for the public dashboard URL:
+Use HTTPS for the public dashboard URL, such as `https://dashboard.kirkdevsecops.com`.
 
-```text
-https://dashboard.kirkdevsecops.com
-```
-
-Recommended path:
-
-```text
-Route 53 DNS -> GCP static IP -> Nginx -> Certbot/Let's Encrypt -> HTTPS dashboard
-```
+The recommended path is `Route 53 DNS -> GCP static IP -> Nginx -> Certbot/Let’s Encrypt -> HTTPS dashboard`.
 
 For quick testing without HTTPS, you can:
 
 * access the dashboard locally through `http://localhost`
 * use an SSH tunnel
 * manually copy values from the UI instead of using the Clipboard API
-
----
 
 
 ## HTTPS and Certificates
@@ -519,11 +520,7 @@ In this deployment, HTTPS is handled by:
 * **Certbot** – requests and renews a free Let’s Encrypt certificate
 * **Let’s Encrypt** – issues the trusted certificate
 
-Certificate files live on the VM under:
-
-```text
-/etc/letsencrypt/live/<dashboard-hostname>/
-```
+Certificate files live on the VM under `/etc/letsencrypt/live/<dashboard-hostname>/`.
 
 Important files:
 
@@ -535,9 +532,7 @@ Important files:
 > [!IMPORTANT]
 > Let’s Encrypt certificates are issued for DNS names, not raw IP addresses. Use a hostname such as `dashboard.kirkdevsecops.com`, not `https://<VM_EXTERNAL_IP>`.
 
-[PICTURE: Screenshot of the dashboard loaded over HTTPS with the browser security indicator and dashboard hostname visible]
-
----
+![Dashboard loaded over HTTPS with security indicator and dashboard hostname visible](assets/19_https_dashboard_hostname.png)
 
 
 ## Roadmap & Upcoming Features
@@ -562,8 +557,6 @@ Important files:
 * [x] ISO 8601 UTC log timestamps
 * [ ] Nginx and Certbot status/log summary
 * [ ] Optional systemd service status cards for `nginx` and `dashboard-api`
-
-
 
 ### Clipboard & UX
 
