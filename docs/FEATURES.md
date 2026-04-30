@@ -17,6 +17,8 @@ DevSecOps and FinOps modes share the same header copy controls:
 | Camera icon | Copies the current dashboard snapshot |
 | `{}` icon | Copies the current dashboard JSON payload |
 
+[PICTURE: Close-up screenshot of the dashboard header showing the camera snapshot button, JSON payload button, and mode selector]
+
 Both buttons use the same clipboard handling as widget-level copy actions. If the browser blocks clipboard access, the dashboard opens the Manual Copy modal with the generated snapshot or JSON payload selected.
 
 ---
@@ -29,6 +31,8 @@ Both buttons use the same clipboard handling as widget-level copy actions. If th
   * **Memory Usage** – real-time memory consumption
   * **Disk Usage** – root partition utilization
   * **Estimated Cost** – heuristic, cloud-specific running cost (approximate)
+
+[PICTURE: Screenshot of the four DevSecOps summary cards showing CPU, memory, disk, and estimated cost statuses]
 
 * Each card updates every **10 seconds** via the live API.
 
@@ -52,6 +56,8 @@ Both buttons use the same clipboard handling as widget-level copy actions. If th
   * Color-coded status: Normal / Elevated / High / Critical
 
 * Chart auto-rescales to peak load (capped at 5.0)
+
+[PICTURE: Screenshot of the System Load Trend widget showing current load, peak load, average load, and the bar chart]
 
 ---
 
@@ -83,6 +89,8 @@ Grouped into three compact cards:
 
 > All fields are fetched from the cloud metadata service (with fallbacks) and update live.
 
+[PICTURE: Screenshot of the Identity, Network, and Location cards showing GCP project, IP addresses, region, and zone]
+
 ---
 
 ### System Resources
@@ -104,6 +112,8 @@ A detailed widget with three sections:
 
   * Total / Used / Available (MB or GB)
   * Usage bar
+
+[PICTURE: Screenshot of the System Resources widget showing CPU trend, memory usage, and disk usage sections]
 
 ---
 
@@ -132,6 +142,8 @@ Displays health and status of key system components returned by `build_dashboard
 * **Sort services** – cycles through Name A-Z, Name Z-A, Status Healthy-Critical, and Status Critical-Healthy
 
 * **Filter services** – filters by service name and status
+
+[PICTURE: Screenshot of the Services widget with the hover snapshot button and several service health rows visible]
 
 ---
 
@@ -163,6 +175,8 @@ Each entry includes:
 
 * **Copy logs** – individual log copies, widget snapshots, and custom-filter log snapshots use JSON with a top-level `system_logs` array
 
+[PICTURE: Screenshot of the System Logs widget showing time, level, source, message, and the widget snapshot button]
+
 > Filters are client-side and apply to the logs currently loaded in the modal. They persist while paging older logs and reset on full refresh.
 > When a filter modal is opened from another modal, closing it restores focus to the previous modal layer.
 
@@ -189,7 +203,11 @@ When any visible dashboard section is using bundled mock data or API fallback da
 
 Clicking the pill opens a diagnostic panel that lists the affected sections and remediation guidance, including deployment configuration, API/service health, environment variables, and restart/redeploy steps.
 
+[PICTURE: Screenshot of the Mock Data Active diagnostic panel listing fallback data sections and remediation guidance]
+
 The warning hides automatically after the relevant live API responds successfully.
+
+After live data has loaded once, a temporary API error does not replace the current dashboard with mock data. The UI keeps the last live payload visible and shows the diagnostic warning until the API recovers.
 
 ---
 
@@ -198,6 +216,8 @@ The warning hides automatically after the relevant live API responds successfull
 A minimalist, terminal-style view of DevSecOps data. Optimized for keyboard navigation and copy-paste workflows.
 
 To enable, press `T` or click **TEXT MODE** (top-right).
+
+[PICTURE: Screenshot of Text Mode showing the terminal-style dashboard, top controls, and keyboard shortcut buttons]
 
 Displays:
 
@@ -239,6 +259,8 @@ Text mode log sorting cycles through Time Newest, Time Oldest, Level Error-Debug
 
 When `ALL SYSTEM LOGS` is open, press `R` to refresh the loaded log window and `LS` to copy the currently loaded/filter-matched logs as JSON.
 
+[PICTURE: Screenshot of the Text Mode ALL SYSTEM LOGS modal showing the R refresh, FL filter, L sort, and LS snapshot controls]
+
 > [!TIP]
 > Favorite quotes are saved in `localStorage` and persist across sessions.
 
@@ -248,6 +270,8 @@ When `ALL SYSTEM LOGS` is open, press `R` to refresh the loaded log window and `
 
 **FinOps Mode** – A cost-optimization dashboard for cloud spend, budgets, and usage.
 To enable, press `F` or click the **FinOps** button.
+
+[PICTURE: Screenshot of the FinOps dashboard overview showing total cost, forecast, potential savings, and CUD coverage cards]
 
 ---
 
@@ -284,6 +308,8 @@ To enable, press `F` or click the **FinOps** button.
 * **Savings Summary** – realized savings (`0.0`) + potential rightsizing savings
 
 * **Mock / fallback warning** – if `/api/finops` fails and the UI falls back to bundled FinOps data, the header diagnostic pill lists the affected FinOps sections.
+
+[PICTURE: Screenshot of the FinOps Rightsizing Recommendations and Idle Resources widgets with item-level copy buttons visible]
 
 > Data is sourced from GCP APIs (BigQuery, Monitoring, Recommender, Budgets).
 > Initial data population may be delayed (see below).
@@ -339,6 +365,8 @@ Features:
 * ⭐ Save favorites (local)
 * ✈️ Open Google Travel Explore for liked destinations
 * 🏠 “Living info” Google search
+
+[PICTURE: Screenshot of the Scenes from Around the World card showing image metadata, favorites, travel controls, and the copy button near the image counter]
 
 ---
 
@@ -453,6 +481,8 @@ When the dashboard is accessed over public HTTP:
 
 When the browser blocks a copy action, the UI opens a **Manual Copy** modal with the attempted snapshot or value already selected. The modal explains that clipboard access is unavailable on public HTTP or blocked by the browser and asks the user to highlight and copy the text manually.
 
+[PICTURE: Screenshot of the Manual Copy modal showing selected snapshot text after clipboard access is blocked]
+
 ---
 
 ### Fix
@@ -504,6 +534,8 @@ Important files:
 
 > [!IMPORTANT]
 > Let’s Encrypt certificates are issued for DNS names, not raw IP addresses. Use a hostname such as `dashboard.kirkdevsecops.com`, not `https://<VM_EXTERNAL_IP>`.
+
+[PICTURE: Screenshot of the dashboard loaded over HTTPS with the browser security indicator and dashboard hostname visible]
 
 ---
 

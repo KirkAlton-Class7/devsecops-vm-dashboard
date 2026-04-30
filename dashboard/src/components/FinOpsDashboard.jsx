@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowDown,
@@ -485,6 +485,7 @@ export default function FinOpsDashboard({
   const [rightsizingSortDirection, setRightsizingSortDirection] = useState("asc");
   const [rightsizingSortField, setRightsizingSortField] = useState("name");
   const [finOpsDiagnostics, setFinOpsDiagnostics] = useState([]);
+  const hasLiveFinOpsRef = useRef(false);
 
   const [budgetPage, setBudgetPage] = useState(0);
   const BUDGETS_PER_PAGE = 3;
@@ -527,6 +528,7 @@ export default function FinOpsDashboard({
 
         const json = await res.json();
         setData(json);
+        hasLiveFinOpsRef.current = true;
         setCpuFilters({});
         setRightsizingFilters({});
         setCpuSearch("");
@@ -535,12 +537,14 @@ export default function FinOpsDashboard({
         setFinOpsDiagnostics([]);
       } catch (err) {
         console.error("FinOps API error, using mock data:", err);
-        setData(mockFinOpsData);
-        setCpuFilters({});
-        setRightsizingFilters({});
-        setCpuSearch("");
-        setRightsizingSearch("");
-        setFinOpsRefreshKey((current) => current + 1);
+        if (!hasLiveFinOpsRef.current) {
+          setData(mockFinOpsData);
+          setCpuFilters({});
+          setRightsizingFilters({});
+          setCpuSearch("");
+          setRightsizingSearch("");
+          setFinOpsRefreshKey((current) => current + 1);
+        }
         setFinOpsDiagnostics(FINOPS_FALLBACK_DIAGNOSTICS);
       } finally {
         setIsLoading(false);

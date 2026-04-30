@@ -49,7 +49,7 @@ import concurrent.futures
 from google.cloud import monitoring_v3
 from google.cloud.monitoring_v3 import Aggregation
 from datetime import datetime, timedelta, timezone
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from functools import wraps
 import time
 import threading
@@ -1147,7 +1147,8 @@ def prewarm_cache():
 # -------------------------------
 if __name__ == '__main__':
     port = 8080
-    server = HTTPServer(('0.0.0.0', port), MonitoringHandler)
+    server = ThreadingHTTPServer(('0.0.0.0', port), MonitoringHandler)
+    server.daemon_threads = True
     
     # Start pre‑warming in a background thread (doesn't block server start)
     threading.Thread(target=prewarm_cache, daemon=True).start()

@@ -87,6 +87,8 @@ gcloud services enable \
   logging.googleapis.com
 ```
 
+[PICTURE: Screenshot of the GCP APIs & Services page showing Compute, BigQuery, Monitoring, Logging, Recommender, Billing Budgets, and Cloud Billing APIs enabled]
+
 > **Note:** This step is required once per project. If any API fails, check your project owner permissions.
 > The Terraform snippet in `terraform/02-required-api.tf` enables this same API set.
 
@@ -115,6 +117,8 @@ export SA_EMAIL="vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com"
 
 > **Why a custom SA?**<br>
 > Using the default Compute Engine service account is **not recommended** for production. A dedicated SA improves audit clarity and follows least privilege.
+
+[PICTURE: Screenshot of the GCP IAM service account list showing the vm-dashboard service account]
 
 ---
 
@@ -165,6 +169,8 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 
 > **Enables:** BigQuery cost queries, CPU utilization metrics, rightsizing & idle resource recommendations.
 
+[PICTURE: Screenshot of the GCP IAM permissions page showing the vm-dashboard service account with Compute Viewer, BigQuery, Monitoring, and Recommender roles]
+
 ---
 
 ## **Stage 4: Configure Billing Export to BigQuery**
@@ -177,6 +183,8 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 2. Click **Edit settings**
 3. Choose your project (`${PROJECT_ID}`) and dataset name `billing_export`
 4. Click **Save**
+
+[PICTURE: Screenshot of the Cloud Billing BigQuery Export settings showing the billing_export dataset selected]
 
 > **Warning:** Enabling Cloud Billing export to BigQuery can only be done through the GCP Console UI. There is no gcloud CLI command or stable REST API endpoint to configure it, so the`/v1/billingAccounts/{id}/exportSettings` endpoint returns 404. There is no Terraform resource for this either.
 
@@ -245,6 +253,8 @@ curl -H "Authorization: Bearer $token" "https://monitoring.googleapis.com/v3/pro
 - [ ] APIs enabled
 - [ ] BigQuery billing export configured
 - [ ] API access verified
+
+[PICTURE: Screenshot of the FinOps dashboard showing real cost trend and budget data after prerequisites are configured]
 
 
 **Next step:** Use the **[Quick Start](./QUICKSTART.md)** runbook to create the VM and **attach the service account at creation time**.

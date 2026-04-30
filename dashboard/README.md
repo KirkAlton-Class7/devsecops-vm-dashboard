@@ -21,6 +21,8 @@ npm run dev
 
 Access: `http://localhost:5173`
 
+[PICTURE: Screenshot of the local Vite dashboard running at localhost:5173 with mock DevSecOps data visible]
+
 The Vite dev server has no proxy configured:
 
 ```js
@@ -69,6 +71,8 @@ System Logs copy actions intentionally output JSON instead of plain text:
 ```
 
 Header controls include a camera icon for the dashboard snapshot and a `{}` icon for the JSON payload. Text mode mirrors this with `[C] COPY`, `[J] COPY JSON`, and `[LS] SNAPSHOT` inside the all-logs modal.
+
+[PICTURE: Screenshot of the dashboard header showing the camera snapshot button and the JSON payload button]
 
 ## Build
 

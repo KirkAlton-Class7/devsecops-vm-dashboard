@@ -34,6 +34,8 @@ Expected result:
 https://dashboard.kirkdevsecops.com
 ```
 
+[PICTURE: Screenshot of a successful Terraform apply showing dashboard_url and vm_external_ip outputs]
+
 ---
 
 ## Required Terraform Providers
@@ -177,6 +179,8 @@ dashboard.kirkdevsecops.com
 
 to the GCP VM static external IP.
 
+[PICTURE: Screenshot of the AWS Route 53 hosted zone showing the dashboard A record pointing to the GCP static IP]
+
 ---
 
 ## Static IP
@@ -199,6 +203,8 @@ access_config {
 ```
 
 This matters because DNS should point at a stable IP, not an ephemeral IP that changes after rebuilds.
+
+[PICTURE: Screenshot of the GCP external IP addresses page showing vm-dashboard-ip reserved as a static IP]
 
 ---
 
@@ -228,6 +234,8 @@ resource "google_compute_firewall" "allow_https" {
 }
 ```
 
+[PICTURE: Screenshot of GCP firewall rules showing inbound TCP 80 and 443 allowed for the dashboard VM]
+
 ---
 
 ## VM Metadata for HTTPS
@@ -244,6 +252,8 @@ metadata = {
 The startup script reads these values from the GCP metadata service.
 
 If these values are missing, the dashboard remains HTTP-only.
+
+[PICTURE: Screenshot of the GCP VM custom metadata showing dashboard-hostname and letsencrypt-email]
 
 ---
 
@@ -420,6 +430,8 @@ Check Certbot:
 ```bash
 sudo /opt/certbot-venv/bin/certbot certificates
 ```
+
+[PICTURE: Screenshot of certbot certificates output showing dashboard.kirkdevsecops.com certificate paths and expiry]
 
 Test renewal:
 

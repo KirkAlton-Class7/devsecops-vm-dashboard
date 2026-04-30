@@ -17,6 +17,8 @@ resource "google_billing_account_iam_member" "vm_dashboard_billing_viewer" {
 
 The billing account ID is currently set in `terraform/10-service-accounts.tf`; replace it there or refactor it to use `var.billing_account_id` if you deploy in another billing account.
 
+[PICTURE: Screenshot of the Terraform service account details page showing the service account email]
+
 ### **Step 1: Set Environment Variables**
 
 Run these commands to automatically retrieve your project ID, billing account ID, and Terraform service account email:
@@ -41,6 +43,8 @@ gcloud billing accounts add-iam-policy-binding ${BILLING_ACCOUNT_ID} \
 
 > **Why this is needed:** Terraform uses this service account to apply IAM bindings on the billing account (e.g., granting `billing.viewer` to the VM dashboard service account).  
 > **Note:** This is a **one‑time** operation. Once granted, the Terraform service account retains this permission for all future runs.
+
+[PICTURE: Screenshot of the GCP Billing account IAM page showing the Terraform service account with Billing Admin]
 
 ### **Verification**
 

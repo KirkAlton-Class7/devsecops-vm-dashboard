@@ -68,6 +68,7 @@ export default function App() {
   const textFlashTimeoutRef = useRef(null);
   const copySuccessTimeoutRef = useRef(null);
   const manualCopyTextareaRef = useRef(null);
+  const hasLiveDashboardRef = useRef(false);
 
   const startModeGlow = useCallback(() => {
     setFlashMode(true);
@@ -257,10 +258,13 @@ export default function App() {
         const data = await res.json();
         data.monitoringEndpoints = getRealMonitoringEndpoints();
         setDashboard(data);
+        hasLiveDashboardRef.current = true;
         setDashboardDiagnostics([]);
       } catch {
-        const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
-        setDashboard(mockWithRealEndpoints);
+        if (!hasLiveDashboardRef.current) {
+          const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
+          setDashboard(mockWithRealEndpoints);
+        }
         setDashboardDiagnostics(getDashboardFallbackDiagnostics());
       } finally {
         setIsLoading(false);
@@ -461,10 +465,13 @@ export default function App() {
               const data = await res.json();
               data.monitoringEndpoints = getRealMonitoringEndpoints();
               setDashboard(data);
+              hasLiveDashboardRef.current = true;
               setDashboardDiagnostics([]);
             } catch {
-              const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
-              setDashboard(mockWithRealEndpoints);
+              if (!hasLiveDashboardRef.current) {
+                const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
+                setDashboard(mockWithRealEndpoints);
+              }
               setDashboardDiagnostics(getDashboardFallbackDiagnostics());
             }
           }}

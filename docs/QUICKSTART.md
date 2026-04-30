@@ -41,6 +41,8 @@ Use this path when creating a VM manually in the GCP Console and pasting a start
 1. **Copy the appropriate bootstrap script** into your VM’s user‑data / startup script field.
    * Use `infra/startup/gcp_startup.sh` as the **wrapper** – it installs `git`, clones the repo to `/opt/deploy`, and then runs the main bootstrap.
 
+[PICTURE: Screenshot of the GCP VM creation page showing the startup script metadata field populated with gcp_startup.sh]
+
 2. **Launch a VM** (Debian 11 or Ubuntu 20.04/22.04 recommended).
 
 3. **Wait 5–10 minutes** while the scripts:
@@ -58,6 +60,8 @@ Use this path when creating a VM manually in the GCP Console and pasting a start
 ```text
 http://<VM_EXTERNAL_IP>
 ```
+
+[PICTURE: Screenshot of the dashboard loading successfully over HTTP using the VM external IP]
 
 The HTTP ClickOps path does **not** configure HTTPS, Certbot, Route 53, or a TLS certificate.
 
@@ -97,6 +101,8 @@ Expected HTTPS URL:
 ```text
 https://dashboard.kirkdevsecops.com
 ```
+
+[PICTURE: Screenshot of the dashboard loading successfully over HTTPS at dashboard.kirkdevsecops.com]
 
 > [!NOTE]
 > Let's Encrypt certificates are issued for domain names, not raw IP addresses. Test HTTPS with the hostname, not `https://<VM_EXTERNAL_IP>`.
@@ -191,6 +197,8 @@ curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadat
 **Expected result:** Output contains `https://www.googleapis.com/auth/cloud-platform`.  
 **Note:** If missing, the VM was created with insufficient scopes. Stop the VM and update scopes to `cloud-platform`.
 
+[PICTURE: Screenshot of the GCP VM details page showing the service account and cloud-platform OAuth scope]
+
 ```bash
 # 3. Final API Tests (run after VM deployment, on the VM)
 curl -s http://127.0.0.1:8080/api/dashboard | jq '.meta.dashboardName'
@@ -226,6 +234,8 @@ Text Mode includes:
 | `[C] COPY` | Copies the DevSecOps dashboard text snapshot |
 | `[J] COPY JSON` | Copies the DevSecOps dashboard JSON payload |
 | `[LL]` then `[LS] SNAPSHOT` | Opens all logs, then copies the loaded/filter-matched logs as JSON |
+
+[PICTURE: Screenshot of Text Mode controls showing C copy, J copy JSON, and the ALL SYSTEM LOGS modal with LS SNAPSHOT]
 
 System Logs copy actions use this JSON shape:
 
@@ -282,6 +292,8 @@ To simulate an HTTP/blocked-clipboard browser context during local development, 
 ```text
 http://localhost:5173/?HttpTest=1
 ```
+
+[PICTURE: Screenshot of the Manual Copy modal triggered locally with HttpTest=1]
 
 Copy buttons will use the same Manual Copy modal path that public HTTP deployments use when the browser blocks Clipboard API access. This test flag is local-only and is ignored on the deployed HTTPS dashboard.
 
@@ -355,6 +367,7 @@ devsecops-vm-dashboard/
 | Nginx status | `sudo systemctl status nginx` |
 | Frontend through nginx | `curl -s http://localhost/ | grep -o "<title>"` |
 | Bootstrap logs | `sudo tail -100 /var/log/bootstrap.log` |
+| Auto-deploy logs | `sudo tail -100 /var/log/dashboard-deploy.log` |
 | Startup script logs | `sudo tail -100 /var/log/startup-script.log` |
 | API logs | `sudo journalctl -u dashboard-api.service -n 50` |
 | Billing account ID test | `curl -s http://localhost:8080/api/dashboard | jq '.identity.billingAccountId'` |
@@ -367,4 +380,5 @@ devsecops-vm-dashboard/
 - **External IP fallback** uses `ifconfig.me`; if the VM has no internet, external IP will show `unknown`.
 - **Azure / AWS** provider adapters are not implemented in the current codebase.
 - **Clipboard API access** usually requires HTTPS or localhost. On public HTTP, copy actions fall back to the Manual Copy modal when the browser blocks clipboard access.
+- **Auto-deploy behavior** keeps the existing frontend in place if the Git pull, dependency install, or frontend build fails. Review `/var/log/dashboard-deploy.log` when a pushed update does not appear.
 - **FinOps data** requires BigQuery billing export, which takes up to 24 hours to populate after first setup.

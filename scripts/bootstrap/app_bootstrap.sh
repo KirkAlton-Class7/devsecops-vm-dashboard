@@ -81,6 +81,7 @@ retry apt-get install -y \
   jq \
   ca-certificates \
   git \
+  sudo \
   build-essential
 
 # ---------------------------------
@@ -138,6 +139,47 @@ fi
 mkdir -p "${APP_DIR}" "${DATA_DIR}"
 chown -R ${APP_USER}:${APP_USER} "${APP_DIR}"
 chmod -R 755 "${APP_DIR}"
+
+# ---------------------------------
+# Tune Nginx for dashboard traffic
+# ---------------------------------
+configure_nginx_tuning() {
+  if [ -f /etc/nginx/nginx.conf ]; then
+    sed -i -E 's/worker_connections[[:space:]]+[0-9]+;/worker_connections 4096;/' /etc/nginx/nginx.conf
+  fi
+
+  mkdir -p /etc/systemd/system/nginx.service.d
+  cat > /etc/systemd/system/nginx.service.d/limits.conf <<'EOF'
+[Service]
+LimitNOFILE=8192
+EOF
+  systemctl daemon-reload
+}
+
+deploy_static_build() {
+  local src_dir="$1"
+  local dest_dir="$2"
+
+  if [ ! -f "${src_dir}/index.html" ]; then
+    log "ERROR: Refusing deploy because ${src_dir}/index.html is missing"
+    return 1
+  fi
+
+  mkdir -p "${dest_dir}"
+
+  # Copy hashed assets before index.html so the active page never points at missing files.
+  if [ -d "${src_dir}/assets" ]; then
+    mkdir -p "${dest_dir}/assets"
+    cp -a "${src_dir}/assets/." "${dest_dir}/assets/"
+  fi
+
+  find "${src_dir}" -mindepth 1 -maxdepth 1 ! -name index.html ! -name assets -exec cp -a {} "${dest_dir}/" \;
+  cp -a "${src_dir}/index.html" "${dest_dir}/index.html"
+  chown -R ${APP_USER}:${APP_USER} "${dest_dir}"
+  chmod -R 755 "${dest_dir}"
+}
+
+configure_nginx_tuning
 
 # ---------------------------------
 # Validate and sync repository
@@ -281,9 +323,16 @@ fi
 log "Build successful"
 
 log "Deploying dashboard"
-rm -rf ${APP_DIR}/*
-cp -r "$REPO_DIR/dashboard/dist/"* ${APP_DIR}/
-chown -R ${APP_USER}:${APP_USER} ${APP_DIR}
+BUILD_STAGE="$(mktemp -d /tmp/vm-dashboard-build.XXXXXX)"
+cp -a "$REPO_DIR/dashboard/dist/." "$BUILD_STAGE/"
+deploy_static_build "$BUILD_STAGE" "${APP_DIR}" || {
+  rm -rf "$BUILD_STAGE"
+  log "ERROR: Dashboard deploy failed; existing frontend left intact"
+  exit 1
+}
+rm -rf "$BUILD_STAGE"
+mkdir -p "${DATA_DIR}" "${DATA_DIR}/images"
+chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}"
 
 # ---------------------------------
 # Refresh quote data
@@ -395,36 +444,81 @@ fi
 # ---------------------------------
 log "Setting up auto-deploy"
 cat > /opt/dashboard-deploy.sh << 'DEPLOY_SCRIPT'
-#!/bin/bash
-LOCK_FILE=/tmp/dashboard.lock
+#!/usr/bin/env bash
+set -u
+
+LOCK_DIR=/tmp/dashboard-deploy.lock
 REPO_DIR=/opt/deploy
 APP_DIR=/var/www/vm-dashboard
 DATA_DIR=/var/www/vm-dashboard/data
-TMP_DIR=/tmp/dashboard-build
+APP_USER=appuser
+LOG_FILE=/var/log/dashboard-deploy.log
 
-if [ -f "$LOCK_FILE" ]; then exit 0; fi
-touch "$LOCK_FILE"
-trap "rm -f \"$LOCK_FILE\"" EXIT
+exec >> "$LOG_FILE" 2>&1
 
-cd "$REPO_DIR" || exit 0
-chown -R appuser:appuser "$REPO_DIR"
-cd dashboard || exit 0
+log() { echo "[$(date -u +'%Y-%m-%dT%H:%M:%SZ')] [DEPLOY] $1"; }
 
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    log "Another deploy is already running; skipping"
+    exit 0
+fi
+
+BUILD_DIR=""
+cleanup() {
+    [ -n "$BUILD_DIR" ] && rm -rf "$BUILD_DIR"
+    rm -rf "$LOCK_DIR"
+}
+trap cleanup EXIT
+
+run_as_appuser() {
+    sudo -u "$APP_USER" env HOME="/home/$APP_USER" "$@"
+}
+
+deploy_static_build() {
+    local src_dir="$1"
+    local dest_dir="$2"
+
+    if [ ! -f "$src_dir/index.html" ]; then
+        log "Refusing deploy because $src_dir/index.html is missing"
+        return 1
+    fi
+
+    mkdir -p "$dest_dir"
+
+    # Copy hashed assets before index.html so users never receive HTML that points at missing files.
+    if [ -d "$src_dir/assets" ]; then
+        mkdir -p "$dest_dir/assets"
+        cp -a "$src_dir/assets/." "$dest_dir/assets/"
+    fi
+
+    find "$src_dir" -mindepth 1 -maxdepth 1 ! -name index.html ! -name assets -exec cp -a {} "$dest_dir/" \;
+    cp -a "$src_dir/index.html" "$dest_dir/index.html"
+    chown -R "$APP_USER:$APP_USER" "$dest_dir"
+    chmod -R 755 "$dest_dir"
+}
+
+cd "$REPO_DIR" || { log "Repo missing at $REPO_DIR"; exit 0; }
+chown -R "$APP_USER:$APP_USER" "$REPO_DIR"
+git config --global --add safe.directory "$REPO_DIR" 2>/dev/null || true
+
+run_as_appuser git -C "$REPO_DIR" fetch origin main --depth=1 || { log "Fetch failed; existing deployment left intact"; exit 0; }
 LOCAL=$(git rev-parse HEAD)
 REMOTE=$(git rev-parse origin/main 2>/dev/null || echo "$LOCAL")
 
 if [ "$LOCAL" != "$REMOTE" ]; then
-    echo "[DEPLOY] Changes detected, deploying..." >> /var/log/dashboard-deploy.log
-    git pull || exit 1
-    cd "$REPO_DIR/dashboard" || exit 1
+    log "Changes detected; building new release"
+    run_as_appuser git -C "$REPO_DIR" pull --ff-only || { log "Pull failed; existing deployment left intact"; exit 1; }
+    cd "$REPO_DIR/dashboard" || { log "Dashboard directory missing"; exit 1; }
 
     if [ -f "$REPO_DIR/scripts/fetch_pricing.py" ]; then
+        mkdir -p /opt/scripts
         cp -f "$REPO_DIR/scripts/fetch_pricing.py" /opt/scripts/fetch_pricing.py
         chmod +x /opt/scripts/fetch_pricing.py
         export DATA_DIR="$DATA_DIR"
-        /opt/scripts/fetch_pricing.py
+        /opt/scripts/fetch_pricing.py || log "Pricing cache refresh failed"
     fi
 
+    mkdir -p "$DATA_DIR/images"
     if [ -d "$REPO_DIR/images" ]; then
         cp -rf "$REPO_DIR/images/"* "$DATA_DIR/images/" 2>/dev/null
     fi
@@ -451,29 +545,36 @@ with open(f"{img_dir.rsplit('/',1)[0]}/images.json", "w") as f:
     json.dump(images, f, indent=2)
 INNER_PY
 
-    chown -R appuser:appuser "$DATA_DIR/images" 2>/dev/null || true
+    chown -R "$APP_USER:$APP_USER" "$DATA_DIR" 2>/dev/null || true
     chmod -R 755 "$DATA_DIR/images" 2>/dev/null || true
 
     # Ensure npm cache is writable for auto-deploy
-    mkdir -p /home/appuser/.npm
-    chown -R appuser:appuser /home/appuser/.npm
-    if ! npm ci 2>/dev/null; then npm install || exit 1; fi
-    npm run build || exit 1
+    mkdir -p "/home/$APP_USER/.npm"
+    chown -R "$APP_USER:$APP_USER" "/home/$APP_USER/.npm"
 
-    if [ -d "dist" ]; then
-        rm -rf "$TMP_DIR"
-        cp -r dist "$TMP_DIR"
-        rm -rf "$APP_DIR"/*
-        cp -r "$TMP_DIR"/* "$APP_DIR"/
-        echo "[DEPLOY] Deployment complete" >> /var/log/dashboard-deploy.log
+    if ! run_as_appuser npm ci 2>/dev/null; then
+        run_as_appuser npm install || { log "npm install failed; existing deployment left intact"; exit 1; }
     fi
+    run_as_appuser npm run build || { log "Build failed; existing deployment left intact"; exit 1; }
+
+    if [ ! -d "dist" ] || [ ! -f "dist/index.html" ]; then
+        log "Build output missing; existing deployment left intact"
+        exit 1
+    fi
+
+    BUILD_DIR="$(mktemp -d /tmp/dashboard-build.XXXXXX)"
+    cp -a dist/. "$BUILD_DIR/"
+    deploy_static_build "$BUILD_DIR" "$APP_DIR" || { log "Static deploy failed; existing deployment left intact"; exit 1; }
+    mkdir -p "$DATA_DIR" "$DATA_DIR/images"
+    chown -R "$APP_USER:$APP_USER" "$DATA_DIR"
+    log "Deployment complete"
 else
-    echo "[DEPLOY] No changes" >> /var/log/dashboard-deploy.log
+    log "No changes"
 fi
 DEPLOY_SCRIPT
 
 chmod +x /opt/dashboard-deploy.sh
-(crontab -u ${APP_USER} -l 2>/dev/null | grep -v 'dashboard-deploy.sh'; echo "*/15 * * * * /opt/dashboard-deploy.sh >> /var/log/dashboard-deploy.log 2>&1") | crontab -u ${APP_USER} -
+(crontab -l 2>/dev/null | grep -v 'dashboard-deploy.sh'; echo "*/15 * * * * /opt/dashboard-deploy.sh") | crontab -
 
 log "Auto-deploy cron job configured (every 15 minutes)"
 log "Dashboard available at http://${PUBLIC_IP}"

@@ -16,6 +16,8 @@ Provides:
 
 DevSecOps system health is collected locally from the VM and GCP metadata. FinOps data uses GCP APIs and BigQuery billing export when configured.
 
+[PICTURE: Screenshot of the DevSecOps dashboard overview showing CPU, memory, disk, estimated cost, and header mode controls]
+
 ---
 
 ## Documentation
@@ -41,6 +43,8 @@ This project supports both manual HTTP deployment and Terraform-managed HTTPS de
 | --- | --- | --- |
 | **HTTP ClickOps VM** | `http://<VM_EXTERNAL_IP>` | Use `infra/startup/gcp_startup.sh` as a GCP VM startup script. Requires APIs, IAM, service account scopes, and firewall port `80`. |
 | **Terraform HTTPS** | `https://dashboard.<domain>` | Uses GCP for the VM/dashboard infrastructure and AWS Route 53 for DNS. Certbot runs on the VM to issue the Let's Encrypt certificate. |
+
+[PICTURE: Screenshot of the dashboard opened over HTTPS at dashboard.kirkdevsecops.com with the browser lock icon visible]
 
 The Terraform stack can manage:
 

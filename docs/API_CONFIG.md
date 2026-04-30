@@ -72,6 +72,8 @@ gcloud compute instances add-metadata vm-dashboard \
   --metadata STUDENT_NAME="Notla Krik"
 ```
 
+[PICTURE: Screenshot of the GCP VM metadata page showing a custom STUDENT_NAME metadata attribute]
+
 Then restart the API on the VM:
 
 ```bash
@@ -229,6 +231,8 @@ Each log row includes `time`, `level`, `source`, and `message`. The `time` field
 }
 ```
 
+[PICTURE: Screenshot of terminal output showing curl to /api/logs piped to jq with time, level, source, and message fields]
+
 `time` uses the `YYYY-MM-DDTHH:MM:SSZ` shape. The trailing `Z` indicates UTC. When `minutes` is provided, the API asks `journalctl` for logs from that relative time window with `--since`, then applies pagination to the returned rows. The frontend keeps the ISO value as the data contract for sorting and filtering, but formats it into local time for display. Refreshing the logs reloads the selected time window and clears active log filters.
 
 ### Frontend Log Copy Format
@@ -249,6 +253,8 @@ The API returns raw log rows with `time`, `level`, `source`, and `message`. For 
 ```
 
 This JSON format is used for individual System Logs row copies, the System Logs widget snapshot, the System Logs custom-filter modal snapshot, and the Text Mode `[LS] SNAPSHOT` action.
+
+[PICTURE: Screenshot of the System Logs custom filter modal with the Snapshot button visible]
 
 ---
 

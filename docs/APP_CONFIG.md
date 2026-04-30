@@ -26,6 +26,8 @@ export VITE_GITHUB_URL="https://github.com/KirkAlton-Class7"
 export VITE_LINKEDIN_URL="https://www.linkedin.com/in/kirkcochranjr/"
 ```
 
+[PICTURE: Screenshot of app_bootstrap.sh open in an editor showing the Dashboard Customization variables]
+
 Update these values as needed:
 
 | Variable             | Purpose                                    | Example                        |
@@ -104,6 +106,13 @@ DATA_DIR="${APP_DIR}/data"
 2. Commit and push the changes to the Git repository cloned by the VM startup wrapper (`infra/startup/gcp_startup.sh`).
 3. The VM’s auto-deploy cron job runs `/opt/dashboard-deploy.sh` every 15 minutes and rebuilds when the local checkout differs from `origin/main`.
 
+The auto-deploy script is intentionally conservative:
+
+- It uses a deploy lock so overlapping cron/manual runs do not build at the same time.
+- It builds the React frontend before touching the active Nginx web root.
+- It copies hashed assets before `index.html`, which prevents the browser from receiving HTML that references missing JavaScript/CSS files.
+- If `git pull`, dependency install, or `npm run build` fails, the existing deployed dashboard is left in place.
+
 To trigger an immediate update:
 
 ```bash
@@ -114,6 +123,7 @@ sudo /opt/dashboard-deploy.sh
 > If changes do not appear, check:
 >
 > * `/var/log/bootstrap.log`
+> * `/var/log/dashboard-deploy.log`
 > * `/var/log/startup-script.log`
 
 ---
@@ -130,6 +140,8 @@ export DASHBOARD_NAME="DevSecOps Dashboard"
 ```
 
 These values are returned by the Python API in the `/api/dashboard` response and consumed by the frontend at runtime.
+
+[PICTURE: Screenshot of the deployed dashboard header and sidebar showing customized app name, dashboard name, and user attribution]
 
 > [!NOTE]
 > `VITE_GITHUB_URL` and `VITE_LINKEDIN_URL` are build-time React variables. Set them before `npm run build`; changing them after the site is built will not update the deployed frontend.
