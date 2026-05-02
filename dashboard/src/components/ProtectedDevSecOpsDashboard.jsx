@@ -120,7 +120,7 @@ export default function ProtectedDevSecOpsDashboard({
           <motion.section id="load" className="grid grid-cols-1 gap-6" variants={itemVariants}>
             <LockedPanel
               title="System Load Trend"
-              message="Load metrics protected. Sign in to view."
+              message="Load metrics data protected. Sign in to view."
             />
           </motion.section>
 

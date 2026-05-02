@@ -116,7 +116,7 @@ export default function ProtectedFinOpsDashboard({
           >
             <LockedPanel
               title="Daily Cost Trend"
-              message="Cost trend protected. Sign in to view."
+              message="Cost trend data protected. Sign in to view."
             />
             <LockedPanel
               title="Top Services by Cost"
@@ -143,25 +143,25 @@ export default function ProtectedFinOpsDashboard({
           <section id="budgets" className="grid grid-cols-1 gap-6">
             <LockedPanel
               title="Budget Status"
-              message="Budget spend, forecast, and thresholds protected. Sign in to view."
+              message="Budget spend, forecast, and thresholds data protected. Sign in to view."
             />
           </section>
 
           <section id="utilization" className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <LockedPanel
               title="CPU Utilization"
-              message="VM utilization percentages protected. Sign in to view."
+              message="VM utilization data protected. Sign in to view."
             />
             <LockedPanel
               title="Rightsizing Recommendations"
-              message="Recommendation levels and savings protected. Sign in to view."
+              message="Recommendations and savings data protected. Sign in to view."
             />
           </section>
 
           <section id="idle-resources" className="grid grid-cols-1 gap-6">
             <LockedPanel
               title="Idle Resources"
-              message="Idle resource names, scope, and status protected. Sign in to view."
+              message="Idle resource data protected. Sign in to view."
             />
           </section>
         </main>
