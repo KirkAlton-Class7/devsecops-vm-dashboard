@@ -18,10 +18,12 @@ DASHBOARD_APP_NAME="GCP Deployment"
 DASHBOARD_TAGLINE="Infrastructure health and activity"
 DASHBOARD_USER="Kirk Alton"
 DASHBOARD_NAME="DevSecOps Dashboard"
+
 DASHBOARD_DEV_AUTH_USER="${DASHBOARD_DEV_AUTH_USER:-${DASHBOARD_AUTH_USER:-dashboard}}"
 DASHBOARD_DEV_AUTH_PASSWORD="${DASHBOARD_DEV_AUTH_PASSWORD:-${DASHBOARD_AUTH_PASSWORD:-}}"
 DASHBOARD_DEV_AUTH_USER_SECRET_ID="${DASHBOARD_DEV_AUTH_USER_SECRET_ID:-${DASHBOARD_AUTH_USER_SECRET_ID:-}}"
 DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID:-${DASHBOARD_AUTH_PASSWORD_SECRET_ID:-}}"
+
 DASHBOARD_FINOPS_AUTH_USER="${DASHBOARD_FINOPS_AUTH_USER:-finops}"
 DASHBOARD_FINOPS_AUTH_PASSWORD="${DASHBOARD_FINOPS_AUTH_PASSWORD:-}"
 DASHBOARD_FINOPS_AUTH_USER_SECRET_ID="${DASHBOARD_FINOPS_AUTH_USER_SECRET_ID:-}"
@@ -58,8 +60,14 @@ Update these values as needed:
 > [!TIP]
 > `DASHBOARD_*` values are exported for the API service and returned through `/api/dashboard`. `VITE_*` values are read by Vite during `npm run build`, so they require a frontend rebuild.
 
-> [!IMPORTANT]
-> For production, store DevSecOps and FinOps passwords in **GCP Secret Manager** and pass the secret IDs through Terraform metadata. Nginx stores only local hashed password files; the frontend only sends credentials entered by the user and does not embed passwords in JavaScript.
+> [!WARNING]
+> Do not hardcode passwords in public repos or for production. Instead, store credentials manually in **GCP Secret Manager** and pass the secret IDs through Terraform metadata. Nginx stores only local hashed password files; the frontend only sends credentials entered by the user and does not embed passwords in JavaScript.
+
+> [!WARNING]
+> Never hardcode passwords in Terraform, frontend code, or public repos. Instead, store credentials manually in GCP Secret Manager and pass secret names/IDs through Terraform metadata. This prevents passwords from being written to Terraform state files.
+
+> [!INFO]
+> On the VM, Nginx uses locally stored hashed password files only. The frontend does not contain or store passwords in JavaScript; it simply sends user-entered credentials securely at login.
 
 ### Secret Manager Credentials
 
@@ -77,6 +85,8 @@ The bootstrap resolves DevSecOps and FinOps Basic Auth credentials in this order
    - `DASHBOARD_FINOPS_AUTH_USER`
    - `DASHBOARD_FINOPS_AUTH_PASSWORD`
 
+
+> [!INFO]
 Both password values must resolve to non-empty values. The script fails closed if either protected area is missing a password.
 
 Secret Manager is accessed during VM bootstrap only. The script then writes `/etc/nginx/.vm-dashboard-dev.htpasswd` and `/etc/nginx/.vm-dashboard-finops.htpasswd` with hashed credentials, and Nginx uses those local files for Basic Auth checks. Browser sign-in attempts do not call Secret Manager.

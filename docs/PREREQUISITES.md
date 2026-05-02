@@ -34,6 +34,24 @@ This runbook defines all prerequisite configuration required **before** deployin
 
 The dashboard can be deployed as HTTP-only or HTTPS.
 
+### **Terraform vs Manual Responsibility**
+
+| Prerequisite | HTTP ClickOps VM | Terraform HTTPS |
+| --- | --- | --- |
+| Required GCP APIs | Enable manually | Terraform enables in `terraform/02-required-api.tf` |
+| VM dashboard service account | Create manually | Terraform creates it |
+| VM dashboard project IAM roles | Grant manually | Terraform grants them |
+| Billing viewer role for dashboard service account | Grant manually | Terraform grants it |
+| VM OAuth scope | Configure on VM | Terraform configures it |
+| Secret Manager auth secrets and secret versions | Create manually | Create manually |
+| VM service account access to auth secrets | Grant manually | Terraform grants dashboard secret access |
+| Pub/Sub topic for secret events | Create manually | Create manually outside Terraform |
+| Secret Manager service-agent publisher binding on Pub/Sub topic | Grant manually | Grant manually outside Terraform |
+| BigQuery billing export | Configure in GCP Console | Configure in GCP Console |
+
+> [!NOTE]
+> Terraform intentionally does not create the dashboard auth secrets, secret values, or external secret-rotation Pub/Sub topic. Those resources should survive `terraform destroy`, so they stay coupled to your secret-management process instead of the dashboard VM lifecycle.
+
 ### **HTTP ClickOps VM Deployment**
 
 For a manual GCP Console VM deployment using `infra/startup/gcp_startup.sh`, you need:
@@ -86,12 +104,15 @@ gcloud services enable \
 
 > [!NOTE]
 > This step is required once per project. If any API fails, check your project owner permissions.
-> Terraform enables the dashboard infrastructure APIs in `terraform/02-required-api.tf`. Pub/Sub is listed here because the external Secret Manager rotation topic is managed outside Terraform.
+> For Terraform deployments, Terraform enables these APIs in `terraform/02-required-api.tf`; you do not need to run this command separately unless you are creating the external secrets or Pub/Sub topic before your first `terraform apply`.
 > Secret Manager event notifications use the Google-managed service agent `service-${PROJECT_NUMBER}@gcp-sa-secretmanager.iam.gserviceaccount.com`, which must have `roles/pubsub.publisher` on the external `vm-dashboard-secret-events` topic.
 
 ---
 
 ## **Stage 2: Create Service Account & Set Variables**
+
+> [!NOTE]
+> Skip service account creation for Terraform deployments. Terraform creates the `vm-dashboard` service account and attaches it to the VM. Use this section for HTTP ClickOps deployments or for setting shell variables used by the manual CLI examples.
 
 ### **2.1 Create a Dedicated Service Account**
 
@@ -122,6 +143,9 @@ export SA_EMAIL="vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com"
 
 ## **Stage 3: Assign IAM Permissions and Roles**
 
+> [!NOTE]
+> Skip Stages 3.1 and 3.2 for Terraform deployments. Terraform grants the VM dashboard service account the billing, BigQuery, Compute, Monitoring, Recommender, Logging, and Secret Manager access needed by the deployed VM. Use these manual IAM commands for HTTP ClickOps deployments.
+
 ### **3.1 Billing Account (for Budgets & Cost data)**
 
 ```bash
@@ -139,6 +163,8 @@ gcloud beta billing accounts add-iam-policy-binding ${BILLING_ACCOUNT_ID} \
 ### **3.2 Project-Level Roles**
 
 ```bash
+export PROJECT_ID="kirk-devsecops-sandbox"   # Replace with your project ID
+
 # Compute Viewer – subnet name retrieval (DevSecOps network card)
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
     --member="serviceAccount:${SA_EMAIL}" \
@@ -164,22 +190,213 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/recommender.viewer"
 
-# Secret Manager Secret Accessor – dashboard Basic Auth credentials
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+# Secret Manager Secret Accessor is granted at the secret level in section 3.3.
+# This keeps dashboard auth secret access scoped to only the four required secrets.
+```
+
+> [!NOTE]
+> Enables BigQuery cost queries, CPU utilization metrics, rightsizing recommendations, and idle resource recommendations.
+> Dashboard Basic Auth credential access is granted directly on the four Secret Manager secrets in the next section.
+
+![GCP IAM permissions page showing vm-dashboard service account roles](assets/27_gcp_service_account_roles.png)
+
+---
+
+### **3.3 Dashboard Auth Secrets, Pub/Sub Topic, and Rotation Notifications**
+
+The dashboard uses four manually managed Secret Manager secrets for Basic Auth:
+
+| Secret ID | Purpose |
+| --- | --- |
+| `vm-dashboard-dev-username` | DevSecOps username |
+| `vm-dashboard-dev-password` | DevSecOps password |
+| `vm-dashboard-finops-username` | FinOps username |
+| `vm-dashboard-finops-password` | FinOps password |
+
+Create or update the secrets before deploying the VM:
+
+> [!NOTE]
+> Required for both HTTP ClickOps and Terraform deployments. Terraform passes only the secret IDs to VM metadata; it does not create the secrets or store secret values in Terraform state.
+
+```bash
+# Project ID
+export PROJECT_ID="kirk-devsecops-sandbox"   # Replace with your project ID
+
+# DevSecOps secret IDs
+export DEV_USER_SECRET="vm-dashboard-dev-username"
+export DEV_PASSWORD_SECRET="vm-dashboard-dev-password"
+
+# FinOps secret IDs
+export FINOPS_USER_SECRET="vm-dashboard-finops-username"
+export FINOPS_PASSWORD_SECRET="vm-dashboard-finops-password"
+
+# DevSecOps secret values (replace with your credentials)
+export DEV_USERNAME="dashboard"
+export DEV_PASSWORD="YOUR_DEV_PASSWORD"
+
+# FinOps secret values (replace with your credentials)
+export FINOPS_USERNAME="finops"
+export FINOPS_PASSWORD="YOUR_FINOPS_PASSWORD"
+
+
+# DEVSECOPS — Username Secret
+gcloud secrets describe "${DEV_USER_SECRET}" --project="${PROJECT_ID}" >/dev/null 2>&1 || \
+gcloud secrets create "${DEV_USER_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --replication-policy="automatic"
+
+printf '%s' "${DEV_USERNAME}" | \
+gcloud secrets versions add "${DEV_USER_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --data-file=-
+
+
+# DEVSECOPS — Password Secret
+gcloud secrets describe "${DEV_PASSWORD_SECRET}" --project="${PROJECT_ID}" >/dev/null 2>&1 || \
+gcloud secrets create "${DEV_PASSWORD_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --replication-policy="automatic"
+
+printf '%s' "${DEV_PASSWORD}" | \
+gcloud secrets versions add "${DEV_PASSWORD_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --data-file=-
+
+
+# FINOPS — Username Secret
+gcloud secrets describe "${FINOPS_USER_SECRET}" --project="${PROJECT_ID}" >/dev/null 2>&1 || \
+gcloud secrets create "${FINOPS_USER_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --replication-policy="automatic"
+
+printf '%s' "${FINOPS_USERNAME}" | \
+gcloud secrets versions add "${FINOPS_USER_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --data-file=-
+
+
+# FINOPS — Password Secret
+gcloud secrets describe "${FINOPS_PASSWORD_SECRET}" --project="${PROJECT_ID}" >/dev/null 2>&1 || \
+gcloud secrets create "${FINOPS_PASSWORD_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --replication-policy="automatic"
+
+printf '%s' "${FINOPS_PASSWORD}" | \
+gcloud secrets versions add "${FINOPS_PASSWORD_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --data-file=-
+```
+
+Grant the VM dashboard service account access to only those four secrets:
+
+> [!NOTE]
+> Skip this secret-access binding step for Terraform deployments. Terraform grants the dashboard VM service account Secret Manager access. For HTTP ClickOps deployments, run these commands so the VM can read the four auth secrets during bootstrap.
+
+```bash
+export PROJECT_ID="kirk-devsecops-sandbox"   # Replace with your project ID
+
+gcloud secrets add-iam-policy-binding "${DEV_USER_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/secretmanager.secretAccessor"
+
+gcloud secrets add-iam-policy-binding "${DEV_PASSWORD_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/secretmanager.secretAccessor"
+
+gcloud secrets add-iam-policy-binding "${FINOPS_USER_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/secretmanager.secretAccessor"
+
+gcloud secrets add-iam-policy-binding "${FINOPS_PASSWORD_SECRET}" \
+  --project="${PROJECT_ID}" \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/secretmanager.secretAccessor"
 ```
 
-> [!NOTE]
-> Enables BigQuery cost queries, CPU utilization metrics, rightsizing recommendations, idle resource recommendations, and runtime access to dashboard Basic Auth credentials.
+Create or reuse the external Pub/Sub topic for Secret Manager notifications:
 
-![GCP IAM permissions page showing vm-dashboard service account roles](assets/27_gcp_service_account_roles.png)
+> [!NOTE]
+> Required for both HTTP ClickOps and Terraform deployments. Terraform does not manage this topic or the Secret Manager service-agent publisher binding because secret event notifications should persist independently of the dashboard VM.
+
+```bash
+export PROJECT_ID="kirk-devsecops-sandbox"   # Replace with your project ID
+
+export SECRET_EVENTS_TOPIC="vm-dashboard-secret-events"
+export PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)")"
+export SECRET_MANAGER_SERVICE_AGENT="service-${PROJECT_NUMBER}@gcp-sa-secretmanager.iam.gserviceaccount.com"
+
+gcloud beta services identity create \
+  --service="secretmanager.googleapis.com" \
+  --project="${PROJECT_ID}"
+
+gcloud pubsub topics describe "${SECRET_EVENTS_TOPIC}" --project="${PROJECT_ID}" >/dev/null 2>&1 || \
+  gcloud pubsub topics create "${SECRET_EVENTS_TOPIC}" \
+    --project="${PROJECT_ID}"
+
+gcloud pubsub topics add-iam-policy-binding "${SECRET_EVENTS_TOPIC}" \
+  --project="${PROJECT_ID}" \
+  --member="serviceAccount:${SECRET_MANAGER_SERVICE_AGENT}" \
+  --role="roles/pubsub.publisher"
+```
+
+Attach the topic to all four auth secrets, then configure 90-day rotation reminders on the password secrets only:
+
+> [!NOTE]
+> Required for both HTTP ClickOps and Terraform deployments when you want Secret Manager event notifications and 90-day password rotation reminders. Rotation is configured only on password secrets.
+
+```bash
+export PROJECT_ID="kirk-devsecops-sandbox"   # Replace with your project ID
+
+NEXT_ROTATION="$(python3 -c 'from datetime import datetime, timezone, timedelta; print((datetime.now(timezone.utc)+timedelta(days=90)).strftime("%Y-%m-%dT%H:%M:%SZ"))')"
+
+gcloud secrets update "${DEV_USER_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --add-topics="projects/${PROJECT_ID}/topics/${SECRET_EVENTS_TOPIC}"
+
+gcloud secrets update "${DEV_PASSWORD_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --add-topics="projects/${PROJECT_ID}/topics/${SECRET_EVENTS_TOPIC}"
+
+gcloud secrets update "${FINOPS_USER_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --add-topics="projects/${PROJECT_ID}/topics/${SECRET_EVENTS_TOPIC}"
+
+gcloud secrets update "${FINOPS_PASSWORD_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --add-topics="projects/${PROJECT_ID}/topics/${SECRET_EVENTS_TOPIC}"
+
+gcloud secrets update "${DEV_PASSWORD_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --next-rotation-time="${NEXT_ROTATION}" \
+  --rotation-period="7776000s"
+
+gcloud secrets update "${FINOPS_PASSWORD_SECRET}" \
+  --project="${PROJECT_ID}" \
+  --next-rotation-time="${NEXT_ROTATION}" \
+  --rotation-period="7776000s"
+```
+
+> [!IMPORTANT]
+> The VM service account needs `roles/secretmanager.secretAccessor` on the secrets. The Secret Manager service agent needs `roles/pubsub.publisher` on the Pub/Sub topic. These are two different identities and two different IAM bindings.
+> The Secret Manager service agent does not need access to read secret values; it only publishes event metadata to Pub/Sub.
+
+![Secret Manager showing dashboard authentication secrets](assets/52_secret_manager_auth_secrets.png)
+
+![Pub/Sub topic used for dashboard secret event notifications](assets/53_pubsub_secret_events_topic.png)
+
+![Secret Manager password rotation schedule for dashboard password secret](assets/54_secret_manager_password_rotation_settings.png)
 
 ---
 
 ## **Stage 4: Configure Billing Export to BigQuery**
 
 > **Required for real cost data.** Without this, the dashboard will show empty cost trends.
+
+> [!NOTE]
+> Required for both HTTP ClickOps and Terraform deployments. Terraform does not configure Cloud Billing export to BigQuery.
 
 ### **4.1 Console Method (Recommended)**
 
@@ -202,18 +419,21 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 
 Run these commands to confirm permissions are correct.
 
+> [!NOTE]
+> For Terraform deployments, run these checks after `terraform apply` if you want to verify what Terraform created. You do not need to run the manual IAM grant commands from Stages 2, 3.1, or 3.2.
+
 ```bash
 # 1. Verify Service Account Exists
 gcloud iam service-accounts list --filter="email:${SA_EMAIL}"
 
-# 2. Project IAM Roles (all five expected roles)
+# 2. Project IAM Roles
 gcloud projects get-iam-policy ${PROJECT_ID} --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.members:${SA_EMAIL}"
 
 # 3. Billing Account IAM (roles/billing.viewer)
 gcloud beta billing accounts get-iam-policy ${BILLING_ACCOUNT_ID} --format=json | grep -A2 ${SA_EMAIL}
 
 # 4. Required APIs Enabled
-gcloud services list --enabled --filter="compute.googleapis.com OR cloudbilling.googleapis.com OR billingbudgets.googleapis.com OR recommender.googleapis.com OR monitoring.googleapis.com OR bigquery.googleapis.com OR logging.googleapis.com"
+gcloud services list --enabled --filter="compute.googleapis.com OR cloudbilling.googleapis.com OR billingbudgets.googleapis.com OR recommender.googleapis.com OR monitoring.googleapis.com OR bigquery.googleapis.com OR logging.googleapis.com OR secretmanager.googleapis.com OR pubsub.googleapis.com"
 
 # 5. BigQuery Billing Export Dataset Exists
 bq ls billing_export 2>/dev/null || echo "Dataset not found"
@@ -258,18 +478,40 @@ curl -H "Authorization: Bearer $token" "https://monitoring.googleapis.com/v3/pro
 
 ## **Stage 6: Pre-Deployment Checklist**
 
+### HTTP ClickOps
+
 - [ ] Service account created
 - [ ] IAM roles assigned
 - [ ] APIs enabled
+- [ ] VM OAuth scope planned as `cloud-platform`
+- [ ] Secret Manager auth secrets created
+- [ ] VM service account has secret accessor access
+- [ ] Pub/Sub secret-events topic configured
+- [ ] Secret Manager service agent has Pub/Sub publisher access
 - [ ] BigQuery billing export configured
 - [ ] API access verified
+
+### Terraform HTTPS
+
+- [ ] Dashboard auth secrets and secret versions created manually
+- [ ] External Pub/Sub secret-events topic configured manually
+- [ ] Secret Manager service agent has Pub/Sub publisher access
+- [ ] Password secret rotation reminders configured
+- [ ] BigQuery billing export configured manually
+- [ ] DNS/Route 53 prerequisites are ready
+- [ ] Terraform variables/defaults reference the correct Secret Manager secret IDs
+
+> [!NOTE]
+> Terraform creates the VM service account, attaches it to the VM, enables required project APIs, grants dashboard IAM roles, and configures the VM OAuth scope. Do not duplicate those manual steps unless you are using the HTTP ClickOps path.
 
 ---
 
 ## **Stage 7: Deployment**
 Use the **[Quick Start](./QUICKSTART.md)** runbook to create the VM and **attach the service account at creation time**.
 
-> **Crucial:** Do not create the VM before setting up this service account. The service account should be attached **during VM creation** to avoid unnecessary troubleshooting or reconfiguration.
+> [!IMPORTANT]
+> For HTTP ClickOps, do not create the VM before setting up this service account. The service account should be attached **during VM creation** to avoid unnecessary troubleshooting or reconfiguration.
+> For Terraform, Terraform creates and attaches the service account for you.
 
 ---
 

@@ -309,6 +309,58 @@ By default, Terraform expects these manually managed secret IDs:
 
 ![Secret Manager showing manually managed dashboard authentication secrets](../assets/52_secret_manager_auth_secrets.png)
 
+Create the secrets outside Terraform and grant the dashboard VM service account access:
+
+```bash
+PROJECT_ID="$(gcloud config get-value project)"
+SA_EMAIL="vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com"
+
+gcloud services enable secretmanager.googleapis.com pubsub.googleapis.com
+
+for SECRET_ID in \
+  vm-dashboard-dev-username \
+  vm-dashboard-dev-password \
+  vm-dashboard-finops-username \
+  vm-dashboard-finops-password
+do
+  gcloud secrets describe "${SECRET_ID}" --project="${PROJECT_ID}" >/dev/null 2>&1 || \
+    gcloud secrets create "${SECRET_ID}" \
+      --project="${PROJECT_ID}" \
+      --replication-policy="automatic"
+
+  gcloud secrets add-iam-policy-binding "${SECRET_ID}" \
+    --project="${PROJECT_ID}" \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/secretmanager.secretAccessor"
+done
+```
+
+Add secret versions:
+
+```bash
+printf '%s' 'dashboard' | \
+  gcloud secrets versions add vm-dashboard-dev-username \
+    --project="${PROJECT_ID}" \
+    --data-file=-
+
+read -rsp "DevSecOps password: " DEV_PASSWORD && echo
+printf '%s' "${DEV_PASSWORD}" | \
+  gcloud secrets versions add vm-dashboard-dev-password \
+    --project="${PROJECT_ID}" \
+    --data-file=-
+
+printf '%s' 'finops' | \
+  gcloud secrets versions add vm-dashboard-finops-username \
+    --project="${PROJECT_ID}" \
+    --data-file=-
+
+read -rsp "FinOps password: " FINOPS_PASSWORD && echo
+printf '%s' "${FINOPS_PASSWORD}" | \
+  gcloud secrets versions add vm-dashboard-finops-password \
+    --project="${PROJECT_ID}" \
+    --data-file=-
+```
+
 ### External Secret Rotation Alert Topic
 
 The Secret Manager notification topic should be managed outside Terraform, alongside the manually managed Secret Manager secrets. This keeps event notifications and password rotation reminders intact if the dashboard infrastructure is destroyed.
@@ -318,6 +370,7 @@ Create or reuse the topic and grant the Secret Manager service agent publisher a
 ```bash
 PROJECT_ID="$(gcloud config get-value project)"
 PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)")"
+SECRET_MANAGER_SERVICE_AGENT="service-${PROJECT_NUMBER}@gcp-sa-secretmanager.iam.gserviceaccount.com"
 
 gcloud services enable pubsub.googleapis.com secretmanager.googleapis.com
 
@@ -325,17 +378,20 @@ gcloud beta services identity create \
   --service="secretmanager.googleapis.com" \
   --project="${PROJECT_ID}"
 
-gcloud pubsub topics create vm-dashboard-secret-events
+gcloud pubsub topics describe vm-dashboard-secret-events --project="${PROJECT_ID}" >/dev/null 2>&1 || \
+  gcloud pubsub topics create vm-dashboard-secret-events \
+    --project="${PROJECT_ID}"
 
 gcloud pubsub topics add-iam-policy-binding vm-dashboard-secret-events \
-  --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-secretmanager.iam.gserviceaccount.com" \
+  --project="${PROJECT_ID}" \
+  --member="serviceAccount:${SECRET_MANAGER_SERVICE_AGENT}" \
   --role="roles/pubsub.publisher"
 ```
 
 Attach all four auth secrets to the topic. Configure a 90-day rotation schedule only on the password secrets:
 
 ```bash
-NEXT_ROTATION="$(date -u -v+90d '+%Y-%m-%dT%H:%M:%SZ')"
+NEXT_ROTATION="$(python3 -c 'from datetime import datetime, timezone, timedelta; print((datetime.now(timezone.utc)+timedelta(days=90)).strftime("%Y-%m-%dT%H:%M:%SZ"))')"
 
 for SECRET_ID in \
   vm-dashboard-dev-username \
@@ -344,12 +400,14 @@ for SECRET_ID in \
   vm-dashboard-finops-password
 do
   gcloud secrets update "${SECRET_ID}" \
+    --project="${PROJECT_ID}" \
     --add-topics="projects/${PROJECT_ID}/topics/vm-dashboard-secret-events"
 done
 
 for SECRET_ID in vm-dashboard-dev-password vm-dashboard-finops-password
 do
   gcloud secrets update "${SECRET_ID}" \
+    --project="${PROJECT_ID}" \
     --next-rotation-time="${NEXT_ROTATION}" \
     --rotation-period="7776000s"
 done
@@ -358,6 +416,10 @@ done
 `7776000s` is 90 days.
 
 The topic ID is `vm-dashboard-secret-events`. Secret Manager uses the full topic resource path: `projects/${PROJECT_ID}/topics/vm-dashboard-secret-events`.
+
+> [!IMPORTANT]
+> The dashboard VM service account receives `roles/secretmanager.secretAccessor` on the secrets. The Secret Manager service agent receives `roles/pubsub.publisher` on the Pub/Sub topic so Secret Manager can publish `SECRET_*` events.
+> The Secret Manager service agent does not need permission to read secret values.
 
 ![Pub/Sub topic used by Secret Manager for dashboard auth secret events](../assets/53_pubsub_secret_events_topic.png)
 

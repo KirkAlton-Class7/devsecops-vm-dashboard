@@ -11,7 +11,8 @@ resource "google_project_service" "required_apis" {
     "logging.googleapis.com",
     "recommender.googleapis.com",
     "cloudbilling.googleapis.com",
-    "secretmanager.googleapis.com"
+    "secretmanager.googleapis.com",
+    "pubsub.googleapis.com"
   ])
 
   project = "kirk-devsecops-sandbox"

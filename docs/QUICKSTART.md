@@ -139,56 +139,95 @@ VITE_GITHUB_URL="https://github.com/KirkAlton-Class7"
 VITE_LINKEDIN_URL="https://www.linkedin.com/in/kirkcochranjr/"
 ```
 
-Protected credentials should come from GCP Secret Manager for production. DevSecOps and FinOps use separate Basic Auth pairs:
+Protected credentials should come from GCP Secret Manager for production. DevSecOps and FinOps use separate Basic Auth pairs.
+
+Set the project and VM dashboard service account first:
 
 ```bash
-gcloud secrets create vm-dashboard-dev-username \
-  --replication-policy="automatic"
+PROJECT_ID="$(gcloud config get-value project)"
+SA_EMAIL="vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com"
+
+gcloud services enable secretmanager.googleapis.com pubsub.googleapis.com
+```
+
+Create or update the four auth secrets:
+
+```bash
+for SECRET_ID in \
+  vm-dashboard-dev-username \
+  vm-dashboard-dev-password \
+  vm-dashboard-finops-username \
+  vm-dashboard-finops-password
+do
+  gcloud secrets describe "${SECRET_ID}" --project="${PROJECT_ID}" >/dev/null 2>&1 || \
+    gcloud secrets create "${SECRET_ID}" \
+      --project="${PROJECT_ID}" \
+      --replication-policy="automatic"
+done
 
 printf '%s' 'dashboard' | \
-  gcloud secrets versions add vm-dashboard-dev-username --data-file=-
+  gcloud secrets versions add vm-dashboard-dev-username \
+    --project="${PROJECT_ID}" \
+    --data-file=-
 
-gcloud secrets create vm-dashboard-dev-password \
-  --replication-policy="automatic"
-
-printf '%s' 'use-a-long-unique-password' | \
-  gcloud secrets versions add vm-dashboard-dev-password --data-file=-
-
-gcloud secrets create vm-dashboard-finops-username \
-  --replication-policy="automatic"
+read -rsp "DevSecOps password: " DEV_PASSWORD && echo
+printf '%s' "${DEV_PASSWORD}" | \
+  gcloud secrets versions add vm-dashboard-dev-password \
+    --project="${PROJECT_ID}" \
+    --data-file=-
 
 printf '%s' 'finops' | \
-  gcloud secrets versions add vm-dashboard-finops-username --data-file=-
+  gcloud secrets versions add vm-dashboard-finops-username \
+    --project="${PROJECT_ID}" \
+    --data-file=-
 
-gcloud secrets create vm-dashboard-finops-password \
-  --replication-policy="automatic"
-
-printf '%s' 'use-a-different-long-unique-password' | \
-  gcloud secrets versions add vm-dashboard-finops-password --data-file=-
+read -rsp "FinOps password: " FINOPS_PASSWORD && echo
+printf '%s' "${FINOPS_PASSWORD}" | \
+  gcloud secrets versions add vm-dashboard-finops-password \
+    --project="${PROJECT_ID}" \
+    --data-file=-
 ```
 
 ![Secret Manager showing the dashboard DevSecOps and FinOps auth secrets](assets/52_secret_manager_auth_secrets.png)
+
+Grant the VM dashboard service account read access to only those four secrets:
+
+```bash
+for SECRET_ID in \
+  vm-dashboard-dev-username \
+  vm-dashboard-dev-password \
+  vm-dashboard-finops-username \
+  vm-dashboard-finops-password
+do
+  gcloud secrets add-iam-policy-binding "${SECRET_ID}" \
+    --project="${PROJECT_ID}" \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/secretmanager.secretAccessor"
+done
+```
 
 Terraform passes the secret IDs to the VM as metadata. The bootstrap fetches the secret values at runtime and writes only hashed password files to Nginx.
 
 Manage the Secret Manager notification topic outside Terraform so it stays coupled to the secrets and survives `terraform destroy`:
 
 ```bash
-gcloud services enable pubsub.googleapis.com secretmanager.googleapis.com
-
-gcloud pubsub topics create vm-dashboard-secret-events
-
 PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)")"
+SECRET_MANAGER_SERVICE_AGENT="service-${PROJECT_NUMBER}@gcp-sa-secretmanager.iam.gserviceaccount.com"
 
 gcloud beta services identity create \
   --service="secretmanager.googleapis.com" \
   --project="${PROJECT_ID}"
 
+gcloud pubsub topics describe vm-dashboard-secret-events --project="${PROJECT_ID}" >/dev/null 2>&1 || \
+  gcloud pubsub topics create vm-dashboard-secret-events \
+    --project="${PROJECT_ID}"
+
 gcloud pubsub topics add-iam-policy-binding vm-dashboard-secret-events \
-  --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-secretmanager.iam.gserviceaccount.com" \
+  --project="${PROJECT_ID}" \
+  --member="serviceAccount:${SECRET_MANAGER_SERVICE_AGENT}" \
   --role="roles/pubsub.publisher"
 
-NEXT_ROTATION="$(date -u -v+90d '+%Y-%m-%dT%H:%M:%SZ')"
+NEXT_ROTATION="$(python3 -c 'from datetime import datetime, timezone, timedelta; print((datetime.now(timezone.utc)+timedelta(days=90)).strftime("%Y-%m-%dT%H:%M:%SZ"))')"
 
 for SECRET_ID in \
   vm-dashboard-dev-username \
@@ -197,18 +236,24 @@ for SECRET_ID in \
   vm-dashboard-finops-password
 do
   gcloud secrets update "${SECRET_ID}" \
+    --project="${PROJECT_ID}" \
     --add-topics="projects/${PROJECT_ID}/topics/vm-dashboard-secret-events"
 done
 
 for SECRET_ID in vm-dashboard-dev-password vm-dashboard-finops-password
 do
   gcloud secrets update "${SECRET_ID}" \
+    --project="${PROJECT_ID}" \
     --next-rotation-time="${NEXT_ROTATION}" \
     --rotation-period="7776000s"
 done
 ```
 
 The topic ID is `vm-dashboard-secret-events`. Secret Manager uses the full topic resource path: `projects/${PROJECT_ID}/topics/vm-dashboard-secret-events`.
+
+> [!IMPORTANT]
+> The VM service account reads the secrets through `roles/secretmanager.secretAccessor`. The Secret Manager service agent publishes secret events through `roles/pubsub.publisher` on the Pub/Sub topic.
+> The Secret Manager service agent does not need permission to read secret values.
 
 ![Pub/Sub topic for dashboard Secret Manager events](assets/53_pubsub_secret_events_topic.png)
 
