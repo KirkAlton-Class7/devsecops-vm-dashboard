@@ -289,6 +289,8 @@ For production Terraform deployments, the password should live in GCP Secret Man
 
 The VM service account needs `roles/secretmanager.secretAccessor`. The bootstrap fetches the secret value at runtime and writes only the hashed credential file for Nginx.
 
+Secret Manager is not queried on every browser request. It is read during VM bootstrap, then Nginx authenticates requests against the local hashed credential file.
+
 By default, Terraform expects the password secret ID to be `vm-dashboard-auth-password` and uses the fallback username `dashboard`. To store the username in Secret Manager too, set:
 
 ```bash

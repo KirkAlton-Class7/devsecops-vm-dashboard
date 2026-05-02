@@ -31,7 +31,50 @@ const getDashboardFallbackDiagnostics = () => [
 ];
 
 const LOCAL_DEV_AUTH_USER = import.meta.env.VITE_DASHBOARD_AUTH_USER || "dashboard";
-const LOCAL_DEV_AUTH_PASSWORD = import.meta.env.VITE_DASHBOARD_AUTH_PASSWORD || "";
+const LOCAL_DEV_AUTH_PASSWORD = import.meta.env.VITE_DASHBOARD_AUTH_PASSWORD || "password";
+const AUTH_SESSION_KEY = "vm_dashboard_basic_auth_session";
+const AUTH_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+
+function readAuthSession() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(AUTH_SESSION_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed?.username || !parsed?.password || Date.now() > parsed.expiresAt) {
+      window.sessionStorage.removeItem(AUTH_SESSION_KEY);
+      return null;
+    }
+
+    return {
+      username: parsed.username,
+      password: parsed.password,
+    };
+  } catch {
+    window.sessionStorage.removeItem(AUTH_SESSION_KEY);
+    return null;
+  }
+}
+
+function storeAuthSession(credentials) {
+  if (typeof window === "undefined") return;
+
+  window.sessionStorage.setItem(
+    AUTH_SESSION_KEY,
+    JSON.stringify({
+      username: credentials.username,
+      password: credentials.password,
+      expiresAt: Date.now() + AUTH_SESSION_TTL_MS,
+    })
+  );
+}
+
+function clearAuthSession() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(AUTH_SESSION_KEY);
+}
 
 function getRandomQuote(quotes) {
   if (!quotes?.length) return mockQuotes[0];
@@ -89,8 +132,8 @@ export default function App() {
   const [copySuccessVisible, setCopySuccessVisible] = useState(false);
   const [copySuccessMessage, setCopySuccessMessage] = useState("Copied to clipboard.");
   const [dashboardDiagnostics, setDashboardDiagnostics] = useState([]);
-  const [authCredentials, setAuthCredentials] = useState(null);
-  const [isProtectedUnlocked, setIsProtectedUnlocked] = useState(false);
+  const [authCredentials, setAuthCredentials] = useState(() => readAuthSession());
+  const [isProtectedUnlocked, setIsProtectedUnlocked] = useState(() => Boolean(readAuthSession()));
   const [authModal, setAuthModal] = useState({ open: false, message: "" });
   const [authError, setAuthError] = useState("");
   const [isSigningIn, setIsSigningIn] = useState(false);
@@ -119,6 +162,20 @@ export default function App() {
     setAuthError("");
   }, []);
 
+  useEffect(() => {
+    if (
+      import.meta.env.DEV &&
+      authCredentials &&
+      (!LOCAL_DEV_AUTH_PASSWORD ||
+        authCredentials.username !== LOCAL_DEV_AUTH_USER ||
+        authCredentials.password !== LOCAL_DEV_AUTH_PASSWORD)
+    ) {
+      clearAuthSession();
+      setAuthCredentials(null);
+      setIsProtectedUnlocked(false);
+    }
+  }, [authCredentials]);
+
   const handleAuthSubmit = useCallback(async ({ username, password }) => {
     setIsSigningIn(true);
     setAuthError("");
@@ -127,6 +184,7 @@ export default function App() {
       if (import.meta.env.DEV && !LOCAL_DEV_AUTH_PASSWORD) {
         setAuthCredentials(null);
         setIsProtectedUnlocked(false);
+        clearAuthSession();
         setAuthError("Local auth password is not configured. Set VITE_DASHBOARD_AUTH_PASSWORD and restart Vite.");
         return;
       }
@@ -134,6 +192,7 @@ export default function App() {
       if (import.meta.env.DEV && (username !== LOCAL_DEV_AUTH_USER || password !== LOCAL_DEV_AUTH_PASSWORD)) {
         setAuthCredentials(null);
         setIsProtectedUnlocked(false);
+        clearAuthSession();
         setAuthError("Incorrect username or password.");
         return;
       }
@@ -147,6 +206,7 @@ export default function App() {
       if (res.status === 401 || res.status === 403) {
         setAuthCredentials(null);
         setIsProtectedUnlocked(false);
+        clearAuthSession();
         setAuthError("Incorrect username or password.");
         return;
       }
@@ -165,6 +225,7 @@ export default function App() {
       setDashboardDiagnostics([]);
       setAuthCredentials({ username, password });
       setIsProtectedUnlocked(true);
+      storeAuthSession({ username, password });
       setAuthModal({ open: false, message: "" });
       if (copySuccessTimeoutRef.current) clearTimeout(copySuccessTimeoutRef.current);
       setCopySuccessMessage("Signed in. Protected dashboard data enabled.");
@@ -184,6 +245,7 @@ export default function App() {
         setDashboardDiagnostics(getDashboardFallbackDiagnostics());
         setAuthCredentials({ username, password });
         setIsProtectedUnlocked(true);
+        storeAuthSession({ username, password });
         setAuthModal({ open: false, message: "" });
         if (copySuccessTimeoutRef.current) clearTimeout(copySuccessTimeoutRef.current);
         setCopySuccessMessage("Signed in locally with mock dashboard data.");
@@ -408,6 +470,7 @@ export default function App() {
         if (res.status === 401 || res.status === 403) {
           setAuthCredentials(null);
           setIsProtectedUnlocked(false);
+          clearAuthSession();
           return;
         }
 
@@ -741,6 +804,20 @@ export default function App() {
               </div>
             ))}
           </motion.section>
+
+          {!protectedUnlocked && (
+            <motion.section id="ambience" className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={itemVariants}>
+              <div className="space-y-6">
+                <QuoteCard
+                  quote={featuredQuote}
+                  onCopyFailure={showManualCopy}
+                  onCopySuccess={showCopySuccess}
+                />
+                <NetworkParticles />
+              </div>
+              <ImageGallery onCopyFailure={showManualCopy} onCopySuccess={showCopySuccess} />
+            </motion.section>
+          )}
 
           {protectedUnlocked ? (
             <>

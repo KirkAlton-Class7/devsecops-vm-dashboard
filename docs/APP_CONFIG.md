@@ -67,6 +67,10 @@ The bootstrap resolves Basic Auth credentials in this order:
 
 `DASHBOARD_AUTH_PASSWORD` must resolve to a non-empty value. The script fails closed if no password is provided.
 
+Secret Manager is accessed during VM bootstrap only. The script then writes `/etc/nginx/.vm-dashboard.htpasswd` with a hashed credential, and Nginx uses that local file for Basic Auth checks. Browser sign-in attempts do not call Secret Manager.
+
+If a VM deployment appears to hang during credential setup, check `/var/log/startup-script.log` for `Secret Manager credential lookup enabled`. Common causes are a missing secret version, `secretmanager.googleapis.com` not enabled, the VM service account missing `roles/secretmanager.secretAccessor`, or no outbound path to `secretmanager.googleapis.com`. Metadata lookups fail quickly, and Secret Manager calls use a bounded timeout so these failures should be visible in the startup log.
+
 ---
 
 ## Configuration Boundary

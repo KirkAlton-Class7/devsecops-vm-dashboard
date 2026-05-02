@@ -781,6 +781,24 @@ export default function FinOpsDashboard({
             ))}
           </section>
 
+          {!isAuthenticated && (
+            <section
+              id="ambience"
+              className="grid grid-cols-1 gap-6 md:grid-cols-2"
+            >
+              <div className="space-y-6">
+                <QuoteCard
+                  quote={featuredQuote}
+                  onCopyFailure={onCopyFailure}
+                  onCopySuccess={onCopySuccess}
+                />
+                <NetworkParticles />
+              </div>
+
+              <ImageGallery onCopyFailure={onCopyFailure} onCopySuccess={onCopySuccess} />
+            </section>
+          )}
+
           {isAuthenticated ? (
             <>
               <section

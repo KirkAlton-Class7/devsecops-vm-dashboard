@@ -57,6 +57,8 @@ Certificate private keys are intentionally **not** managed directly by Terraform
 
 Dashboard Basic Auth secrets are also intentionally **not** stored in Git or Terraform state. Store the password in GCP Secret Manager, then let the VM fetch it during bootstrap.
 
+The dashboard remembers successful sign-in for the current browser session so refreshes do not repeatedly prompt for credentials.
+
 Terraform setup docs:
 
 * **[Terraform HTTPS with GCP + Route 53](./docs/terraform_docs/HTTPS_SETUP.md)** – full HTTPS deployment flow

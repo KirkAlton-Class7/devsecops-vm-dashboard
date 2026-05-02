@@ -344,6 +344,8 @@ Before sign-in, FinOps summary cards remain visible through the public summary e
 
 ## Ambiance (Shared Feature)
 
+Ambiance is available before sign-in in both DevSecOps and FinOps modes. It uses public static assets under `/data`, so quotes, particles, and the photo gallery do not require protected API access.
+
 ### Featured Quote
 
 * Random quote loaded from `/data/quotes.json`

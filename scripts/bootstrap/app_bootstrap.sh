@@ -106,19 +106,19 @@ fi
 # Resolve protected dashboard credentials
 # ---------------------------------
 metadata_attr() {
-  curl -fsS -H "Metadata-Flavor: Google" \
+  curl -fsS --connect-timeout 2 --max-time 5 -H "Metadata-Flavor: Google" \
     "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$1" \
     2>/dev/null || true
 }
 
 metadata_project_id() {
-  curl -fsS -H "Metadata-Flavor: Google" \
+  curl -fsS --connect-timeout 2 --max-time 5 -H "Metadata-Flavor: Google" \
     "http://metadata.google.internal/computeMetadata/v1/project/project-id" \
     2>/dev/null || true
 }
 
 metadata_access_token() {
-  curl -fsS -H "Metadata-Flavor: Google" \
+  curl -fsS --connect-timeout 2 --max-time 5 -H "Metadata-Flavor: Google" \
     "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token" \
     2>/dev/null | jq -r '.access_token // empty'
 }
@@ -146,7 +146,7 @@ read_secret_manager_value() {
   fi
 
   secret_name="$(secret_version_name "$secret_id" "$project_id")"
-  if ! response="$(curl -fsS \
+  if ! response="$(curl -fsS --connect-timeout 5 --max-time 20 \
     -H "Authorization: Bearer ${token}" \
     -H "Accept: application/json" \
     "https://secretmanager.googleapis.com/v1/${secret_name}:access")"; then
@@ -177,6 +177,7 @@ resolve_auth_credentials() {
   DASHBOARD_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_AUTH_PASSWORD_SECRET_ID:-$metadata_password_secret}"
 
   if [ -n "$DASHBOARD_AUTH_USER_SECRET_ID" ] || [ -n "$DASHBOARD_AUTH_PASSWORD_SECRET_ID" ]; then
+    log "Secret Manager credential lookup enabled"
     project_id="$(metadata_project_id)"
     if [ -z "$project_id" ]; then
       log "ERROR: Could not resolve GCP project ID from metadata for Secret Manager"

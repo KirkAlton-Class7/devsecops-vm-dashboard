@@ -63,6 +63,8 @@ VITE_DASHBOARD_AUTH_PASSWORD=your-local-dev-password
 
 If `VITE_DASHBOARD_AUTH_PASSWORD` is not set, local sign-in stays locked. Production sign-in is enforced by Nginx using the hashed password file generated during VM bootstrap from Secret Manager.
 
+Successful sign-in is remembered in `sessionStorage` for the current browser session, up to 8 hours. This survives page refreshes but is cleared when the browser session ends or when protected API credentials stop working.
+
 In Vite development mode, `/api/logs` is intercepted by `dashboard/src/mockLogs.js` so the log modals can still demonstrate pagination, filtering, sorting, and older-log loading without a live `journalctl` API.
 
 System Logs copy actions intentionally output JSON instead of plain text:
