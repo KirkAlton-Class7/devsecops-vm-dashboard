@@ -44,6 +44,11 @@ export default function ProtectedDevSecOpsDashboard({
   onCopyFailure,
   onCopySuccess,
   onAuthRequired,
+  devUnlocked = false,
+  finopsUnlocked = false,
+  onAuthSelect,
+  onSignOut,
+  onSignOutEverywhere,
 }) {
   const signIn = (message = "Sign in to view protected DevSecOps data.") => {
     onAuthRequired?.(message);
@@ -82,6 +87,11 @@ export default function ProtectedDevSecOpsDashboard({
           mockDataDiagnostics={[]}
           onCopyJsonSnapshot={() => signIn("Sign in to copy DevSecOps JSON payloads.")}
           onCopySnapshot={() => signIn("Sign in to copy DevSecOps snapshots.")}
+          devUnlocked={devUnlocked}
+          finopsUnlocked={finopsUnlocked}
+          onAuthSelect={onAuthSelect}
+          onSignOut={onSignOut}
+          onSignOutEverywhere={onSignOutEverywhere}
         />
 
         <motion.main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6" variants={containerVariants} initial="hidden" animate="visible">
@@ -101,7 +111,6 @@ export default function ProtectedDevSecOpsDashboard({
                     status={card.status}
                     protectedMode
                     protectedSubtext={card.protectedSubtext}
-                    onSignIn={() => signIn(`Sign in to view ${card.label}.`)}
                   />
                 </motion.div>
               </div>
@@ -112,7 +121,6 @@ export default function ProtectedDevSecOpsDashboard({
             <LockedPanel
               title="System Load Trend"
               message="Load metrics protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view system load.")}
             />
           </motion.section>
 
@@ -132,17 +140,14 @@ export default function ProtectedDevSecOpsDashboard({
             <LockedPanel
               title="Identity"
               message="Identity details protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view identity details.")}
             />
             <LockedPanel
               title="Network"
               message="Network details protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view network details.")}
             />
             <LockedPanel
               title="Location"
               message="Location details protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view location details.")}
             />
           </motion.section>
 
@@ -150,7 +155,6 @@ export default function ProtectedDevSecOpsDashboard({
             <LockedPanel
               title="System Resources"
               message="CPU, memory, and disk details protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view system resources.")}
             />
           </motion.section>
 
@@ -158,7 +162,6 @@ export default function ProtectedDevSecOpsDashboard({
             <LockedPanel
               title="Monitoring Endpoints"
               message="Endpoint details protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view monitoring endpoints.")}
             />
           </motion.section>
 
@@ -166,7 +169,6 @@ export default function ProtectedDevSecOpsDashboard({
             <LockedPanel
               title="Services"
               message="Service health protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view service health.")}
             />
           </motion.section>
 
@@ -174,7 +176,6 @@ export default function ProtectedDevSecOpsDashboard({
             <LockedPanel
               title="System Logs"
               message="Logs protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view logs.")}
             />
           </motion.section>
         </motion.main>

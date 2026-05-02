@@ -219,6 +219,66 @@ export default function App() {
     setAuthError("");
   }, []);
 
+  const handleAuthSelect = useCallback((target = "dev") => {
+    if (target === "finops") {
+      if (finopsUnlocked) {
+        setMode("finops");
+      } else {
+        openAuthModal("Sign in to view protected FinOps data.", "finops");
+      }
+      return;
+    }
+
+    if (devUnlocked) {
+      setMode("standard");
+    } else {
+      openAuthModal("Sign in to view protected DevSecOps data.", "dev");
+    }
+  }, [devUnlocked, finopsUnlocked, openAuthModal]);
+
+  const handleSignOut = useCallback((target = "dev") => {
+    const resolvedTarget = target === "finops" ? "finops" : "dev";
+    const nextSessions = { ...authSessions };
+    delete nextSessions[resolvedTarget];
+    setAuthSessions(nextSessions);
+    if (nextSessions.dev || nextSessions.finops) storeAuthSessions(nextSessions);
+    else clearAuthSessions();
+
+    if (resolvedTarget === "dev") {
+      hasLiveDashboardRef.current = false;
+      setDashboard(buildPublicDashboard(mockDashboard));
+      setDashboardDiagnostics([]);
+      if (mode === "text") setMode("standard");
+    }
+    setAuthModal({ open: false, message: "", target: "dev" });
+    setAuthError("");
+    if (copySuccessTimeoutRef.current) clearTimeout(copySuccessTimeoutRef.current);
+    setCopySuccessMessage(`Signed out of ${resolvedTarget === "finops" ? "FinOps" : "DevSecOps"}.`);
+    setCopySuccessVisible(true);
+    copySuccessTimeoutRef.current = setTimeout(() => {
+      setCopySuccessVisible(false);
+      copySuccessTimeoutRef.current = null;
+    }, 2000);
+  }, [authSessions, mode]);
+
+  const handleSignOutEverywhere = useCallback(() => {
+    setAuthSessions({});
+    clearAuthSessions();
+    hasLiveDashboardRef.current = false;
+    setDashboard(buildPublicDashboard(mockDashboard));
+    setDashboardDiagnostics([]);
+    if (mode === "text") setMode("standard");
+    setAuthModal({ open: false, message: "", target: "dev" });
+    setAuthError("");
+    if (copySuccessTimeoutRef.current) clearTimeout(copySuccessTimeoutRef.current);
+    setCopySuccessMessage("Signed out everywhere. Protected dashboard data locked.");
+    setCopySuccessVisible(true);
+    copySuccessTimeoutRef.current = setTimeout(() => {
+      setCopySuccessVisible(false);
+      copySuccessTimeoutRef.current = null;
+    }, 2000);
+  }, [mode]);
+
   useEffect(() => {
     if (!import.meta.env.DEV) return;
 
@@ -312,6 +372,7 @@ export default function App() {
       };
       setAuthSessions(nextSessions);
       storeAuthSessions(nextSessions);
+      setMode(target === "finops" ? "finops" : "standard");
       setAuthModal({ open: false, message: "", target: "dev" });
       if (copySuccessTimeoutRef.current) clearTimeout(copySuccessTimeoutRef.current);
       setCopySuccessMessage(`Signed in. Protected ${authConfig.label} data enabled.`);
@@ -337,6 +398,7 @@ export default function App() {
         };
         setAuthSessions(nextSessions);
         storeAuthSessions(nextSessions);
+        setMode(target === "finops" ? "finops" : "standard");
         setAuthModal({ open: false, message: "", target: "dev" });
         if (copySuccessTimeoutRef.current) clearTimeout(copySuccessTimeoutRef.current);
         setCopySuccessMessage(`Signed in locally with mock ${authConfig.label} data.`);
@@ -776,6 +838,8 @@ export default function App() {
           onCopySuccess={showCopySuccess}
           authHeaders={devAuthHeaders}
           mockDataDiagnostics={mockDataDiagnostics}
+          onSignOut={handleSignOut}
+          onSignOutEverywhere={handleSignOutEverywhere}
           onRefresh={async () => {
             try {
               const res = await fetch("/api/dashboard", { cache: "no-store", headers: devAuthHeaders });
@@ -827,6 +891,11 @@ export default function App() {
               onCopySnapshot={handleCopySnapshot}
               onCopyJsonSnapshot={handleCopyJsonSnapshot}
               authHeaders={finopsAuthHeaders}
+              devUnlocked={devUnlocked}
+              finopsUnlocked={finopsUnlocked}
+              onAuthSelect={handleAuthSelect}
+              onSignOut={handleSignOut}
+              onSignOutEverywhere={handleSignOutEverywhere}
             />
           ) : (
             <ProtectedFinOpsDashboard
@@ -840,6 +909,11 @@ export default function App() {
               onCopyFailure={showManualCopy}
               onCopySuccess={showCopySuccess}
               onAuthRequired={(message) => openAuthModal(message, "finops")}
+              devUnlocked={devUnlocked}
+              finopsUnlocked={finopsUnlocked}
+              onAuthSelect={handleAuthSelect}
+              onSignOut={handleSignOut}
+              onSignOutEverywhere={handleSignOutEverywhere}
             />
           )}
         </Suspense>
@@ -873,6 +947,11 @@ export default function App() {
             onCopyFailure={showManualCopy}
             onCopySuccess={showCopySuccess}
             onAuthRequired={(message) => openAuthModal(message, "dev")}
+            devUnlocked={devUnlocked}
+            finopsUnlocked={finopsUnlocked}
+            onAuthSelect={handleAuthSelect}
+            onSignOut={handleSignOut}
+            onSignOutEverywhere={handleSignOutEverywhere}
           />
         </Suspense>
         <AuthModal
@@ -916,6 +995,11 @@ export default function App() {
           mockDataDiagnostics={mockDataDiagnostics}
           onCopyJsonSnapshot={handleCopyJsonSnapshot}
           onCopySnapshot={handleCopySnapshot}
+          devUnlocked={devUnlocked}
+          finopsUnlocked={finopsUnlocked}
+          onAuthSelect={handleAuthSelect}
+          onSignOut={handleSignOut}
+          onSignOutEverywhere={handleSignOutEverywhere}
         />
         <motion.main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6" variants={containerVariants} initial="hidden" animate="visible">
           {/* Stats Cards */}

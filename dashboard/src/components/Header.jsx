@@ -9,6 +9,8 @@ import {
   DollarSign,
   Braces,
   Camera,
+  LockKeyhole,
+  LogOut,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
@@ -28,10 +30,17 @@ export default function Header({
   mockDataDiagnostics = [],
   onCopyJsonSnapshot,
   onCopySnapshot,
+  devUnlocked = false,
+  finopsUnlocked = false,
+  onAuthSelect,
+  onSignOut,
+  onSignOutEverywhere,
 }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeButtonRef = useRef(null);
+  const [showAuthMenu, setShowAuthMenu] = useState(false);
+  const authButtonRef = useRef(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const diagnosticsButtonRef = useRef(null);
   const [snapshotFlash, setSnapshotFlash] = useState(false);
@@ -90,10 +99,28 @@ export default function Header({
     [currentMode]
   );
   const hasMockData = mockDataDiagnostics.length > 0;
+  const isAnyUnlocked = devUnlocked || finopsUnlocked;
+  const currentAuthTarget = currentMode === "finops" ? "finops" : "dev";
+  const isCurrentUnlocked = currentAuthTarget === "finops" ? finopsUnlocked : devUnlocked;
 
   const handleModeSelect = (mode) => {
     setShowModeMenu(false);
     if (onModeChange) onModeChange(mode);
+  };
+
+  const handleAuthSelect = (target) => {
+    setShowAuthMenu(false);
+    onAuthSelect?.(target);
+  };
+
+  const handleSignOut = () => {
+    setShowAuthMenu(false);
+    onSignOut?.(currentAuthTarget);
+  };
+
+  const handleSignOutEverywhere = () => {
+    setShowAuthMenu(false);
+    onSignOutEverywhere?.();
   };
 
   const handleDailyBudgetUpdate = () => {
@@ -436,6 +463,84 @@ export default function Header({
                   )}
               </div>
             )}
+
+            {/* Auth menu */}
+            <div className="relative">
+              <motion.button
+                ref={authButtonRef}
+                onClick={() => setShowAuthMenu((current) => !current)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-cyan-300/30 bg-cyan-400/10 text-cyan-100 hover:border-cyan-300/55 transition-all text-xs font-semibold"
+                aria-expanded={showAuthMenu}
+                aria-label={isAnyUnlocked ? "Dashboard account menu" : "Sign in"}
+              >
+                <LockKeyhole className="w-3 h-3" />
+                <span className="hidden sm:inline">{isAnyUnlocked ? "Account" : "Sign In"}</span>
+                <ChevronDown
+                  className={`w-3 h-3 transition-transform duration-200 ${
+                    showAuthMenu ? "rotate-180" : ""
+                  }`}
+                />
+              </motion.button>
+
+              {showAuthMenu &&
+                createPortal(
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    className="fixed w-52 rounded-xl bg-slate-800/95 border border-white/10 shadow-xl overflow-hidden z-[9999]"
+                    style={{
+                      top: authButtonRef.current
+                        ? authButtonRef.current.getBoundingClientRect().bottom + 8
+                        : 0,
+                      right: authButtonRef.current
+                        ? window.innerWidth -
+                          authButtonRef.current.getBoundingClientRect().right
+                        : 0,
+                    }}
+                  >
+                    <div className="py-2">
+                      <button
+                        onClick={() => handleAuthSelect("dev")}
+                        className="w-full px-4 py-2 text-sm text-left flex items-center justify-between gap-2 text-slate-300 transition-colors hover:bg-white/10"
+                      >
+                        <span>DevSecOps</span>
+                        {devUnlocked && <span className="text-xs text-cyan-300">Signed in</span>}
+                      </button>
+                      <button
+                        onClick={() => handleAuthSelect("finops")}
+                        className="w-full px-4 py-2 text-sm text-left flex items-center justify-between gap-2 text-slate-300 transition-colors hover:bg-white/10"
+                      >
+                        <span>FinOps</span>
+                        {finopsUnlocked && <span className="text-xs text-cyan-300">Signed in</span>}
+                      </button>
+                      {isAnyUnlocked && (
+                        <>
+                          {isCurrentUnlocked && (
+                            <button
+                              onClick={handleSignOut}
+                              className="mt-1 w-full border-t border-white/10 px-4 py-2 text-sm text-left flex items-center gap-2 text-rose-200 transition-colors hover:bg-rose-500/10"
+                            >
+                              <LogOut className="h-4 w-4" />
+                              <span>Sign Out</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={handleSignOutEverywhere}
+                            className={`${isCurrentUnlocked ? "" : "mt-1 border-t border-white/10"} w-full px-4 py-2 text-sm text-left flex items-center gap-2 text-rose-200 transition-colors hover:bg-rose-500/10`}
+                          >
+                            <LogOut className="h-4 w-4" />
+                            <span>Sign Out Everywhere</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </motion.div>,
+                  document.body
+                )}
+            </div>
 
             {/* Mode button */}
             <div className="relative">

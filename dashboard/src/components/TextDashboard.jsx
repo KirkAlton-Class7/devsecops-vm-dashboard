@@ -224,6 +224,8 @@ export default function TextDashboard({
   onCopySuccess,
   authHeaders = {},
   mockDataDiagnostics = [],
+  onSignOut,
+  onSignOutEverywhere,
 }) {
   const [copyFlash, setCopyFlash] = useState(false);
   const [copyJsonFlash, setCopyJsonFlash] = useState(false);
@@ -1002,6 +1004,20 @@ export default function TextDashboard({
                 className="px-2 py-1 border border-white/20 rounded hover:bg-white/10"
               >
                 [H] HELP
+              </button>
+
+              <button
+                onClick={() => onSignOut?.("dev")}
+                className="px-2 py-1 border border-rose-300/40 rounded text-rose-200 hover:bg-rose-500/10"
+              >
+                [SO] SIGN OUT
+              </button>
+
+              <button
+                onClick={onSignOutEverywhere}
+                className="px-2 py-1 border border-rose-300/40 rounded text-rose-200 hover:bg-rose-500/10"
+              >
+                [SE] SIGN OUT EVERYWHERE
               </button>
 
               <button

@@ -20,6 +20,11 @@ export default function ProtectedFinOpsDashboard({
   onCopyFailure,
   onCopySuccess,
   onAuthRequired,
+  devUnlocked = false,
+  finopsUnlocked = false,
+  onAuthSelect,
+  onSignOut,
+  onSignOutEverywhere,
 }) {
   const [dailyBudget, setDailyBudget] = useState(() => {
     const saved = localStorage.getItem("finops_daily_budget");
@@ -81,6 +86,11 @@ export default function ProtectedFinOpsDashboard({
           mockDataDiagnostics={[]}
           onCopyJsonSnapshot={() => signIn("Sign in to copy FinOps JSON payloads.")}
           onCopySnapshot={() => signIn("Sign in to copy FinOps snapshots.")}
+          devUnlocked={devUnlocked}
+          finopsUnlocked={finopsUnlocked}
+          onAuthSelect={onAuthSelect}
+          onSignOut={onSignOut}
+          onSignOutEverywhere={onSignOutEverywhere}
         />
 
         <main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6">
@@ -96,7 +106,6 @@ export default function ProtectedFinOpsDashboard({
                 status={card.status}
                 protectedMode
                 protectedSubtext={card.protectedSubtext}
-                onSignIn={() => signIn(`Sign in to view ${card.label}.`)}
               />
             ))}
           </section>
@@ -108,12 +117,10 @@ export default function ProtectedFinOpsDashboard({
             <LockedPanel
               title="Daily Cost Trend"
               message="Cost trend protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view daily cost trend.")}
             />
             <LockedPanel
               title="Top Services by Cost"
               message="Service cost data protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view top services by cost.")}
             />
           </section>
 
@@ -133,21 +140,10 @@ export default function ProtectedFinOpsDashboard({
             <ImageGallery onCopyFailure={onCopyFailure} onCopySuccess={onCopySuccess} />
           </section>
 
-          <section id="budgets" className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <section id="budgets" className="grid grid-cols-1 gap-6">
             <LockedPanel
               title="Budget Status"
-              message="Budget spend and percentage data protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view budgets.")}
-            />
-            <LockedPanel
-              title="Budget Forecast"
-              message="Forecast ratios protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view budget forecasts.")}
-            />
-            <LockedPanel
-              title="Budget Guardrails"
-              message="Budget thresholds protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view budget guardrails.")}
+              message="Budget spend, forecast, and thresholds protected. Sign in to view."
             />
           </section>
 
@@ -155,12 +151,10 @@ export default function ProtectedFinOpsDashboard({
             <LockedPanel
               title="CPU Utilization"
               message="VM utilization percentages protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view VM utilization.")}
             />
             <LockedPanel
               title="Rightsizing Recommendations"
               message="Recommendation levels and savings protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view rightsizing recommendations.")}
             />
           </section>
 
@@ -168,7 +162,6 @@ export default function ProtectedFinOpsDashboard({
             <LockedPanel
               title="Idle Resources"
               message="Idle resource names, scope, and status protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view idle resources.")}
             />
           </section>
         </main>

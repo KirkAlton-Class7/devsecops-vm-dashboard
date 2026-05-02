@@ -136,6 +136,15 @@ def write_json_file_cache(path, payload):
     except OSError as exc:
         print(f"Warning: failed to write cache {path}: {exc}", file=sys.stderr)
 
+def finops_cache_has_live_summary(payload):
+    """Return False for older caches that still redacted authenticated FinOps values."""
+    cards = payload.get("summaryCards", []) if isinstance(payload, dict) else []
+    values = {card.get("label"): card.get("value") for card in cards}
+    return (
+        values.get("Total Cost (MTD)") != "Protected" and
+        values.get("Forecast (EOM)") != "Protected"
+    )
+
 def get_metadata(path, timeout=2):
     url = f"http://metadata.google.internal/computeMetadata/v1/{path}"
     cmd = ["curl", "-fsS", "-H", "Metadata-Flavor: Google", url]
@@ -955,7 +964,7 @@ def get_cached_dashboard_data():
 def get_cached_finops_data():
     """Assemble FinOps data with memory + VM-local file caching."""
     cached = read_json_file_cache(FINOPS_CACHE_FILE, FINOPS_CACHE_TTL_SECONDS)
-    if cached:
+    if cached and finops_cache_has_live_summary(cached):
         return cached
 
     try:
@@ -976,10 +985,14 @@ def get_cached_finops_data():
             utilization = future_util.result()
 
         potential_savings = round(sum(r.get("monthlySavings", 0) for r in recommendations), 2)
+        mtd_total = round(sum(day.get("value", 0) for day in cost_trend), 2) if cost_trend else 0.0
+        forecast = 0.0
+        if cost_trend:
+            forecast = round((mtd_total / len(cost_trend)) * 30, 2)
 
         summary_cards = [
-            {"label": "Total Cost (MTD)", "value": "Protected", "status": "info"},
-            {"label": "Forecast (EOM)", "value": "Protected", "status": "warning"},
+            {"label": "Total Cost (MTD)", "value": f"{mtd_total:.2f}", "status": "info"},
+            {"label": "Forecast (EOM)", "value": f"{forecast:.2f}", "status": "warning"},
             {"label": "Potential Savings", "value": f"{potential_savings:.2f}", "status": "healthy"},
             {"label": "CUD Coverage", "value": "N/A", "status": "info"}
         ]
@@ -1006,7 +1019,7 @@ def get_cached_finops_data():
         return finops_data
     except Exception as exc:
         stale = read_json_file_cache(FINOPS_CACHE_FILE, allow_stale=True)
-        if stale:
+        if stale and finops_cache_has_live_summary(stale):
             print(f"Warning: using stale FinOps cache after refresh failure: {exc}", file=sys.stderr)
             return stale
         raise
@@ -1015,6 +1028,21 @@ def get_cached_finops_data():
 def protect_dashboard_summary_cards(cards):
     """Redact protected summary values for the public dashboard endpoint."""
     protected_labels = {"CPU", "Memory", "Disk", "Estimated Cost"}
+    protected_cards = []
+    for card in cards:
+        if card.get("label") in protected_labels:
+            protected_cards.append({
+                **card,
+                "value": "Protected",
+                "status": "info"
+            })
+        else:
+            protected_cards.append(card)
+    return protected_cards
+
+def protect_finops_summary_cards(cards):
+    """Redact FinOps summary values for the public FinOps summary endpoint."""
+    protected_labels = {"Total Cost (MTD)", "Forecast (EOM)", "Potential Savings", "CUD Coverage"}
     protected_cards = []
     for card in cards:
         if card.get("label") in protected_labels:
@@ -1180,7 +1208,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
             try:
                 finops_data = get_cached_finops_data()
                 summary = {
-                    "summaryCards": finops_data.get("summaryCards", []),
+                    "summaryCards": protect_finops_summary_cards(finops_data.get("summaryCards", [])),
                     "identity": finops_data.get("identity", {}),
                     "protected": True
                 }

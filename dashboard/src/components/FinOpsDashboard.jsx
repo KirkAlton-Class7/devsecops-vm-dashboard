@@ -469,6 +469,11 @@ export default function FinOpsDashboard({
   onCopySnapshot,
   onCopyJsonSnapshot,
   authHeaders = {},
+  devUnlocked = false,
+  finopsUnlocked = false,
+  onAuthSelect,
+  onSignOut,
+  onSignOutEverywhere,
 }) {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -753,6 +758,11 @@ export default function FinOpsDashboard({
           mockDataDiagnostics={finOpsDiagnostics}
           onCopyJsonSnapshot={() => onCopyJsonSnapshot?.(data)}
           onCopySnapshot={() => onCopySnapshot?.(data)}
+          devUnlocked={devUnlocked}
+          finopsUnlocked={finopsUnlocked}
+          onAuthSelect={onAuthSelect}
+          onSignOut={onSignOut}
+          onSignOutEverywhere={onSignOutEverywhere}
         />
 
         <main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6">

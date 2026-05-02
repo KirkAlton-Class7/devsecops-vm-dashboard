@@ -95,9 +95,8 @@ function StatCard({
   monthlyBudget = 0,
   protectedMode = false,
   protectedSubtext,
-  onSignIn,
 }) {
-  const Icon = protectedMode ? LockKeyhole : icons[label] || icons.default;
+  const Icon = icons[label] || icons.default;
   let displayValue = value;
   let displayStatus = status;
   let severity = null;
@@ -219,10 +218,7 @@ function StatCard({
   };
 
   const handleClick = () => {
-    if (protectedMode) {
-      onSignIn?.();
-      return;
-    }
+    if (protectedMode) return;
     const url = getClickUrl();
     if (url) window.open(url, "_blank");
   };
@@ -245,7 +241,7 @@ function StatCard({
 
   return (
     <motion.div
-      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${styles.gradient} border ${styles.border} shadow-xl group w-full cursor-pointer`}
+      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${styles.gradient} border ${styles.border} shadow-xl group w-full ${protectedMode ? "cursor-default" : "cursor-pointer"}`}
       whileHover={{ y: -5, transition: { type: "spring", stiffness: 300, damping: 20 } }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -295,16 +291,10 @@ function StatCard({
               </div>
               <span className="text-xs text-cyan-400">● Active</span>
             </div>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onSignIn?.();
-              }}
-              className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/20"
-            >
-              Sign in
-            </button>
+            <div className="mt-4 flex min-h-9 items-center gap-2 px-1 py-2 text-xs font-semibold text-cyan-100/85">
+              <LockKeyhole className="h-3.5 w-3.5" />
+              <span>Sign in to view {label}</span>
+            </div>
           </div>
         )}
 
