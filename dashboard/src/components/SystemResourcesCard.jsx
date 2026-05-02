@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { HardDrive, MemoryStick, Cpu, Gauge } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Card from "./Card";
 import { buildSystemResourcesSnapshot } from "../utils/widgetSnapshots";
@@ -8,6 +8,7 @@ import { buildSystemResourcesSnapshot } from "../utils/widgetSnapshots";
 export default function SystemResourcesCard({ authHeaders = {}, fetchEnabled = true, resources, onCopyFailure, onCopySuccess }) {
   const [cpuHistory, setCpuHistory] = useState(() => resources?.cpu?.history || []);
   const [currentCpu, setCurrentCpu] = useState(resources?.cpu?.usage || 0);
+  const lastExternalCpuRef = useRef(resources?.cpu?.usage ?? null);
 
   useEffect(() => {
     if (cpuHistory.length === 0 && resources?.cpu?.history?.length) {
@@ -17,6 +18,21 @@ export default function SystemResourcesCard({ authHeaders = {}, fetchEnabled = t
       setCurrentCpu(resources.cpu.usage);
     }
   }, [cpuHistory.length, resources?.cpu?.history, resources?.cpu?.usage]);
+
+  useEffect(() => {
+    if (fetchEnabled) return;
+
+    const cpuValue = Number(resources?.cpu?.usage);
+    if (!Number.isFinite(cpuValue) || lastExternalCpuRef.current === cpuValue) return;
+
+    lastExternalCpuRef.current = cpuValue;
+    setCurrentCpu(cpuValue);
+    setCpuHistory((prev) => {
+      const next = [...prev, { time: new Date().toLocaleTimeString(), value: cpuValue }];
+      if (next.length > 20) next.shift();
+      return next;
+    });
+  }, [fetchEnabled, resources?.cpu?.usage]);
 
   // Fetch CPU usage from the VM every 10 seconds
   useEffect(() => {

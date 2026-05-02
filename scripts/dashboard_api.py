@@ -75,6 +75,11 @@ BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"
 # -------------------------------
 DATA_DIR = "/var/www/vm-dashboard/data"
 COST_FILE = "/var/tmp/vm-cost.json"
+CACHE_DIR = os.environ.get("VM_DASHBOARD_CACHE_DIR", "/var/cache/vm-dashboard")
+DEVSECOPS_CACHE_FILE = os.path.join(CACHE_DIR, "dashboard.json")
+FINOPS_CACHE_FILE = os.path.join(CACHE_DIR, "finops.json")
+DEVSECOPS_CACHE_TTL_SECONDS = int(os.environ.get("VM_DASHBOARD_DEVSECOPS_CACHE_TTL", "30"))
+FINOPS_CACHE_TTL_SECONDS = int(os.environ.get("VM_DASHBOARD_FINOPS_CACHE_TTL", "600"))
 WARN_THRESHOLD = 70
 
 # Global caches
@@ -99,6 +104,37 @@ def ttl_cache(seconds):
             return result
         return wrapper
     return decorator
+
+def read_json_file_cache(path, max_age_seconds=None, allow_stale=False):
+    """Read a local JSON cache file if it is fresh enough, or stale reads are allowed."""
+    try:
+        age_seconds = time.time() - os.path.getmtime(path)
+        if not allow_stale and max_age_seconds is not None and age_seconds > max_age_seconds:
+            return None
+
+        with open(path, "r", encoding="utf-8") as cache_file:
+            cached = json.load(cache_file)
+
+        cached.setdefault("_cache", {})
+        cached["_cache"].update({
+            "source": "local-file",
+            "ageSeconds": round(age_seconds, 2),
+            "stale": max_age_seconds is not None and age_seconds > max_age_seconds,
+        })
+        return cached
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return None
+
+def write_json_file_cache(path, payload):
+    """Atomically write a local JSON cache file."""
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp_path = f"{path}.tmp"
+        with open(tmp_path, "w", encoding="utf-8") as cache_file:
+            json.dump(payload, cache_file)
+        os.replace(tmp_path, path)
+    except OSError as exc:
+        print(f"Warning: failed to write cache {path}: {exc}", file=sys.stderr)
 
 def get_metadata(path, timeout=2):
     url = f"http://metadata.google.internal/computeMetadata/v1/{path}"
@@ -892,57 +928,88 @@ def build_dashboard_data():
     }
     return data
 
+def get_cached_dashboard_data():
+    """Build live dashboard data, falling back to the last local snapshot on failure."""
+    try:
+        dashboard_data = build_dashboard_data()
+        dashboard_data["_cache"] = {
+            "source": "live-refresh",
+            "generatedAt": format_iso_utc(datetime.now(timezone.utc)),
+            "ttlSeconds": DEVSECOPS_CACHE_TTL_SECONDS,
+            "stale": False
+        }
+        write_json_file_cache(DEVSECOPS_CACHE_FILE, dashboard_data)
+        return dashboard_data
+    except Exception as exc:
+        stale = read_json_file_cache(DEVSECOPS_CACHE_FILE, allow_stale=True)
+        if stale:
+            print(f"Warning: using stale dashboard cache after refresh failure: {exc}", file=sys.stderr)
+            return stale
+        raise
+
 # -------------------------------
-# Cached FinOps data assembly (30 seconds)
+# Cached FinOps data assembly
 # -------------------------------
 
 @ttl_cache(seconds=30)
 def get_cached_finops_data():
-    """Assemble FinOps data with parallel fetching for speed."""
-    # Launch all expensive calls in parallel
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        future_cost = executor.submit(get_cost_trend)
-        future_services = executor.submit(get_top_services_by_cost)
-        future_idle = executor.submit(get_idle_resources)
-        future_rightsize = executor.submit(get_rightsizing_recommendations)
-        future_budgets = executor.submit(get_budgets)
-        future_util = executor.submit(get_cpu_utilization_all_vms)
+    """Assemble FinOps data with memory + VM-local file caching."""
+    cached = read_json_file_cache(FINOPS_CACHE_FILE, FINOPS_CACHE_TTL_SECONDS)
+    if cached:
+        return cached
 
-        cost_trend = future_cost.result()
-        top_services = future_services.result()
-        idle_resources = future_idle.result()
-        recommendations = future_rightsize.result()
-        budgets = future_budgets.result()
-        utilization = future_util.result()
+    try:
+        # Launch all expensive calls in parallel
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            future_cost = executor.submit(get_cost_trend)
+            future_services = executor.submit(get_top_services_by_cost)
+            future_idle = executor.submit(get_idle_resources)
+            future_rightsize = executor.submit(get_rightsizing_recommendations)
+            future_budgets = executor.submit(get_budgets)
+            future_util = executor.submit(get_cpu_utilization_all_vms)
 
-    # Calculate MTD total and forecast
-    mtd_total = sum(day["value"] for day in cost_trend) if cost_trend else 0.0
-    forecast = 0.0
-    if cost_trend and len(cost_trend) > 0:
-        avg_daily = mtd_total / len(cost_trend)
-        forecast = avg_daily * 30  # assume 30‑day month
-    else:
-        forecast = 0.0
+            cost_trend = future_cost.result()
+            top_services = future_services.result()
+            idle_resources = future_idle.result()
+            recommendations = future_rightsize.result()
+            budgets = future_budgets.result()
+            utilization = future_util.result()
 
-    summary_cards = [
-        {"label": "Total Cost (MTD)", "value": "Protected", "status": "info"},
-        {"label": "Forecast (EOM)", "value": "Protected", "status": "warning"},
-        {"label": "Potential Savings", "value": f"{get_potential_savings():.2f}", "status": "healthy"},
-        {"label": "CUD Coverage", "value": "N/A", "status": "info"}
-    ]
+        potential_savings = round(sum(r.get("monthlySavings", 0) for r in recommendations), 2)
 
-    return {
-        "summaryCards": summary_cards,
-        "costTrend": cost_trend,
-        "topServices": top_services,
-        "budgets": budgets,
-        "idleResources": idle_resources,
-        "recommendations": recommendations,
-        "utilization": utilization,
-        "realizedSavings": get_realized_savings(),
-        "potentialSavings": get_potential_savings(),
-        "quote": random.choice(load_quotes())
-    }
+        summary_cards = [
+            {"label": "Total Cost (MTD)", "value": "Protected", "status": "info"},
+            {"label": "Forecast (EOM)", "value": "Protected", "status": "warning"},
+            {"label": "Potential Savings", "value": f"{potential_savings:.2f}", "status": "healthy"},
+            {"label": "CUD Coverage", "value": "N/A", "status": "info"}
+        ]
+
+        finops_data = {
+            "summaryCards": summary_cards,
+            "costTrend": cost_trend,
+            "topServices": top_services,
+            "budgets": budgets,
+            "idleResources": idle_resources,
+            "recommendations": recommendations,
+            "utilization": utilization,
+            "realizedSavings": get_realized_savings(),
+            "potentialSavings": potential_savings,
+            "quote": random.choice(load_quotes()),
+            "_cache": {
+                "source": "live-refresh",
+                "generatedAt": format_iso_utc(datetime.now(timezone.utc)),
+                "ttlSeconds": FINOPS_CACHE_TTL_SECONDS,
+                "stale": False
+            }
+        }
+        write_json_file_cache(FINOPS_CACHE_FILE, finops_data)
+        return finops_data
+    except Exception as exc:
+        stale = read_json_file_cache(FINOPS_CACHE_FILE, allow_stale=True)
+        if stale:
+            print(f"Warning: using stale FinOps cache after refresh failure: {exc}", file=sys.stderr)
+            return stale
+        raise
 
 
 def protect_dashboard_summary_cards(cards):
@@ -1089,11 +1156,12 @@ class MonitoringHandler(BaseHTTPRequestHandler):
         # Public dashboard summary endpoint. Full details are served by /api/dashboard.
         if self.path == '/api/dashboard/summary':
             try:
-                data = build_dashboard_data()
+                data = get_cached_dashboard_data()
                 summary = {
                     "summaryCards": protect_dashboard_summary_cards(data.get("summaryCards", [])),
                     "meta": data.get("meta", {}),
                     "systemLoad": data.get("systemLoad"),
+                    "_cache": data.get("_cache", {}),
                     "protected": True
                 }
                 self.send_response(200)
@@ -1163,7 +1231,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
         # Dashboard API endpoint (cached system data)
         if self.path == '/api/dashboard':
             try:
-                data = build_dashboard_data()
+                data = get_cached_dashboard_data()
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
@@ -1202,11 +1270,8 @@ def prewarm_cache():
     """Pre‑warm expensive functions so first request is faster."""
     print("Pre‑warming FinOps cache...")
     try:
-        get_cost_trend()
-        get_top_services_by_cost()
-        get_idle_resources()
-        get_rightsizing_recommendations()
-        get_budgets()
+        get_cached_dashboard_data()
+        get_cached_finops_data()
         print("Cache pre‑warmed successfully.")
     except Exception as e:
         print(f"Pre‑warm error: {e}", file=sys.stderr)

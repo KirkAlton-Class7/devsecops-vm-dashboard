@@ -48,6 +48,12 @@ export default function ProtectedDevSecOpsDashboard({
   const signIn = (message = "Sign in to view protected DevSecOps data.") => {
     onAuthRequired?.(message);
   };
+  const protectedSummaryCards = [
+    { label: "CPU", status: "info", protectedSubtext: "Utilization: Redacted" },
+    { label: "Memory", status: "info", protectedSubtext: "Utilization: Redacted" },
+    { label: "Disk", status: "info", protectedSubtext: "Utilization: Redacted" },
+    { label: "Estimated Cost", status: "info", protectedSubtext: "Protected" },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
@@ -80,7 +86,7 @@ export default function ProtectedDevSecOpsDashboard({
 
         <motion.main className="space-y-8 px-4 py-4 lg:px-6 lg:py-6" variants={containerVariants} initial="hidden" animate="visible">
           <motion.section id="overview" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full" variants={itemVariants}>
-            {mockDashboard.summaryCards?.map((card, idx) => (
+            {protectedSummaryCards.map((card, idx) => (
               <div key={card.label} className="w-full">
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
@@ -91,16 +97,23 @@ export default function ProtectedDevSecOpsDashboard({
                 >
                   <StatCard
                     label={card.label}
-                    value={card.value}
+                    value="Protected"
                     status={card.status}
-                    instanceName={mockDashboard.identity?.instanceName}
-                    zone={mockDashboard.location?.zone}
-                    projectId={mockDashboard.identity?.project}
-                    billingAccountId={mockDashboard.identity?.billingAccountId}
+                    protectedMode
+                    protectedSubtext={card.protectedSubtext}
+                    onSignIn={() => signIn(`Sign in to view ${card.label}.`)}
                   />
                 </motion.div>
               </div>
             ))}
+          </motion.section>
+
+          <motion.section id="load" className="grid grid-cols-1 gap-6" variants={itemVariants}>
+            <LockedPanel
+              title="System Load Trend"
+              message="Load metrics protected. Sign in to view."
+              onSignIn={() => signIn("Sign in to view system load.")}
+            />
           </motion.section>
 
           <motion.section id="ambience" className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={itemVariants}>
@@ -115,22 +128,49 @@ export default function ProtectedDevSecOpsDashboard({
             <ImageGallery onCopyFailure={onCopyFailure} onCopySuccess={onCopySuccess} />
           </motion.section>
 
-          <motion.section id="protected-sections" className="grid grid-cols-1 gap-4 lg:grid-cols-2" variants={itemVariants}>
+          <motion.section id="vm-information" className="grid grid-cols-1 gap-6 lg:grid-cols-3" variants={itemVariants}>
             <LockedPanel
-              title="VM Details"
-              message="VM details protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view VM details.")}
+              title="Identity"
+              message="Identity details protected. Sign in to view."
+              onSignIn={() => signIn("Sign in to view identity details.")}
             />
+            <LockedPanel
+              title="Network"
+              message="Network details protected. Sign in to view."
+              onSignIn={() => signIn("Sign in to view network details.")}
+            />
+            <LockedPanel
+              title="Location"
+              message="Location details protected. Sign in to view."
+              onSignIn={() => signIn("Sign in to view location details.")}
+            />
+          </motion.section>
+
+          <motion.section id="system-resources" className="grid grid-cols-1 gap-6" variants={itemVariants}>
             <LockedPanel
               title="System Resources"
-              message="System resources protected. Sign in to view."
+              message="CPU, memory, and disk details protected. Sign in to view."
               onSignIn={() => signIn("Sign in to view system resources.")}
             />
+          </motion.section>
+
+          <motion.section id="monitoring-endpoints" className="grid grid-cols-1 gap-6" variants={itemVariants}>
+            <LockedPanel
+              title="Monitoring Endpoints"
+              message="Endpoint details protected. Sign in to view."
+              onSignIn={() => signIn("Sign in to view monitoring endpoints.")}
+            />
+          </motion.section>
+
+          <motion.section id="services" className="grid grid-cols-1 gap-6" variants={itemVariants}>
             <LockedPanel
               title="Services"
-              message="Services protected. Sign in to view."
+              message="Service health protected. Sign in to view."
               onSignIn={() => signIn("Sign in to view service health.")}
             />
+          </motion.section>
+
+          <motion.section id="logs" className="grid grid-cols-1 gap-6" variants={itemVariants}>
             <LockedPanel
               title="System Logs"
               message="Logs protected. Sign in to view."

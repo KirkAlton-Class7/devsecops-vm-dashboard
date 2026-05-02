@@ -24,6 +24,7 @@ export default function Header({
   onDailyBudgetChange,
   monthlyBudget = 100,
   onMonthlyBudgetChange,
+  showBudgetControls = true,
   mockDataDiagnostics = [],
   onCopyJsonSnapshot,
   onCopySnapshot,
@@ -188,7 +189,7 @@ export default function Header({
       initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 100 }}
-      className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl shadow-lg overflow-x-hidden"
+      className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/95 shadow-md overflow-x-hidden"
     >
       <div className="relative">
         <motion.div
@@ -348,7 +349,7 @@ export default function Header({
             )}
 
             {/* Budgets button – only in FinOps mode */}
-            {currentMode === "finops" && (
+            {currentMode === "finops" && showBudgetControls && (
               <div className="relative">
                 <motion.button
                   ref={budgetsButtonRef}

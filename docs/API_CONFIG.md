@@ -496,11 +496,15 @@ The API relies on local system files and generated data:
 
 ## Caching Behavior
 
-The API uses lightweight TTL caching:
+The API uses lightweight memory caching plus VM-local JSON snapshots under `/var/cache/vm-dashboard`:
 
 ```python
 @ttl_cache(seconds=10)
 def build_dashboard_data()
+
+def get_cached_dashboard_data()
+
+def get_cached_finops_data()
 
 @ttl_cache(seconds=60)
 def get_ssh_status()
@@ -515,9 +519,10 @@ def get_cost_trend(days=30)
 * Reduces repeated system calls (`systemctl`, `apt`)
 * Improves API responsiveness
 * Keeps FinOps API calls from querying BigQuery and GCP APIs on every request
+* Preserves a last-known-good DevSecOps and FinOps payload if a refresh fails
 
 > [!TIP]
-> Cached values may appear slightly stale (10 seconds for DevSecOps, 5 minutes for update/CPU checks, and up to 1 hour for cost, budget, and recommendation data).
+> Cached values may appear slightly stale. DevSecOps data is refreshed frequently and has a local fallback snapshot. FinOps data uses a VM-local file cache with a default 10-minute TTL, while individual lower-level cloud API helpers may cache for longer.
 
 ---
 

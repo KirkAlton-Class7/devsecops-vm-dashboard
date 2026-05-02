@@ -40,6 +40,7 @@ APP_NAME="vm-dashboard"
 APP_DIR="/var/www/${APP_NAME}"
 NGINX_SITE="/etc/nginx/sites-available/${APP_NAME}"
 DATA_DIR="${APP_DIR}/data"
+CACHE_DIR="/var/cache/${APP_NAME}"
 
 export DEBIAN_FRONTEND=noninteractive
 export DASHBOARD_APP_NAME DASHBOARD_TAGLINE DASHBOARD_USER DASHBOARD_NAME
@@ -290,9 +291,11 @@ if ! id "${APP_USER}" >/dev/null 2>&1; then
   useradd -m -s /bin/bash "${APP_USER}"
 fi
 
-mkdir -p "${APP_DIR}" "${DATA_DIR}"
+mkdir -p "${APP_DIR}" "${DATA_DIR}" "${CACHE_DIR}"
 chown -R ${APP_USER}:${APP_USER} "${APP_DIR}"
+chown -R root:root "${CACHE_DIR}"
 chmod -R 755 "${APP_DIR}"
+chmod 755 "${CACHE_DIR}"
 
 # ---------------------------------
 # Tune Nginx for dashboard traffic
@@ -444,6 +447,9 @@ Restart=always
 RestartSec=5
 Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 Environment="HOME=/root"
+Environment="VM_DASHBOARD_CACHE_DIR=${CACHE_DIR}"
+Environment="VM_DASHBOARD_DEVSECOPS_CACHE_TTL=30"
+Environment="VM_DASHBOARD_FINOPS_CACHE_TTL=600"
 
 [Install]
 WantedBy=multi-user.target

@@ -948,6 +948,8 @@ export default function App() {
             <Suspense fallback={<WidgetFallback className="min-h-[28rem]" />}>
               <LoadTrendChart
                 authHeaders={devAuthHeaders}
+                fetchEnabled={false}
+                initialLoad={dashboard.systemLoad}
                 onCopyFailure={showManualCopy}
                 onCopySuccess={showCopySuccess}
               />
@@ -999,6 +1001,7 @@ export default function App() {
           <motion.section id="system-resources" className="grid grid-cols-1 gap-6" variants={itemVariants}>
             <SystemResourcesCard
               authHeaders={devAuthHeaders}
+              fetchEnabled={false}
               resources={dashboard.systemResources || {}}
               onCopyFailure={showManualCopy}
               onCopySuccess={showCopySuccess}

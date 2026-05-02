@@ -12,7 +12,8 @@ import {
   Sparkles,
   Calendar,
   PiggyBank,
-  Shield
+  Shield,
+  LockKeyhole
 } from "lucide-react";
 
 const icons = {
@@ -91,15 +92,26 @@ function StatCard({
   zone,
   projectId,
   billingAccountId,
-  monthlyBudget = 0
+  monthlyBudget = 0,
+  protectedMode = false,
+  protectedSubtext,
+  onSignIn,
 }) {
-  const Icon = icons[label] || icons.default;
+  const Icon = protectedMode ? LockKeyhole : icons[label] || icons.default;
   let displayValue = value;
   let displayStatus = status;
   let severity = null;
+  const protectedDetail = protectedSubtext || (
+    label === "CPU" || label === "Memory" || label === "Disk"
+      ? "Utilization: Redacted"
+      : "Protected"
+  );
 
   // Action card overrides
-  if (label === "Potential Savings") {
+  if (protectedMode) {
+    displayValue = "Protected";
+    displayStatus = "ACTIVE";
+  } else if (label === "Potential Savings") {
     displayValue = "Explore";
     displayStatus = "OPTIMIZE";
   } else if (label === "CUD Coverage") {
@@ -186,6 +198,7 @@ function StatCard({
   }
 
   const getClickUrl = () => {
+    if (protectedMode) return null;
     if (label === "Potential Savings") return "https://console.cloud.google.com/cloud-hub/optimization";
     if (label === "CUD Coverage") return "https://console.cloud.google.com/compute/commitments";
     if (label === "Total Cost (MTD)" || label === "Forecast (EOM)") {
@@ -206,6 +219,10 @@ function StatCard({
   };
 
   const handleClick = () => {
+    if (protectedMode) {
+      onSignIn?.();
+      return;
+    }
     const url = getClickUrl();
     if (url) window.open(url, "_blank");
   };
@@ -216,7 +233,9 @@ function StatCard({
   }
 
   let pillIcon = null;
-  if (displayStatus === "OPTIMIZE") {
+  if (protectedMode) {
+    pillIcon = <LockKeyhole className="w-3 h-3" />;
+  } else if (displayStatus === "OPTIMIZE") {
     pillIcon = <Sparkles className="w-3 h-3" />;
   } else if (styles.isWarning) {
     pillIcon = <TrendingUp className="w-3 h-3" />;
@@ -226,7 +245,7 @@ function StatCard({
 
   return (
     <motion.div
-      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${styles.gradient} backdrop-blur-xl border ${styles.border} shadow-xl group w-full cursor-pointer`}
+      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${styles.gradient} border ${styles.border} shadow-xl group w-full cursor-pointer`}
       whileHover={{ y: -5, transition: { type: "spring", stiffness: 300, damping: 20 } }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -258,9 +277,38 @@ function StatCard({
             {displayValue}
           </p>
           <p className="text-sm text-slate-400 font-medium tracking-wide uppercase">{label}</p>
+          {protectedMode && (
+            <p className="text-xs font-medium text-cyan-200/80">{protectedDetail}</p>
+          )}
         </div>
 
-        {percentage !== null && (
+        {protectedMode && (
+          <div className="mt-4">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-cyan-500/60 to-slate-500/60 rounded-full"
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                />
+              </div>
+              <span className="text-xs text-cyan-400">● Active</span>
+            </div>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onSignIn?.();
+              }}
+              className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/20"
+            >
+              Sign in
+            </button>
+          </div>
+        )}
+
+        {!protectedMode && percentage !== null && (
           <div className="mt-4">
             <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
               <motion.div
@@ -274,7 +322,7 @@ function StatCard({
           </div>
         )}
         
-        {!percentage && (
+        {!protectedMode && !percentage && (
           <div className="mt-4">
             <div className="flex items-center gap-2">
               <div className="flex-1 h-1.5 bg-slate-700/50 rounded-full overflow-hidden">

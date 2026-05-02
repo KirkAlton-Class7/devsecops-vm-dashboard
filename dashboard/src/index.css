@@ -12,6 +12,11 @@ body,
   min-height: 100%;
 }
 
+html {
+  scroll-behavior: auto;
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   background: linear-gradient(135deg, #0f172a 0%, #0f172a 50%, #1e1b4b 100%);

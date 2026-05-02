@@ -46,6 +46,12 @@ export default function ProtectedFinOpsDashboard({
     text: "Optimize cloud costs with FinOps",
     author: "FinOps Team",
   };
+  const protectedSummaryCards = [
+    { label: "Total Cost (MTD)", status: "info", protectedSubtext: "Protected" },
+    { label: "Forecast (EOM)", status: "info", protectedSubtext: "Protected" },
+    { label: "Potential Savings", status: "info", protectedSubtext: "Protected" },
+    { label: "CUD Coverage", status: "info", protectedSubtext: "Protected" },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
@@ -71,6 +77,7 @@ export default function ProtectedFinOpsDashboard({
           onDailyBudgetChange={setDailyBudget}
           monthlyBudget={monthlyBudget}
           onMonthlyBudgetChange={setMonthlyBudget}
+          showBudgetControls={false}
           mockDataDiagnostics={[]}
           onCopyJsonSnapshot={() => signIn("Sign in to copy FinOps JSON payloads.")}
           onCopySnapshot={() => signIn("Sign in to copy FinOps snapshots.")}
@@ -81,17 +88,33 @@ export default function ProtectedFinOpsDashboard({
             id="finops-overview"
             className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
           >
-            {(mockFinOpsData.summaryCards || []).map((card, idx) => (
+            {protectedSummaryCards.map((card, idx) => (
               <StatCard
                 key={`${card.label}-${idx}`}
-                {...card}
-                instanceName=""
-                zone=""
-                projectId={mockFinOpsData.identity?.project || ""}
-                billingAccountId={mockFinOpsData.identity?.billingAccountId || ""}
-                monthlyBudget={monthlyBudget}
+                label={card.label}
+                value="Protected"
+                status={card.status}
+                protectedMode
+                protectedSubtext={card.protectedSubtext}
+                onSignIn={() => signIn(`Sign in to view ${card.label}.`)}
               />
             ))}
+          </section>
+
+          <section
+            id="cost-trends"
+            className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+          >
+            <LockedPanel
+              title="Daily Cost Trend"
+              message="Cost trend protected. Sign in to view."
+              onSignIn={() => signIn("Sign in to view daily cost trend.")}
+            />
+            <LockedPanel
+              title="Top Services by Cost"
+              message="Service cost data protected. Sign in to view."
+              onSignIn={() => signIn("Sign in to view top services by cost.")}
+            />
           </section>
 
           <section
@@ -110,30 +133,41 @@ export default function ProtectedFinOpsDashboard({
             <ImageGallery onCopyFailure={onCopyFailure} onCopySuccess={onCopySuccess} />
           </section>
 
-          <section id="finops-protected" className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <section id="budgets" className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             <LockedPanel
-              title="Cost Details"
-              message="Cost details protected. Sign in to view."
-              onSignIn={() => signIn("Sign in to view FinOps cost details.")}
-            />
-            <LockedPanel
-              title="Budgets"
-              message="Budgets protected. Sign in to view."
+              title="Budget Status"
+              message="Budget spend and percentage data protected. Sign in to view."
               onSignIn={() => signIn("Sign in to view budgets.")}
             />
             <LockedPanel
-              title="VM Utilization"
-              message="VM utilization protected. Sign in to view."
+              title="Budget Forecast"
+              message="Forecast ratios protected. Sign in to view."
+              onSignIn={() => signIn("Sign in to view budget forecasts.")}
+            />
+            <LockedPanel
+              title="Budget Guardrails"
+              message="Budget thresholds protected. Sign in to view."
+              onSignIn={() => signIn("Sign in to view budget guardrails.")}
+            />
+          </section>
+
+          <section id="utilization" className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <LockedPanel
+              title="CPU Utilization"
+              message="VM utilization percentages protected. Sign in to view."
               onSignIn={() => signIn("Sign in to view VM utilization.")}
             />
             <LockedPanel
               title="Rightsizing Recommendations"
-              message="Rightsizing recommendations protected. Sign in to view."
+              message="Recommendation levels and savings protected. Sign in to view."
               onSignIn={() => signIn("Sign in to view rightsizing recommendations.")}
             />
+          </section>
+
+          <section id="idle-resources" className="grid grid-cols-1 gap-6">
             <LockedPanel
               title="Idle Resources"
-              message="Idle resources protected. Sign in to view."
+              message="Idle resource names, scope, and status protected. Sign in to view."
               onSignIn={() => signIn("Sign in to view idle resources.")}
             />
           </section>

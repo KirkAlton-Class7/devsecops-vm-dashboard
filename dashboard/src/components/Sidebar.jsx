@@ -37,9 +37,7 @@ export default function Sidebar({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(navItems[0]?.id || "overview");
-  const scrollLockRef = useRef(false);
   const activeSectionRef = useRef(activeSection);
-  const frameRef = useRef(null);
   const collapsedClass = isCollapsed ? "w-72 xl:w-20" : "w-72";
 
   const ENABLE_CUSTOM_OFFSET = true;
@@ -50,34 +48,31 @@ export default function Sidebar({
   }, [activeSection]);
 
   useEffect(() => {
-    const updateActiveSection = () => {
-      frameRef.current = null;
-      if (scrollLockRef.current) return;
-      const sections = navItems.map(item => item.id);
-      const scrollPosition = window.scrollY + 100;
-      for (const section of sections.reverse()) {
-        const element = document.getElementById(section);
-        if (element && element.offsetTop <= scrollPosition) {
-          if (activeSectionRef.current !== section) {
-            activeSectionRef.current = section;
-            setActiveSection(section);
-          }
-          break;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (visible?.target?.id && activeSectionRef.current !== visible.target.id) {
+          activeSectionRef.current = visible.target.id;
+          setActiveSection(visible.target.id);
         }
+      },
+      {
+        root: null,
+        rootMargin: "-20% 0px -60% 0px",
+        threshold: [0.1, 0.25, 0.5],
       }
-    };
+    );
 
-    const handleScroll = () => {
-      if (frameRef.current !== null) return;
-      frameRef.current = requestAnimationFrame(updateActiveSection);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    updateActiveSection();
+    navItems.forEach((item) => {
+      const element = document.getElementById(item.id);
+      if (element) observer.observe(element);
+    });
 
     return () => {
-      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-      window.removeEventListener('scroll', handleScroll);
+      observer.disconnect();
     };
   }, [navItems]);
 
@@ -93,20 +88,8 @@ export default function Sidebar({
     } else {
       targetTop = element.offsetTop;
     }
-    scrollLockRef.current = true;
-    window.scrollTo({ top: targetTop, behavior: "smooth" });
-    const onScrollEnd = () => {
-      scrollLockRef.current = false;
-      setActiveSection(id);
-      window.removeEventListener("scrollend", onScrollEnd);
-    };
-    window.addEventListener("scrollend", onScrollEnd, { once: true });
-    setTimeout(() => {
-      if (scrollLockRef.current) {
-        scrollLockRef.current = false;
-        setActiveSection(id);
-      }
-    }, 1000);
+    activeSectionRef.current = id;
+    window.scrollTo({ top: targetTop, behavior: "auto" });
   };
 
   return (
@@ -127,7 +110,7 @@ export default function Sidebar({
             animate={{ x: 0 }}
             exit={{ x: -300 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className={`fixed top-0 left-0 h-full ${collapsedClass} bg-gradient-to-b from-slate-900/95 to-slate-950/95 border-r border-white/10 shadow-2xl z-30 xl:block overflow-y-auto overflow-x-hidden transition-[width] duration-300 supports-[backdrop-filter]:backdrop-blur-md`}
+            className={`fixed top-0 left-0 h-full ${collapsedClass} bg-gradient-to-b from-slate-900/95 to-slate-950/95 border-r border-white/10 shadow-xl z-30 xl:block overflow-y-auto overflow-x-hidden transition-[width] duration-300`}
           >
             <div className="flex flex-col h-full">
               {/* Header */}

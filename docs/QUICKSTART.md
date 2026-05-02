@@ -226,7 +226,7 @@ BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"
 
 **Important notes**:
 
-- The API caches dashboard data for 10 seconds, update status for 5 minutes, and FinOps queries for up to 1 hour.
+- The API caches dashboard data briefly in memory, writes last-known-good DevSecOps and FinOps snapshots under `/var/cache/vm-dashboard`, and uses a default 10-minute VM-local FinOps payload cache.
 - `/api/logs` reads paginated `journalctl` rows and supports `limit`, `offset`, and optional `minutes`. When `minutes` is set, it queries journalctl with `--since`.
 - Public browser access is limited to summary endpoints until a user signs in. Nginx protects `/api/dashboard`, `/api/finops`, `/api/logs`, and `/metadata` with Basic Auth.
 - Heuristic DevSecOps cost data is written to `/var/tmp/vm-cost.json` (persists across reboots).

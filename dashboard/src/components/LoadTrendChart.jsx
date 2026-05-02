@@ -15,7 +15,17 @@ export default function LoadTrendChart({ authHeaders = {}, fetchEnabled = true, 
   useEffect(() => {
     if (fetchEnabled) return;
     const loadValue = parseFloat(initialLoad);
-    if (Number.isFinite(loadValue)) setCurrentLoad(loadValue.toFixed(2));
+    if (!Number.isFinite(loadValue)) return;
+
+    setCurrentLoad(loadValue.toFixed(2));
+    setHistoricalLoad((prev) => {
+      if (prev[prev.length - 1] === loadValue) return prev;
+
+      const newData = [...prev.slice(1), loadValue];
+      const peak = Math.max(...newData, 1.0);
+      setMaxLoad(Math.min(Math.ceil(peak * 1.2), 5.0));
+      return newData;
+    });
   }, [fetchEnabled, initialLoad]);
 
   // Fetch metrics to update historical data
