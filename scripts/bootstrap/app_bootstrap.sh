@@ -254,6 +254,18 @@ chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}/images" 2>/dev/null || true
 chmod -R 755 "${DATA_DIR}/images" 2>/dev/null || true
 
 # ---------------------------------
+# Install required Python packages
+# ---------------------------------
+if command -v pip3 >/dev/null 2>&1; then
+    echo "INFO: Installing Python dependencies for dashboard API"
+    pip3 install --upgrade google-cloud-monitoring google-cloud-bigquery
+else
+    echo "INFO: pip3 not found, installing python3-pip"
+    apt-get install -y python3-pip
+    pip3 install --upgrade google-cloud-monitoring google-cloud-bigquery
+fi
+
+# ---------------------------------
 # Configure dashboard API service
 # ---------------------------------
 log "Setting up Flask API service"
