@@ -139,6 +139,24 @@ VITE_GITHUB_URL="https://github.com/KirkAlton-Class7"
 VITE_LINKEDIN_URL="https://www.linkedin.com/in/kirkcochranjr/"
 ```
 
+Protected dashboard credentials should come from GCP Secret Manager for production:
+
+```bash
+gcloud secrets create vm-dashboard-auth-username \
+  --replication-policy="automatic"
+
+printf '%s' 'dashboard' | \
+  gcloud secrets versions add vm-dashboard-auth-username --data-file=-
+
+gcloud secrets create vm-dashboard-auth-password \
+  --replication-policy="automatic"
+
+printf '%s' 'use-a-long-unique-password' | \
+  gcloud secrets versions add vm-dashboard-auth-password --data-file=-
+```
+
+Terraform passes the secret IDs to the VM as metadata. The bootstrap fetches the secret values at runtime and writes only a hashed password to Nginx.
+
 > [!NOTE]
 > Do not edit below the configuration block unless you know what you are doing.
 
@@ -159,6 +177,7 @@ BILLING_ACCOUNT_ID = "01BB2F-8195CD-645BC0"
 
 - The API caches dashboard data for 10 seconds, update status for 5 minutes, and FinOps queries for up to 1 hour.
 - `/api/logs` reads paginated `journalctl` rows and supports `limit`, `offset`, and optional `minutes`. When `minutes` is set, it queries journalctl with `--since`.
+- Public browser access is limited to summary endpoints until a user signs in. Nginx protects `/api/dashboard`, `/api/finops`, `/api/logs`, and `/metadata` with Basic Auth.
 - Heuristic DevSecOps cost data is written to `/var/tmp/vm-cost.json` (persists across reboots).
 - Quotes are read from `/var/www/vm-dashboard/data/quotes.json` (updated by cron).
 - Real FinOps cost data is read from the `billing_export` BigQuery dataset.
@@ -214,6 +233,9 @@ curl -s "http://127.0.0.1:8080/api/logs?limit=5&offset=0&minutes=10" | jq '.logs
 > [!NOTE]
 > Expected result: a log object with `time`, `level`, `source`, and `message`.
 > Log timestamps are emitted as ISO 8601 UTC strings, such as `2026-04-27T14:58:42Z`. The React UI formats them for local display.
+
+> [!NOTE]
+> These local API tests run directly against `127.0.0.1:8080` and bypass Nginx. Public browser traffic goes through Nginx and requires the dashboard username/password for protected endpoints.
 
 ### Verify Copy and Snapshot Controls
 

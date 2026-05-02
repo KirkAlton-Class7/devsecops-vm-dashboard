@@ -90,7 +90,9 @@ export default function StatCard({
   zone,
   projectId,
   billingAccountId,
-  monthlyBudget = 0
+  monthlyBudget = 0,
+  requiresAuth = false,
+  onSignIn
 }) {
   const Icon = icons[label] || icons.default;
   let displayValue = value;
@@ -205,6 +207,7 @@ export default function StatCard({
   };
 
   const handleClick = () => {
+    if (requiresAuth) return;
     const url = getClickUrl();
     if (url) window.open(url, "_blank");
   };
@@ -287,6 +290,19 @@ export default function StatCard({
               <span className="text-xs text-cyan-400 animate-pulse">● Active</span>
             </div>
           </div>
+        )}
+
+        {requiresAuth && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onSignIn?.();
+            }}
+            className="mt-4 inline-flex items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/20"
+          >
+            Sign in
+          </button>
         )}
       </div>
       

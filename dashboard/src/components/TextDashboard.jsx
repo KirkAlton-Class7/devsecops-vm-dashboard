@@ -222,6 +222,7 @@ export default function TextDashboard({
   onOpenFinOps,
   onCopyFailure,
   onCopySuccess,
+  authHeaders = {},
   mockDataDiagnostics = [],
 }) {
   const [copyFlash, setCopyFlash] = useState(false);
@@ -344,6 +345,7 @@ export default function TextDashboard({
         headers: {
           "Cache-Control": "no-cache",
           Pragma: "no-cache",
+          ...authHeaders,
         },
       });
 
@@ -366,7 +368,7 @@ export default function TextDashboard({
     } finally {
       setLiveLogLoading(false);
     }
-  }, [dashboard.logs, liveLogMinutes]);
+  }, [authHeaders, dashboard.logs, liveLogMinutes]);
 
   const openLiveLogs = useCallback(() => {
     setLogFilters({});

@@ -18,6 +18,10 @@ DASHBOARD_APP_NAME="GCP Deployment"
 DASHBOARD_TAGLINE="Infrastructure health and activity"
 DASHBOARD_USER="Kirk Alton"
 DASHBOARD_NAME="DevSecOps Dashboard"
+DASHBOARD_AUTH_USER="${DASHBOARD_AUTH_USER:-dashboard}"
+DASHBOARD_AUTH_PASSWORD="${DASHBOARD_AUTH_PASSWORD:-}"
+DASHBOARD_AUTH_USER_SECRET_ID="${DASHBOARD_AUTH_USER_SECRET_ID:-}"
+DASHBOARD_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_AUTH_PASSWORD_SECRET_ID:-}"
 
 # ---------------------------------
 # Env Variables for React build
@@ -36,11 +40,32 @@ Update these values as needed:
 | `DASHBOARD_TAGLINE`  | Subtitle beneath the app name              | `Live infrastructure insights` |
 | `DASHBOARD_USER`     | Shown in the sidebar (user attribution)    | `Jane Doe`                     |
 | `DASHBOARD_NAME`     | Title of the dashboard (sidebar heading)   | `Ops Center`                   |
+| `DASHBOARD_AUTH_USER` | Fallback username for protected dashboard data | `dashboard`                    |
+| `DASHBOARD_AUTH_PASSWORD` | Fallback password for protected dashboard data | Usually unset                  |
+| `DASHBOARD_AUTH_USER_SECRET_ID` | Optional Secret Manager secret ID/resource path for the username | `vm-dashboard-auth-username` |
+| `DASHBOARD_AUTH_PASSWORD_SECRET_ID` | Secret Manager secret ID/resource path for the password | `vm-dashboard-auth-password` |
 | `VITE_GITHUB_URL`    | GitHub link compiled into the React build  | `https://github.com/example`   |
 | `VITE_LINKEDIN_URL`  | LinkedIn link compiled into the React build | `https://www.linkedin.com/in/example/` |
 
 > [!TIP]
 > `DASHBOARD_*` values are exported for the API service and returned through `/api/dashboard`. `VITE_*` values are read by Vite during `npm run build`, so they require a frontend rebuild.
+
+> [!IMPORTANT]
+> For production, store the dashboard password in **GCP Secret Manager** and pass the secret ID through Terraform metadata. Nginx stores only a hashed password in `/etc/nginx/.vm-dashboard.htpasswd`; the frontend only sends credentials entered by the user and does not embed the password in JavaScript.
+
+### Secret Manager Credentials
+
+The bootstrap resolves Basic Auth credentials in this order:
+
+1. Secret Manager secret IDs from environment variables.
+2. Secret Manager secret IDs from VM metadata:
+   - `dashboard-auth-user-secret`
+   - `dashboard-auth-password-secret`
+3. Direct environment variables:
+   - `DASHBOARD_AUTH_USER`
+   - `DASHBOARD_AUTH_PASSWORD`
+
+`DASHBOARD_AUTH_PASSWORD` must resolve to a non-empty value. The script fails closed if no password is provided.
 
 ---
 

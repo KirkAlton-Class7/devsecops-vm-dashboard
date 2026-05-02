@@ -22,6 +22,8 @@ DevSecOps and FinOps modes share the same header copy controls:
 
 Both buttons use the same clipboard handling as widget-level copy actions. If the browser blocks clipboard access, the dashboard opens the Manual Copy modal with the generated snapshot or JSON payload selected. See [API Configuration](./API_CONFIG.md#clipboard-json-payload-structure) for the JSON payload structure.
 
+If protected API access is not unlocked, dashboard snapshot and JSON payload actions open the sign-in modal instead of copying protected data.
+
 ---
 
 ### Summary Cards
@@ -32,6 +34,8 @@ Both buttons use the same clipboard handling as widget-level copy actions. If th
   * **Memory Usage** – real-time memory consumption
   * **Disk Usage** – root partition utilization
   * **Estimated Cost** – heuristic, cloud-specific running cost (approximate)
+
+Before sign-in, these cards remain visible through the public summary endpoint and include a Sign in button for unlocking protected dashboard details.
 
 ![DevSecOps summary cards showing CPU memory disk and estimated cost status](assets/06_devsecops_summary_cards.png)
 
@@ -286,6 +290,8 @@ To enable, press `F` or click the **FinOps** button.
 
 * **CUD Coverage** – placeholder (coming soon)
 
+Before sign-in, FinOps summary cards remain visible through the public summary endpoint and include a Sign in button for unlocking protected cost, utilization, recommendation, and idle-resource details.
+
 * **FinOps summary cards are clickable:**
 
   * **Total Cost / Forecast** → GCP Billing overview
@@ -386,24 +392,28 @@ Features:
 Quick reference for built-in endpoints:
 
 * `/healthz` – plain text health check
-* `/metadata` – VM metadata + health JSON
-* `/api/dashboard` – DevSecOps data
-* `/api/finops` – FinOps data
+* `/metadata` – protected VM metadata + health JSON
+* `/api/dashboard/summary` – public DevSecOps summary cards
+* `/api/dashboard` – protected DevSecOps data
+* `/api/finops/summary` – public FinOps summary cards
+* `/api/finops` – protected FinOps data
 * `/api/config` – API config JSON
-* `/api/logs` – paginated journal logs
+* `/api/logs` – protected paginated journal logs
 
-The frontend Monitoring Endpoints card currently links to `/healthz` and `/metadata`.
+The frontend Monitoring Endpoints card is part of the protected dashboard detail view.
 
 ## Endpoints (Quick Reference)
 
 | Endpoint         | Method | Description                                      |
 | ---------------- | ------ | ------------------------------------------------ |
 | `/healthz`       | GET    | Returns `ok` for Nginx/service health checks     |
-| `/metadata`      | GET    | Returns GCP VM identity, network, location, and health data |
-| `/api/dashboard` | GET    | Returns DevSecOps dashboard data                 |
-| `/api/finops`    | GET    | Returns FinOps cost, budget, and recommendation data |
+| `/metadata`      | GET    | Returns protected GCP VM identity, network, location, and health data |
+| `/api/dashboard/summary` | GET | Returns public DevSecOps summary cards |
+| `/api/dashboard` | GET    | Returns protected DevSecOps dashboard data       |
+| `/api/finops/summary` | GET | Returns public FinOps summary cards |
+| `/api/finops`    | GET    | Returns protected FinOps cost, budget, and recommendation data |
 | `/api/config`    | GET    | Returns API runtime configuration                |
-| `/api/logs`      | GET    | Returns paginated `journalctl` log rows          |
+| `/api/logs`      | GET    | Returns protected paginated `journalctl` log rows |
 
 ---
 

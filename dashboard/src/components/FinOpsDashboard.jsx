@@ -18,6 +18,7 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import StatCard from "./StatCard";
 import Card from "./Card";
+import LockedPanel from "./LockedPanel";
 import ResourceTable from "./ResourceTable";
 import CostTrendChart from "./CostTrendChart";
 import BudgetCard from "./BudgetCard";
@@ -468,6 +469,9 @@ export default function FinOpsDashboard({
   onCopySuccess,
   onCopySnapshot,
   onCopyJsonSnapshot,
+  authHeaders = {},
+  isAuthenticated = false,
+  onAuthRequired,
 }) {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -520,20 +524,36 @@ export default function FinOpsDashboard({
   useEffect(() => {
     async function fetchFinOpsData() {
       try {
-        const res = await fetch("/api/finops");
+        const endpoint = isAuthenticated ? "/api/finops" : "/api/finops/summary";
+        const res = await fetch(endpoint, {
+          cache: "no-store",
+          headers: isAuthenticated ? authHeaders : {},
+        });
 
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
 
         const json = await res.json();
-        setData(json);
-        hasLiveFinOpsRef.current = true;
-        setCpuFilters({});
-        setRightsizingFilters({});
-        setCpuSearch("");
-        setRightsizingSearch("");
-        setFinOpsRefreshKey((current) => current + 1);
+        setData({
+          summaryCards: json.summaryCards || [],
+          identity: json.identity || {},
+          topServices: json.topServices || [],
+          costTrend: json.costTrend || [],
+          budgets: json.budgets || [],
+          utilization: json.utilization || [],
+          recommendations: json.recommendations || [],
+          idleResources: json.idleResources || [],
+          quote: json.quote,
+        });
+        if (isAuthenticated) {
+          hasLiveFinOpsRef.current = true;
+          setCpuFilters({});
+          setRightsizingFilters({});
+          setCpuSearch("");
+          setRightsizingSearch("");
+          setFinOpsRefreshKey((current) => current + 1);
+        }
         setFinOpsDiagnostics([]);
       } catch (err) {
         console.error("FinOps API error, using mock data:", err);
@@ -556,7 +576,7 @@ export default function FinOpsDashboard({
     const interval = setInterval(fetchFinOpsData, 600000);  // 10 minutes
 
     return () => clearInterval(interval);
-  }, []);
+  }, [authHeaders, isAuthenticated]);
 
   if (isLoading) {
     return (
@@ -755,228 +775,262 @@ export default function FinOpsDashboard({
                 projectId={data.identity?.project || ""}
                 billingAccountId={data.identity?.billingAccountId || ""}
                 monthlyBudget={monthlyBudget}
+                requiresAuth={!isAuthenticated}
+                onSignIn={() => onAuthRequired?.("Sign in to view protected FinOps data.")}
               />
             ))}
           </section>
 
-          <section
-            id="cost-trends"
-            className="grid grid-cols-1 gap-6 lg:grid-cols-2"
-          >
-            <CostTrendChart
-              title={
-                <WidgetTitle icon={BarChart3} tone="cyan">
-                  Daily Cost Trend
-                </WidgetTitle>
-              }
-              dailyBudget={dailyBudget}
-              data={data.costTrend || []}        // <-- passes the trend data from API/mock
-              onCopyFailure={onCopyFailure}
-              onCopySuccess={onCopySuccess}
-            />
+          {isAuthenticated ? (
+            <>
+              <section
+                id="cost-trends"
+                className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+              >
+                <CostTrendChart
+                  title={
+                    <WidgetTitle icon={BarChart3} tone="cyan">
+                      Daily Cost Trend
+                    </WidgetTitle>
+                  }
+                  dailyBudget={dailyBudget}
+                  data={data.costTrend || []}
+                  onCopyFailure={onCopyFailure}
+                  onCopySuccess={onCopySuccess}
+                />
 
-            <CostBreakdownChart
-              data={top10Services}
-              title={
-                <WidgetTitle icon={ChartBarDecreasing} tone="violet">
-                  Top Services by Cost
-                </WidgetTitle>
-              }
-              dataKey="value"
-              nameKey="name"
-              onCopyFailure={onCopyFailure}
-              onCopySuccess={onCopySuccess}
-            />
-          </section>
+                <CostBreakdownChart
+                  data={top10Services}
+                  title={
+                    <WidgetTitle icon={ChartBarDecreasing} tone="violet">
+                      Top Services by Cost
+                    </WidgetTitle>
+                  }
+                  dataKey="value"
+                  nameKey="name"
+                  onCopyFailure={onCopyFailure}
+                  onCopySuccess={onCopySuccess}
+                />
+              </section>
 
-          <section
-            id="ambience"
-            className="grid grid-cols-1 gap-6 md:grid-cols-2"
-          >
-            <div className="space-y-6">
-              <QuoteCard
-                quote={featuredQuote}
-                onCopyFailure={onCopyFailure}
-                onCopySuccess={onCopySuccess}
-              />
-              <NetworkParticles />
-            </div>
-
-            <ImageGallery onCopyFailure={onCopyFailure} onCopySuccess={onCopySuccess} />
-          </section>
-
-          {data.budgets && data.budgets.length > 0 && (
-            <section id="budgets">
-              <div className="relative overflow-hidden">
-                <motion.div
-                  className="flex"
-                  animate={{ x: `-${budgetPage * 100}%` }}
-                  transition={{ type: "spring", stiffness: 400, damping: 60, mass: 2.5 }}
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.2}
-                  onDragEnd={(e, { offset, velocity }) => {
-                    const pageCount = Math.ceil(data.budgets.length / BUDGETS_PER_PAGE);
-                    if (Math.abs(offset.x) > 100 || Math.abs(velocity.x) > 500) {
-                      if (offset.x > 0 && budgetPage > 0) setBudgetPage(budgetPage - 1);
-                      else if (offset.x < 0 && budgetPage < pageCount - 1) setBudgetPage(budgetPage + 1);
-                    }
-                  }}
-                >
-                  {Array.from({ length: Math.ceil(data.budgets.length / BUDGETS_PER_PAGE) }).map((_, pageIdx) => (
-                    <div
-                      key={pageIdx}
-                      className="flex-shrink-0 w-full grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
-                      style={{ width: "100%" }}
-                    >
-                      {data.budgets
-                        .slice(pageIdx * BUDGETS_PER_PAGE, (pageIdx + 1) * BUDGETS_PER_PAGE)
-                        .map((budget, idx) => (
-                          <BudgetCard
-                            key={`${budget.name}-${idx}`}
-                            {...budget}
-                            onCopyFailure={onCopyFailure}
-                            onCopySuccess={onCopySuccess}
-                          />
-                        ))}
-                    </div>
-                  ))}
-                </motion.div>
-              </div>
-
-              {/* Pagination buttons */}
-              {data.budgets.length > BUDGETS_PER_PAGE && (
-                <div className="flex justify-center gap-4 mt-6">
-                  <button
-                    onClick={() => setBudgetPage(p => Math.max(0, p - 1))}
-                    disabled={budgetPage === 0}
-                    className="px-3 py-1 text-sm rounded border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-cyan-500/50 transition-colors"
-                  >
-                    ← Previous
-                  </button>
-                  <span className="text-sm text-slate-400">
-                    Page {budgetPage + 1} of {Math.ceil(data.budgets.length / BUDGETS_PER_PAGE)}
-                  </span>
-                  <button
-                    onClick={() => setBudgetPage(p => 
-                      p + 1 < Math.ceil(data.budgets.length / BUDGETS_PER_PAGE) ? p + 1 : p
-                    )}
-                    disabled={budgetPage >= Math.ceil(data.budgets.length / BUDGETS_PER_PAGE) - 1}
-                    className="px-3 py-1 text-sm rounded border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-cyan-500/50 transition-colors"
-                  >
-                    Next →
-                  </button>
+              <section
+                id="ambience"
+                className="grid grid-cols-1 gap-6 md:grid-cols-2"
+              >
+                <div className="space-y-6">
+                  <QuoteCard
+                    quote={featuredQuote}
+                    onCopyFailure={onCopyFailure}
+                    onCopySuccess={onCopySuccess}
+                  />
+                  <NetworkParticles />
                 </div>
+
+                <ImageGallery onCopyFailure={onCopyFailure} onCopySuccess={onCopySuccess} />
+              </section>
+
+              {data.budgets && data.budgets.length > 0 && (
+                <section id="budgets">
+                  <div className="relative overflow-hidden">
+                    <motion.div
+                      className="flex"
+                      animate={{ x: `-${budgetPage * 100}%` }}
+                      transition={{ type: "spring", stiffness: 400, damping: 60, mass: 2.5 }}
+                      drag="x"
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.2}
+                      onDragEnd={(e, { offset, velocity }) => {
+                        const pageCount = Math.ceil(data.budgets.length / BUDGETS_PER_PAGE);
+                        if (Math.abs(offset.x) > 100 || Math.abs(velocity.x) > 500) {
+                          if (offset.x > 0 && budgetPage > 0) setBudgetPage(budgetPage - 1);
+                          else if (offset.x < 0 && budgetPage < pageCount - 1) setBudgetPage(budgetPage + 1);
+                        }
+                      }}
+                    >
+                      {Array.from({ length: Math.ceil(data.budgets.length / BUDGETS_PER_PAGE) }).map((_, pageIdx) => (
+                        <div
+                          key={pageIdx}
+                          className="flex-shrink-0 w-full grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+                          style={{ width: "100%" }}
+                        >
+                          {data.budgets
+                            .slice(pageIdx * BUDGETS_PER_PAGE, (pageIdx + 1) * BUDGETS_PER_PAGE)
+                            .map((budget, idx) => (
+                              <BudgetCard
+                                key={`${budget.name}-${idx}`}
+                                {...budget}
+                                onCopyFailure={onCopyFailure}
+                                onCopySuccess={onCopySuccess}
+                              />
+                            ))}
+                        </div>
+                      ))}
+                    </motion.div>
+                  </div>
+
+                  {/* Pagination buttons */}
+                  {data.budgets.length > BUDGETS_PER_PAGE && (
+                    <div className="flex justify-center gap-4 mt-6">
+                      <button
+                        onClick={() => setBudgetPage(p => Math.max(0, p - 1))}
+                        disabled={budgetPage === 0}
+                        className="px-3 py-1 text-sm rounded border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-cyan-500/50 transition-colors"
+                      >
+                        ← Previous
+                      </button>
+                      <span className="text-sm text-slate-400">
+                        Page {budgetPage + 1} of {Math.ceil(data.budgets.length / BUDGETS_PER_PAGE)}
+                      </span>
+                      <button
+                        onClick={() => setBudgetPage(p =>
+                          p + 1 < Math.ceil(data.budgets.length / BUDGETS_PER_PAGE) ? p + 1 : p
+                        )}
+                        disabled={budgetPage >= Math.ceil(data.budgets.length / BUDGETS_PER_PAGE) - 1}
+                        className="px-3 py-1 text-sm rounded border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-cyan-500/50 transition-colors"
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  )}
+                </section>
               )}
+
+              {/* CPU Utilization – always visible, with placeholder when empty */}
+              <section id="utilization" className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <Card
+                  title={<WidgetTitle icon={Gauge} tone="cyan">CPU Utilization</WidgetTitle>}
+                  subtitle="Top VMs • Last hour, P95"
+                  snapshotText={buildCpuUtilizationSnapshot(sortedUtilizationRows)}
+                  snapshotLabel="CPU Utilization snapshot"
+                  onCopyFailure={onCopyFailure}
+                  onCopySuccess={onCopySuccess}
+                >
+                  {data.utilization && data.utilization.length > 0 ? (
+                    <>
+                      <ListControls
+                        shownCount={Math.min(FINOPS_PREVIEW_LIMIT, sortedUtilizationRows.length)}
+                        totalCount={sortedUtilizationRows.length}
+                        label="VMs"
+                        sortDirection={cpuSortDirection}
+                        sortTitle={cpuSortTitle}
+                        onSort={() => setCpuSortDirection(toggleSort)}
+                        sortFieldLabel={cpuSortFieldLabel}
+                        onSortField={() => setCpuSortField(toggleCpuSortField)}
+                        onFilter={() => setShowCpuFilters(true)}
+                        filterActive={hasActiveFilters(cpuFilters)}
+                        onViewAll={() => setShowAllCpu(true)}
+                      />
+                      {utilizationRows.length ? (
+                        <CpuList
+                          rows={utilizationRows}
+                          onCopyFailure={onCopyFailure}
+                          onCopySuccess={onCopySuccess}
+                        />
+                      ) : (
+                        <div className="py-6 text-center text-sm text-slate-400">
+                          No VMs match the active filters.
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <EmptyState
+                      icon={Gauge}
+                      title="No CPU utilization data available."
+                      subtitle="CPU utilization appears within 5-10 minutes after a VM starts."
+                    />
+                  )}
+                </Card>
+
+                <Card
+                  title={<WidgetTitle icon={Sparkles} tone="emerald">Rightsizing Recommendations</WidgetTitle>}
+                  subtitle="Estimated monthly savings"
+                  snapshotText={buildRightsizingSnapshot(sortedRecommendationRows)}
+                  snapshotLabel="Rightsizing Recommendations snapshot"
+                  onCopyFailure={onCopyFailure}
+                  onCopySuccess={onCopySuccess}
+                >
+                  {data.recommendations && data.recommendations.length > 0 ? (
+                    <>
+                      <ListControls
+                        shownCount={Math.min(FINOPS_PREVIEW_LIMIT, sortedRecommendationRows.length)}
+                        totalCount={sortedRecommendationRows.length}
+                        label="recommendations"
+                        sortDirection={rightsizingSortDirection}
+                        sortTitle={rightsizingSortTitle}
+                        onSort={() => setRightsizingSortDirection(toggleSort)}
+                        sortFieldLabel={rightsizingSortFieldLabel}
+                        onSortField={() => setRightsizingSortField(toggleRightsizingSortField)}
+                        onFilter={() => setShowRightsizingFilters(true)}
+                        filterActive={hasActiveFilters(rightsizingFilters)}
+                        onViewAll={() => setShowAllRightsizing(true)}
+                      />
+                      {recommendationRows.length ? (
+                        <RecommendationList
+                          rows={recommendationRows}
+                          onCopyFailure={onCopyFailure}
+                          onCopySuccess={onCopySuccess}
+                        />
+                      ) : (
+                        <div className="py-6 text-center text-sm text-slate-400">
+                          No recommendations match the active filters.
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <EmptyState
+                      icon={Shrink}
+                      title="No recommendations available."
+                      subtitle="GCP Recommender API may take up to 48 hours to generate insights."
+                    />
+                  )}
+                </Card>
+              </section>
+
+              <section id="idle-resources">
+                <ResourceTable
+                  rows={idleResourceRows}
+                  title={<WidgetTitle icon={Server} tone="amber">Idle Resources</WidgetTitle>}
+                  subtitle="Resources with low usage or cleanup opportunities"
+                  isLogs={false}
+                  limit={FINOPS_PREVIEW_LIMIT}
+                  onRowClick="https://console.cloud.google.com/home/dashboard"
+                  filterResetKey={finOpsRefreshKey}
+                  onCopyFailure={onCopyFailure}
+                  onCopySuccess={onCopySuccess}
+                  snapshotText={buildIdleResourcesSnapshot(idleResourceRows)}
+                  snapshotLabel="Idle Resources snapshot"
+                />
+              </section>
+            </>
+          ) : (
+            <section id="finops-protected" className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <LockedPanel
+                title="Cost Details"
+                message="Cost details not enabled. Sign in to view."
+                onSignIn={() => onAuthRequired?.("Sign in to view FinOps cost details.")}
+              />
+              <LockedPanel
+                title="Budgets"
+                message="Budgets not enabled. Sign in to view."
+                onSignIn={() => onAuthRequired?.("Sign in to view budgets.")}
+              />
+              <LockedPanel
+                title="VM Utilization"
+                message="VM utilization not enabled. Sign in to view."
+                onSignIn={() => onAuthRequired?.("Sign in to view VM utilization.")}
+              />
+              <LockedPanel
+                title="Rightsizing Recommendations"
+                message="Rightsizing recommendations not enabled. Sign in to view."
+                onSignIn={() => onAuthRequired?.("Sign in to view rightsizing recommendations.")}
+              />
+              <LockedPanel
+                title="Idle Resources"
+                message="Idle resources not enabled. Sign in to view."
+                onSignIn={() => onAuthRequired?.("Sign in to view idle resources.")}
+              />
             </section>
           )}
-
-          {/* CPU Utilization – always visible, with placeholder when empty */}
-          <section id="utilization" className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card
-              title={<WidgetTitle icon={Gauge} tone="cyan">CPU Utilization</WidgetTitle>}
-              subtitle="Top VMs • Last hour, P95"
-              snapshotText={buildCpuUtilizationSnapshot(sortedUtilizationRows)}
-              snapshotLabel="CPU Utilization snapshot"
-              onCopyFailure={onCopyFailure}
-              onCopySuccess={onCopySuccess}
-            >
-              {data.utilization && data.utilization.length > 0 ? (
-                <>
-                  <ListControls
-                    shownCount={Math.min(FINOPS_PREVIEW_LIMIT, sortedUtilizationRows.length)}
-                    totalCount={sortedUtilizationRows.length}
-                    label="VMs"
-                    sortDirection={cpuSortDirection}
-                    sortTitle={cpuSortTitle}
-                    onSort={() => setCpuSortDirection(toggleSort)}
-                    sortFieldLabel={cpuSortFieldLabel}
-                    onSortField={() => setCpuSortField(toggleCpuSortField)}
-                    onFilter={() => setShowCpuFilters(true)}
-                    filterActive={hasActiveFilters(cpuFilters)}
-                    onViewAll={() => setShowAllCpu(true)}
-                  />
-                  {utilizationRows.length ? (
-                    <CpuList
-                      rows={utilizationRows}
-                      onCopyFailure={onCopyFailure}
-                      onCopySuccess={onCopySuccess}
-                    />
-                  ) : (
-                    <div className="py-6 text-center text-sm text-slate-400">
-                      No VMs match the active filters.
-                    </div>
-                  )}
-                </>
-              ) : (
-                <EmptyState
-                  icon={Gauge}
-                  title="No CPU utilization data available."
-                  subtitle="CPU utilization appears within 5-10 minutes after a VM starts."
-                />
-              )}
-            </Card>
-
-            <Card
-              title={<WidgetTitle icon={Sparkles} tone="emerald">Rightsizing Recommendations</WidgetTitle>}
-              subtitle="Estimated monthly savings"
-              snapshotText={buildRightsizingSnapshot(sortedRecommendationRows)}
-              snapshotLabel="Rightsizing Recommendations snapshot"
-              onCopyFailure={onCopyFailure}
-              onCopySuccess={onCopySuccess}
-            >
-              {data.recommendations && data.recommendations.length > 0 ? (
-                <>
-                  <ListControls
-                    shownCount={Math.min(FINOPS_PREVIEW_LIMIT, sortedRecommendationRows.length)}
-                    totalCount={sortedRecommendationRows.length}
-                    label="recommendations"
-                    sortDirection={rightsizingSortDirection}
-                    sortTitle={rightsizingSortTitle}
-                    onSort={() => setRightsizingSortDirection(toggleSort)}
-                    sortFieldLabel={rightsizingSortFieldLabel}
-                    onSortField={() => setRightsizingSortField(toggleRightsizingSortField)}
-                    onFilter={() => setShowRightsizingFilters(true)}
-                    filterActive={hasActiveFilters(rightsizingFilters)}
-                    onViewAll={() => setShowAllRightsizing(true)}
-                  />
-                  {recommendationRows.length ? (
-                    <RecommendationList
-                      rows={recommendationRows}
-                      onCopyFailure={onCopyFailure}
-                      onCopySuccess={onCopySuccess}
-                    />
-                  ) : (
-                    <div className="py-6 text-center text-sm text-slate-400">
-                      No recommendations match the active filters.
-                    </div>
-                  )}
-                </>
-              ) : (
-                <EmptyState
-                  icon={Shrink}
-                  title="No recommendations available."
-                  subtitle="GCP Recommender API may take up to 48 hours to generate insights."
-                />
-              )}
-            </Card>
-          </section>
-
-          <section id="idle-resources">
-            <ResourceTable
-              rows={idleResourceRows}
-              title={<WidgetTitle icon={Server} tone="amber">Idle Resources</WidgetTitle>}
-              subtitle="Resources with low usage or cleanup opportunities"
-              isLogs={false}
-              limit={FINOPS_PREVIEW_LIMIT}
-              onRowClick="https://console.cloud.google.com/home/dashboard"
-              filterResetKey={finOpsRefreshKey}
-              onCopyFailure={onCopyFailure}
-              onCopySuccess={onCopySuccess}
-              snapshotText={buildIdleResourcesSnapshot(idleResourceRows)}
-              snapshotLabel="Idle Resources snapshot"
-            />
-          </section>
         </main>
       </div>
 

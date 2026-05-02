@@ -302,7 +302,7 @@ const getLiveDashboardLogs = (rows, minutes, direction = "desc") => {
   return orderLogs(filteredLogs, direction);
 };
 
-const fetchLogsJson = async ({ limit, offset = 0, minutes } = {}) => {
+const fetchLogsJson = async ({ limit, offset = 0, minutes, authHeaders = {} } = {}) => {
   const params = new URLSearchParams({
     limit: String(limit),
     offset: String(offset),
@@ -316,6 +316,7 @@ const fetchLogsJson = async ({ limit, offset = 0, minutes } = {}) => {
     headers: {
       "Cache-Control": "no-cache",
       Pragma: "no-cache",
+      ...authHeaders,
     },
   });
 
@@ -335,6 +336,7 @@ export default function ResourceTable({
   onCopySuccess,
   snapshotText,
   snapshotLabel,
+  authHeaders = {},
 }) {
   const [showAllLogsModal, setShowAllLogsModal] = useState(false);
   const [showAllResourcesModal, setShowAllResourcesModal] = useState(false);
@@ -496,6 +498,7 @@ export default function ResourceTable({
         limit: PAGE_SIZE,
         offset: 0,
         minutes,
+        authHeaders,
       });
 
       const fetchedLogs = data.logs?.length
@@ -533,7 +536,7 @@ export default function ResourceTable({
     setLoadingOlder(true);
 
     try {
-      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: olderOffset, minutes });
+      const data = await fetchLogsJson({ limit: PAGE_SIZE, offset: olderOffset, minutes, authHeaders });
       const newLogs = data.logs?.length
         ? data.logs
         : getPaginatedMockLogs(PAGE_SIZE, olderOffset, minutes).logs;

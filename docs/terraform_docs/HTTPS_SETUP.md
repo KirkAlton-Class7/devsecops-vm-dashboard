@@ -267,6 +267,49 @@ This is acceptable because the backend API traffic stays inside the VM.
 
 ---
 
+## Protected API Access and Rate Limiting
+
+The bootstrap configures Nginx Basic Auth for protected dashboard data:
+
+| Public before sign-in | Protected after sign-in |
+| --- | --- |
+| `/healthz` | `/metadata` |
+| `/api/config` | `/api/dashboard` |
+| `/api/dashboard/summary` | `/api/finops` |
+| `/api/finops/summary` | `/api/logs` |
+
+The public summary endpoints allow the top dashboard cards to render before sign-in. The full DevSecOps dashboard, FinOps details, logs, and VM metadata require the dashboard username/password.
+
+For production Terraform deployments, the password should live in GCP Secret Manager. Terraform passes only the Secret Manager secret ID to VM metadata:
+
+| Metadata key | Purpose |
+| --- | --- |
+| `dashboard-auth-user-secret` | Optional Secret Manager secret ID/resource path for the username |
+| `dashboard-auth-password-secret` | Secret Manager secret ID/resource path for the password |
+
+The VM service account needs `roles/secretmanager.secretAccessor`. The bootstrap fetches the secret value at runtime and writes only the hashed credential file for Nginx.
+
+By default, Terraform expects the password secret ID to be `vm-dashboard-auth-password` and uses the fallback username `dashboard`. To store the username in Secret Manager too, set:
+
+```bash
+terraform apply \
+  -var="dashboard_auth_user_secret_id=vm-dashboard-auth-username" \
+  -var="dashboard_auth_password_secret_id=vm-dashboard-auth-password"
+```
+
+Nginx also applies request rate limits:
+
+| Zone | Purpose |
+| --- | --- |
+| `vm_dashboard_public` | Higher limit for public summary and config endpoints |
+| `vm_dashboard_protected` | Lower limit for authenticated detail endpoints |
+
+Rate-limited requests return HTTP `429 Too Many Requests`.
+
+The frontend sign-in modal sends the user-entered credentials as a Basic Auth header. Credentials are not embedded in the React build or Terraform state.
+
+---
+
 ## HTTP-Only Behavior
 
 If the VM is deployed without Route 53, hostname metadata, or Certbot, the dashboard still works over HTTP at `http://<VM_EXTERNAL_IP>`.

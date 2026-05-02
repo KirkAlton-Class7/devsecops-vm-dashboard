@@ -96,6 +96,22 @@ resource "google_project_iam_member" "vm_dashboard_recommender_viewer" {
 }
 
 # ----------------------------------------------------------------
+# IAM ROLE - SECRET MANAGER SECRET ACCESSOR
+# ----------------------------------------------------------------
+# Allows the VM bootstrap to read the dashboard Basic Auth credentials
+# from Secret Manager at runtime.
+#
+# Secret values are not stored in Terraform state.
+# ----------------------------------------------------------------
+
+resource "google_project_iam_member" "vm_dashboard_secret_accessor" {
+  project = "kirk-devsecops-sandbox" # Replace with your project
+  role    = "roles/secretmanager.secretAccessor"
+
+  member = "serviceAccount:${google_service_account.vm_dashboard.email}"
+}
+
+# ----------------------------------------------------------------
 # IAM ROLE - BILLING VIEWER
 # ----------------------------------------------------------------
 # Grants read-only access to the billing account.

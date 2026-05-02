@@ -3,13 +3,18 @@
 The API server (`scripts/dashboard_api.py`) provides live data for the dashboard via:
 
 * `/api/dashboard` – full dashboard payload (used by the frontend)
+* `/api/dashboard/summary` – public DevSecOps summary cards and metadata needed before sign-in
 * `/api/finops` – cost, budget, utilization, and recommendation payload
+* `/api/finops/summary` – public FinOps summary cards needed before sign-in
 * `/api/config` – static API settings
 * `/api/logs` – paginated `journalctl` logs with optional time-window filtering
 * `/metadata` – instance metadata + health object
 * `/healthz` – basic service health check
 
 It runs as a **systemd service** on the VM (port `8080`).
+
+> [!IMPORTANT]
+> Public traffic reaches the API through Nginx. Nginx protects `/api/dashboard`, `/api/finops`, `/api/logs`, and `/metadata` with Basic Auth and rate limiting. The summary endpoints remain public so the top dashboard cards can load before sign-in.
 
 ---
 
@@ -111,14 +116,16 @@ This section outlines how the values returned by the API are structured and wher
 The API exposes three main data outputs:
 
 * **`/api/dashboard`** – main dataset used by the frontend UI
+* **`/api/dashboard/summary`** – limited public DevSecOps dataset for top cards
 * **`/api/finops`** – FinOps dataset used by the FinOps UI
+* **`/api/finops/summary`** – limited public FinOps dataset for top cards
 * **`/metadata`** – structured instance and health information
 
 These outputs are constructed in two locations:
 
 ```text
-build_dashboard_data()        → /api/dashboard
-get_cached_finops_data()      → /api/finops
+build_dashboard_data()        → /api/dashboard and /api/dashboard/summary
+get_cached_finops_data()      → /api/finops and /api/finops/summary
 MonitoringHandler (/metadata) → /metadata
 ```
 

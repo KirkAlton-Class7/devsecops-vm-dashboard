@@ -26,6 +26,19 @@ variable "letsencrypt_email" {
   type        = string
 }
 
+variable "dashboard_auth_user_secret_id" {
+  description = "Optional Secret Manager secret ID or resource path containing the dashboard Basic Auth username. If null, the bootstrap uses the non-secret username default."
+  default     = null
+  type        = string
+  nullable    = true
+}
+
+variable "dashboard_auth_password_secret_id" {
+  description = "Secret Manager secret ID or resource path containing the dashboard Basic Auth password. The secret value is fetched by the VM at bootstrap time and is not stored in Terraform state."
+  default     = "vm-dashboard-auth-password"
+  type        = string
+}
+
 variable "create_route53_record" {
   description = "Whether Terraform should create the Route 53 A record for the dashboard hostname."
   default     = true

@@ -32,10 +32,16 @@ resource "google_compute_instance" "vm_dashboard" {
   # Use startup script file
   metadata_startup_script = file("${path.module}/scripts/gcp_startup.sh")
 
-  metadata = {
-    dashboard-hostname = local.dashboard_fqdn
-    letsencrypt-email  = var.letsencrypt_email
-  }
+  metadata = merge(
+    {
+      dashboard-hostname             = local.dashboard_fqdn
+      letsencrypt-email              = var.letsencrypt_email
+      dashboard-auth-password-secret = var.dashboard_auth_password_secret_id
+    },
+    var.dashboard_auth_user_secret_id == null ? {} : {
+      dashboard-auth-user-secret = var.dashboard_auth_user_secret_id
+    }
+  )
 
   # Configuration for template Files
   #   metadata_startup_script = templatefile("${path.module}/templates/gcp_startup.sh.tpl",

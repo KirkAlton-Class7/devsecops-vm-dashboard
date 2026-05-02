@@ -7,6 +7,10 @@ DASHBOARD_APP_NAME="GCP Deployment"
 DASHBOARD_TAGLINE="Infrastructure health and activity"
 DASHBOARD_USER="Kirk Alton"
 DASHBOARD_NAME="DevSecOps Dashboard"
+DASHBOARD_AUTH_USER="${DASHBOARD_AUTH_USER:-dashboard}"
+DASHBOARD_AUTH_PASSWORD="${DASHBOARD_AUTH_PASSWORD:-}"
+DASHBOARD_AUTH_USER_SECRET_ID="${DASHBOARD_AUTH_USER_SECRET_ID:-}"
+DASHBOARD_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_AUTH_PASSWORD_SECRET_ID:-}"
 
 # ---------------------------------
 # React build link configuration
@@ -82,6 +86,7 @@ retry apt-get install -y \
   jq \
   ca-certificates \
   git \
+  openssl \
   sudo \
   build-essential
 
@@ -96,6 +101,115 @@ if ! command -v gcloud >/dev/null 2>&1; then
     apt-get update -y
     apt-get install -y google-cloud-sdk
 fi
+
+# ---------------------------------
+# Resolve protected dashboard credentials
+# ---------------------------------
+metadata_attr() {
+  curl -fsS -H "Metadata-Flavor: Google" \
+    "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$1" \
+    2>/dev/null || true
+}
+
+metadata_project_id() {
+  curl -fsS -H "Metadata-Flavor: Google" \
+    "http://metadata.google.internal/computeMetadata/v1/project/project-id" \
+    2>/dev/null || true
+}
+
+metadata_access_token() {
+  curl -fsS -H "Metadata-Flavor: Google" \
+    "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token" \
+    2>/dev/null | jq -r '.access_token // empty'
+}
+
+secret_version_name() {
+  local secret_id="$1"
+  local project_id="$2"
+
+  case "$secret_id" in
+    projects/*/secrets/*/versions/*) printf '%s' "$secret_id" ;;
+    projects/*/secrets/*) printf '%s/versions/latest' "$secret_id" ;;
+    *) printf 'projects/%s/secrets/%s/versions/latest' "$project_id" "$secret_id" ;;
+  esac
+}
+
+read_secret_manager_value() {
+  local secret_id="$1"
+  local project_id="$2"
+  local token secret_name response encoded
+
+  token="$(metadata_access_token)"
+  if [ -z "$token" ]; then
+    log "ERROR: Could not retrieve VM service account access token for Secret Manager"
+    return 1
+  fi
+
+  secret_name="$(secret_version_name "$secret_id" "$project_id")"
+  if ! response="$(curl -fsS \
+    -H "Authorization: Bearer ${token}" \
+    -H "Accept: application/json" \
+    "https://secretmanager.googleapis.com/v1/${secret_name}:access")"; then
+    log "ERROR: Could not access Secret Manager secret ${secret_name}"
+    return 1
+  fi
+
+  encoded="$(printf '%s' "$response" | jq -r '.payload.data // empty')"
+  if [ -z "$encoded" ]; then
+    log "ERROR: Secret Manager response did not include payload data"
+    return 1
+  fi
+
+  printf '%s' "$encoded" | base64 -d
+}
+
+resolve_auth_credentials() {
+  local xtrace_was_on=0
+  local project_id metadata_user_secret metadata_password_secret
+
+  case "$-" in
+    *x*) xtrace_was_on=1; set +x ;;
+  esac
+
+  metadata_user_secret="$(metadata_attr dashboard-auth-user-secret)"
+  metadata_password_secret="$(metadata_attr dashboard-auth-password-secret)"
+  DASHBOARD_AUTH_USER_SECRET_ID="${DASHBOARD_AUTH_USER_SECRET_ID:-$metadata_user_secret}"
+  DASHBOARD_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_AUTH_PASSWORD_SECRET_ID:-$metadata_password_secret}"
+
+  if [ -n "$DASHBOARD_AUTH_USER_SECRET_ID" ] || [ -n "$DASHBOARD_AUTH_PASSWORD_SECRET_ID" ]; then
+    project_id="$(metadata_project_id)"
+    if [ -z "$project_id" ]; then
+      log "ERROR: Could not resolve GCP project ID from metadata for Secret Manager"
+      [ "$xtrace_was_on" -eq 1 ] && set -x
+      return 1
+    fi
+
+    if [ -n "$DASHBOARD_AUTH_USER_SECRET_ID" ]; then
+      if ! DASHBOARD_AUTH_USER="$(read_secret_manager_value "$DASHBOARD_AUTH_USER_SECRET_ID" "$project_id")"; then
+        [ "$xtrace_was_on" -eq 1 ] && set -x
+        return 1
+      fi
+    fi
+
+    if [ -n "$DASHBOARD_AUTH_PASSWORD_SECRET_ID" ]; then
+      if ! DASHBOARD_AUTH_PASSWORD="$(read_secret_manager_value "$DASHBOARD_AUTH_PASSWORD_SECRET_ID" "$project_id")"; then
+        [ "$xtrace_was_on" -eq 1 ] && set -x
+        return 1
+      fi
+    fi
+  fi
+
+  if [ -z "$DASHBOARD_AUTH_USER" ] || [ -z "$DASHBOARD_AUTH_PASSWORD" ]; then
+    log "ERROR: Dashboard Basic Auth username and password must be provided by Secret Manager or environment variables"
+    [ "$xtrace_was_on" -eq 1 ] && set -x
+    return 1
+  fi
+
+  log "Protected dashboard credentials resolved"
+  [ "$xtrace_was_on" -eq 1 ] && set -x
+}
+
+resolve_auth_credentials || exit 1
 
 # ---------------------------------
 # Install Node.js runtime
@@ -378,6 +492,25 @@ systemctl stop nginx || true
 rm -f /etc/nginx/sites-enabled/*
 rm -f /etc/nginx/sites-available/default
 
+AUTH_FILE="/etc/nginx/.${APP_NAME}.htpasswd"
+XTRACE_WAS_ON=0
+case "$-" in
+    *x*) XTRACE_WAS_ON=1; set +x ;;
+esac
+AUTH_HASH="$(openssl passwd -apr1 "${DASHBOARD_AUTH_PASSWORD}")"
+printf '%s:%s\n' "${DASHBOARD_AUTH_USER}" "${AUTH_HASH}" > "${AUTH_FILE}"
+if [ "$XTRACE_WAS_ON" -eq 1 ]; then
+    set -x
+fi
+chown root:www-data "${AUTH_FILE}" 2>/dev/null || chown root:root "${AUTH_FILE}"
+chmod 640 "${AUTH_FILE}"
+
+cat > /etc/nginx/conf.d/${APP_NAME}-rate-limit.conf <<'EOF'
+limit_req_zone $binary_remote_addr zone=vm_dashboard_public:10m rate=120r/m;
+limit_req_zone $binary_remote_addr zone=vm_dashboard_protected:10m rate=30r/m;
+limit_req_status 429;
+EOF
+
 cat > "${NGINX_SITE}" <<EOF
 server {
     listen 80 default_server;
@@ -391,13 +524,61 @@ server {
         add_header Content-Type text/plain;
     }
     location = /metadata {
+        auth_basic "VM Dashboard Protected Data";
+        auth_basic_user_file ${AUTH_FILE};
+        limit_req zone=vm_dashboard_protected burst=10 nodelay;
         proxy_pass http://127.0.0.1:8080/metadata;
         proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
-    location /api/ {
+    location = /api/dashboard/summary {
+        limit_req zone=vm_dashboard_public burst=30 nodelay;
+        proxy_pass http://127.0.0.1:8080/api/dashboard/summary;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+    location = /api/finops/summary {
+        limit_req zone=vm_dashboard_public burst=30 nodelay;
+        proxy_pass http://127.0.0.1:8080/api/finops/summary;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+    location = /api/dashboard {
+        auth_basic "VM Dashboard Protected Data";
+        auth_basic_user_file ${AUTH_FILE};
+        limit_req zone=vm_dashboard_protected burst=10 nodelay;
+        proxy_pass http://127.0.0.1:8080/api/dashboard;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+    location = /api/finops {
+        auth_basic "VM Dashboard Protected Data";
+        auth_basic_user_file ${AUTH_FILE};
+        limit_req zone=vm_dashboard_protected burst=10 nodelay;
+        proxy_pass http://127.0.0.1:8080/api/finops;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+    location /api/logs {
+        auth_basic "VM Dashboard Protected Data";
+        auth_basic_user_file ${AUTH_FILE};
+        limit_req zone=vm_dashboard_protected burst=10 nodelay;
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+    location /api/ {
+        limit_req zone=vm_dashboard_public burst=30 nodelay;
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
     location /data/ {
         alias ${DATA_DIR}/;

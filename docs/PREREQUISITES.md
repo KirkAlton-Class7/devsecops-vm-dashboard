@@ -77,7 +77,8 @@ gcloud services enable \
   recommender.googleapis.com \
   monitoring.googleapis.com \
   bigquery.googleapis.com \
-  logging.googleapis.com
+  logging.googleapis.com \
+  secretmanager.googleapis.com
 ```
 
 ![GCP APIs and Services page showing required dashboard APIs enabled](assets/25_gcp_apis_enabled.png)
@@ -160,10 +161,15 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/recommender.viewer"
+
+# Secret Manager Secret Accessor – dashboard Basic Auth credentials
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/secretmanager.secretAccessor"
 ```
 
 > [!NOTE]
-> Enables BigQuery cost queries, CPU utilization metrics, rightsizing recommendations, and idle resource recommendations.
+> Enables BigQuery cost queries, CPU utilization metrics, rightsizing recommendations, idle resource recommendations, and runtime access to dashboard Basic Auth credentials.
 
 ![GCP IAM permissions page showing vm-dashboard service account roles](assets/27_gcp_service_account_roles.png)
 

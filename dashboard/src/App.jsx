@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, X } from "lucide-react";
 import Header from "./components/Header";
+import AuthModal from "./components/AuthModal";
 import QuoteCard from "./components/QuoteCard";
 import ImageGallery from "./components/ImageGallery";
 import ResourceTable from "./components/ResourceTable";
 import SectionList from "./components/SectionList";
 import Sidebar from "./components/Sidebar";
 import StatCard from "./components/StatCard";
+import LockedPanel from "./components/LockedPanel";
 import IdentityCard from "./components/IdentityCard";
 import NetworkCard from "./components/NetworkCard";
 import LocationCard from "./components/LocationCard";
@@ -27,6 +29,9 @@ const getDashboardFallbackDiagnostics = () => [
     route: "/api/dashboard",
   },
 ];
+
+const LOCAL_DEV_AUTH_USER = import.meta.env.VITE_DASHBOARD_AUTH_USER || "dashboard";
+const LOCAL_DEV_AUTH_PASSWORD = import.meta.env.VITE_DASHBOARD_AUTH_PASSWORD || "";
 
 function getRandomQuote(quotes) {
   if (!quotes?.length) return mockQuotes[0];
@@ -50,6 +55,28 @@ function getRealMonitoringEndpoints() {
   ];
 }
 
+function buildBasicAuthHeader(username, password) {
+  return `Basic ${window.btoa(`${username}:${password}`)}`;
+}
+
+function buildPublicDashboard(summary = {}) {
+  return {
+    ...mockDashboard,
+    summaryCards: summary.summaryCards || mockDashboard.summaryCards,
+    meta: {
+      ...mockDashboard.meta,
+      ...(summary.meta || {}),
+    },
+    monitoringEndpoints: getRealMonitoringEndpoints(),
+    identity: {},
+    network: {},
+    location: {},
+    systemResources: {},
+    services: [],
+    logs: [],
+  };
+}
+
 export default function App() {
   const [dashboard, setDashboard] = useState(mockDashboard);
   const [quotes, setQuotes] = useState(mockQuotes);
@@ -62,6 +89,11 @@ export default function App() {
   const [copySuccessVisible, setCopySuccessVisible] = useState(false);
   const [copySuccessMessage, setCopySuccessMessage] = useState("Copied to clipboard.");
   const [dashboardDiagnostics, setDashboardDiagnostics] = useState([]);
+  const [authCredentials, setAuthCredentials] = useState(null);
+  const [isProtectedUnlocked, setIsProtectedUnlocked] = useState(false);
+  const [authModal, setAuthModal] = useState({ open: false, message: "" });
+  const [authError, setAuthError] = useState("");
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
     () => localStorage.getItem("dashboard_sidebar_collapsed") === "true"
   );
@@ -69,6 +101,106 @@ export default function App() {
   const copySuccessTimeoutRef = useRef(null);
   const manualCopyTextareaRef = useRef(null);
   const hasLiveDashboardRef = useRef(false);
+  const protectedUnlocked = Boolean(authCredentials && isProtectedUnlocked);
+  const authHeaders = useMemo(
+    () => authCredentials
+      ? { Authorization: buildBasicAuthHeader(authCredentials.username, authCredentials.password) }
+      : {},
+    [authCredentials]
+  );
+
+  const openAuthModal = useCallback((message = "Sign in to view protected dashboard data.") => {
+    setAuthError("");
+    setAuthModal({ open: true, message });
+  }, []);
+
+  const closeAuthModal = useCallback(() => {
+    setAuthModal({ open: false, message: "" });
+    setAuthError("");
+  }, []);
+
+  const handleAuthSubmit = useCallback(async ({ username, password }) => {
+    setIsSigningIn(true);
+    setAuthError("");
+
+    try {
+      if (import.meta.env.DEV && !LOCAL_DEV_AUTH_PASSWORD) {
+        setAuthCredentials(null);
+        setIsProtectedUnlocked(false);
+        setAuthError("Local auth password is not configured. Set VITE_DASHBOARD_AUTH_PASSWORD and restart Vite.");
+        return;
+      }
+
+      if (import.meta.env.DEV && (username !== LOCAL_DEV_AUTH_USER || password !== LOCAL_DEV_AUTH_PASSWORD)) {
+        setAuthCredentials(null);
+        setIsProtectedUnlocked(false);
+        setAuthError("Incorrect username or password.");
+        return;
+      }
+
+      const headers = { Authorization: buildBasicAuthHeader(username, password) };
+      const res = await fetch("/api/dashboard", {
+        cache: "no-store",
+        headers,
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        setAuthCredentials(null);
+        setIsProtectedUnlocked(false);
+        setAuthError("Incorrect username or password.");
+        return;
+      }
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        throw new Error("dashboard API did not return JSON");
+      }
+
+      const data = await res.json();
+      data.monitoringEndpoints = getRealMonitoringEndpoints();
+      setDashboard(data);
+      hasLiveDashboardRef.current = true;
+      setDashboardDiagnostics([]);
+      setAuthCredentials({ username, password });
+      setIsProtectedUnlocked(true);
+      setAuthModal({ open: false, message: "" });
+      if (copySuccessTimeoutRef.current) clearTimeout(copySuccessTimeoutRef.current);
+      setCopySuccessMessage("Signed in. Protected dashboard data enabled.");
+      setCopySuccessVisible(true);
+      copySuccessTimeoutRef.current = setTimeout(() => {
+        setCopySuccessVisible(false);
+        copySuccessTimeoutRef.current = null;
+      }, 2000);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        const mockWithRealEndpoints = {
+          ...mockDashboard,
+          monitoringEndpoints: getRealMonitoringEndpoints(),
+        };
+        setDashboard(mockWithRealEndpoints);
+        hasLiveDashboardRef.current = false;
+        setDashboardDiagnostics(getDashboardFallbackDiagnostics());
+        setAuthCredentials({ username, password });
+        setIsProtectedUnlocked(true);
+        setAuthModal({ open: false, message: "" });
+        if (copySuccessTimeoutRef.current) clearTimeout(copySuccessTimeoutRef.current);
+        setCopySuccessMessage("Signed in locally with mock dashboard data.");
+        setCopySuccessVisible(true);
+        copySuccessTimeoutRef.current = setTimeout(() => {
+          setCopySuccessVisible(false);
+          copySuccessTimeoutRef.current = null;
+        }, 2000);
+        return;
+      }
+
+      console.error("Sign in failed:", error);
+      setAuthError("Sign in failed. Check the dashboard API and try again.");
+    } finally {
+      setIsSigningIn(false);
+    }
+  }, []);
 
   const startModeGlow = useCallback(() => {
     setFlashMode(true);
@@ -87,12 +219,16 @@ export default function App() {
   }, []);
 
   const handleModeChange = useCallback((newMode) => {
+    if (newMode === "text" && !protectedUnlocked) {
+      openAuthModal("Sign in to use Text Mode and view protected data.");
+      return;
+    }
     setFlashMode(false);
     if (newMode === "text") {
       setPreviousMode(mode);
     }
     setMode(newMode);
-  }, [mode]);
+  }, [mode, openAuthModal, protectedUnlocked]);
 
   const showManualCopy = useCallback((text = "", label = "copied value") => {
     if (copySuccessTimeoutRef.current) clearTimeout(copySuccessTimeoutRef.current);
@@ -180,12 +316,17 @@ export default function App() {
   const serviceLimit = DEFAULT_SERVICE_LIMIT;
 
   const handleCopySnapshot = useCallback(async (finopsData = null) => {
+    if (!protectedUnlocked) {
+      openAuthModal("Sign in to copy dashboard snapshots.");
+      return false;
+    }
+
     const snapshotMode = (finopsData || mode === "finops") ? "finops" : "devsecops";
     let resolvedFinopsData = finopsData;
 
     if (snapshotMode === "finops" && !resolvedFinopsData) {
       try {
-        const res = await fetch("/api/finops", { cache: "no-store" });
+        const res = await fetch("/api/finops", { cache: "no-store", headers: authHeaders });
         if (res.ok) resolvedFinopsData = await res.json();
       } catch (error) {
         console.warn("FinOps snapshot data unavailable:", error);
@@ -212,15 +353,20 @@ export default function App() {
       showManualCopy(snapshot, "dashboard snapshot");
       return false;
     }
-  }, [dashboard, logLimit, mode, serviceLimit, showManualCopy, showCopySuccess]);
+  }, [authHeaders, dashboard, logLimit, mode, openAuthModal, protectedUnlocked, serviceLimit, showManualCopy, showCopySuccess]);
 
   const handleCopyJsonSnapshot = useCallback(async (finopsData = null) => {
+    if (!protectedUnlocked) {
+      openAuthModal("Sign in to copy dashboard JSON payloads.");
+      return false;
+    }
+
     const snapshotMode = (finopsData || mode === "finops") ? "finops" : "devsecops";
     let resolvedFinopsData = finopsData;
 
     if (snapshotMode === "finops" && !resolvedFinopsData) {
       try {
-        const res = await fetch("/api/finops", { cache: "no-store" });
+        const res = await fetch("/api/finops", { cache: "no-store", headers: authHeaders });
         if (res.ok) resolvedFinopsData = await res.json();
       } catch (error) {
         console.warn("FinOps JSON snapshot data unavailable:", error);
@@ -248,21 +394,36 @@ export default function App() {
       showManualCopy(snapshot, "JSON payload");
       return false;
     }
-  }, [dashboard, logLimit, mode, serviceLimit, showManualCopy, showCopySuccess]);
+  }, [authHeaders, dashboard, logLimit, mode, openAuthModal, protectedUnlocked, serviceLimit, showManualCopy, showCopySuccess]);
 
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const res = await fetch("/api/dashboard", { cache: "no-store" });
+        const endpoint = protectedUnlocked ? "/api/dashboard" : "/api/dashboard/summary";
+        const res = await fetch(endpoint, {
+          cache: "no-store",
+          headers: protectedUnlocked ? authHeaders : {},
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          setAuthCredentials(null);
+          setIsProtectedUnlocked(false);
+          return;
+        }
+
         if (!res.ok) throw new Error("dashboard fetch failed");
         const data = await res.json();
-        data.monitoringEndpoints = getRealMonitoringEndpoints();
-        setDashboard(data);
-        hasLiveDashboardRef.current = true;
+        if (protectedUnlocked) {
+          data.monitoringEndpoints = getRealMonitoringEndpoints();
+          setDashboard(data);
+          hasLiveDashboardRef.current = true;
+        } else {
+          setDashboard(buildPublicDashboard(data));
+        }
         setDashboardDiagnostics([]);
       } catch {
         if (!hasLiveDashboardRef.current) {
-          const mockWithRealEndpoints = { ...mockDashboard, monitoringEndpoints: getRealMonitoringEndpoints() };
+          const mockWithRealEndpoints = buildPublicDashboard(mockDashboard);
           setDashboard(mockWithRealEndpoints);
         }
         setDashboardDiagnostics(getDashboardFallbackDiagnostics());
@@ -273,7 +434,7 @@ export default function App() {
     loadDashboard();
     const interval = setInterval(loadDashboard, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [authHeaders, protectedUnlocked]);
 
   useEffect(() => {
     async function loadQuotes() {
@@ -457,10 +618,11 @@ export default function App() {
           onOpenFinOps={() => handleModeChange("finops")}
           onCopyFailure={showManualCopy}
           onCopySuccess={showCopySuccess}
+          authHeaders={authHeaders}
           mockDataDiagnostics={mockDataDiagnostics}
           onRefresh={async () => {
             try {
-              const res = await fetch("/api/dashboard", { cache: "no-store" });
+              const res = await fetch("/api/dashboard", { cache: "no-store", headers: authHeaders });
               if (!res.ok) throw new Error("dashboard fetch failed");
               const data = await res.json();
               data.monitoringEndpoints = getRealMonitoringEndpoints();
@@ -475,6 +637,14 @@ export default function App() {
               setDashboardDiagnostics(getDashboardFallbackDiagnostics());
             }
           }}
+        />
+        <AuthModal
+          open={authModal.open}
+          message={authModal.message}
+          error={authError}
+          isSubmitting={isSigningIn}
+          onClose={closeAuthModal}
+          onSubmit={handleAuthSubmit}
         />
         {manualCopyModal}
         {copySuccessToast}
@@ -498,6 +668,17 @@ export default function App() {
           onCopySuccess={showCopySuccess}
           onCopySnapshot={handleCopySnapshot}
           onCopyJsonSnapshot={handleCopyJsonSnapshot}
+          authHeaders={authHeaders}
+          isAuthenticated={protectedUnlocked}
+          onAuthRequired={openAuthModal}
+        />
+        <AuthModal
+          open={authModal.open}
+          message={authModal.message}
+          error={authError}
+          isSubmitting={isSigningIn}
+          onClose={closeAuthModal}
+          onSubmit={handleAuthSubmit}
         />
         {manualCopyModal}
         {copySuccessToast}
@@ -553,102 +734,145 @@ export default function App() {
                     zone={zone}
                     projectId={projectId}
                     billingAccountId={billingAccountId}
+                    requiresAuth={!protectedUnlocked}
+                    onSignIn={() => openAuthModal("Sign in to view protected dashboard data.")}
                   />
                 </motion.div>
               </div>
             ))}
           </motion.section>
 
-          {/* Load Trend Chart */}
-          <motion.section id="load" className="grid grid-cols-1 gap-6" variants={itemVariants}>
-            <LoadTrendChart onCopyFailure={showManualCopy} onCopySuccess={showCopySuccess} />
-          </motion.section>
+          {protectedUnlocked ? (
+            <>
+              {/* Load Trend Chart */}
+              <motion.section id="load" className="grid grid-cols-1 gap-6" variants={itemVariants}>
+                <LoadTrendChart
+                  authHeaders={authHeaders}
+                  onCopyFailure={showManualCopy}
+                  onCopySuccess={showCopySuccess}
+                />
+              </motion.section>
 
-          {/* Ambience */}
-          <motion.section id="ambience" className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={itemVariants}>
-            <div className="space-y-6">
-              <QuoteCard
-                quote={featuredQuote}
-                onCopyFailure={showManualCopy}
-                onCopySuccess={showCopySuccess}
+              {/* Ambience */}
+              <motion.section id="ambience" className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={itemVariants}>
+                <div className="space-y-6">
+                  <QuoteCard
+                    quote={featuredQuote}
+                    onCopyFailure={showManualCopy}
+                    onCopySuccess={showCopySuccess}
+                  />
+                  <NetworkParticles />
+                </div>
+                <ImageGallery onCopyFailure={showManualCopy} onCopySuccess={showCopySuccess} />
+              </motion.section>
+
+              {/* VM Information */}
+              <motion.section id="vm-information" className="grid grid-cols-1 gap-6 lg:grid-cols-3" variants={itemVariants}>
+                <IdentityCard
+                  identity={dashboard.identity || {}}
+                  zone={dashboard.location?.zone}
+                  projectId={dashboard.identity?.project}
+                  onCopyFailure={showManualCopy}
+                  onCopySuccess={showCopySuccess}
+                />
+                <NetworkCard
+                  network={dashboard.network || {}}
+                  onCopyFailure={showManualCopy}
+                  onCopySuccess={showCopySuccess}
+                />
+                <LocationCard
+                  location={dashboard.location || {}}
+                  instanceName={dashboard.identity?.instanceName}
+                  zone={dashboard.location?.zone}
+                  projectId={dashboard.identity?.project}
+                  onCopyFailure={showManualCopy}
+                  onCopySuccess={showCopySuccess}
+                />
+              </motion.section>
+
+              {/* System Resources */}
+              <motion.section id="system-resources" className="grid grid-cols-1 gap-6" variants={itemVariants}>
+                <SystemResourcesCard
+                  authHeaders={authHeaders}
+                  resources={dashboard.systemResources || {}}
+                  onCopyFailure={showManualCopy}
+                  onCopySuccess={showCopySuccess}
+                />
+              </motion.section>
+
+              {/* Monitoring Endpoints */}
+              <motion.section id="monitoring-endpoints" className="grid grid-cols-1 gap-6" variants={itemVariants}>
+                <MonitoringEndpointsCard
+                  endpoints={dashboard.monitoringEndpoints || []}
+                  onCopyFailure={showManualCopy}
+                  onCopySuccess={showCopySuccess}
+                />
+              </motion.section>
+
+              {/* Services */}
+              <motion.section id="services" className="grid grid-cols-1 gap-6" variants={itemVariants}>
+                <SectionList
+                  title="Services"
+                  subtitle="Service health, status, and performance"
+                  items={dashboard.services || []}
+                  limit={serviceLimit}
+                  onCopyFailure={showManualCopy}
+                  onCopySuccess={showCopySuccess}
+                />
+              </motion.section>
+
+              {/* Logs */}
+              <motion.section id="logs" className="grid grid-cols-1 gap-6" variants={itemVariants}>
+                <ResourceTable
+                  rows={dashboard.logs?.map((log) => ({
+                    name: log.time,
+                    type: log.level,
+                    scope: log.scope || "app",
+                    status: log.message,
+                  })) || []}
+                  title="System Logs"
+                  isLogs={true}
+                  limit={logLimit}
+                  authHeaders={authHeaders}
+                  onCopyFailure={showManualCopy}
+                  onCopySuccess={showCopySuccess}
+                />
+              </motion.section>
+            </>
+          ) : (
+            <motion.section id="protected-sections" className="grid grid-cols-1 gap-4 lg:grid-cols-2" variants={itemVariants}>
+              <LockedPanel
+                title="VM Details"
+                message="VM details not enabled. Sign in to view."
+                onSignIn={() => openAuthModal("Sign in to view VM details.")}
               />
-              <NetworkParticles />
-            </div>
-            <ImageGallery onCopyFailure={showManualCopy} onCopySuccess={showCopySuccess} />
-          </motion.section>
-
-          {/* VM Information */}
-          <motion.section id="vm-information" className="grid grid-cols-1 gap-6 lg:grid-cols-3" variants={itemVariants}>
-            <IdentityCard
-              identity={dashboard.identity || {}}
-              zone={dashboard.location?.zone}
-              projectId={dashboard.identity?.project}
-              onCopyFailure={showManualCopy}
-              onCopySuccess={showCopySuccess}
-            />
-            <NetworkCard
-              network={dashboard.network || {}}
-              onCopyFailure={showManualCopy}
-              onCopySuccess={showCopySuccess}
-            />
-            <LocationCard
-              location={dashboard.location || {}}
-              instanceName={dashboard.identity?.instanceName}
-              zone={dashboard.location?.zone}
-              projectId={dashboard.identity?.project}
-              onCopyFailure={showManualCopy}
-              onCopySuccess={showCopySuccess}
-            />
-          </motion.section>
-
-          {/* System Resources */}
-          <motion.section id="system-resources" className="grid grid-cols-1 gap-6" variants={itemVariants}>
-            <SystemResourcesCard
-              resources={dashboard.systemResources || {}}
-              onCopyFailure={showManualCopy}
-              onCopySuccess={showCopySuccess}
-            />
-          </motion.section>
-
-          {/* Monitoring Endpoints */}
-          <motion.section id="monitoring-endpoints" className="grid grid-cols-1 gap-6" variants={itemVariants}>
-            <MonitoringEndpointsCard
-              endpoints={dashboard.monitoringEndpoints || []}
-              onCopyFailure={showManualCopy}
-              onCopySuccess={showCopySuccess}
-            />
-          </motion.section>
-
-          {/* Services */}
-          <motion.section id="services" className="grid grid-cols-1 gap-6" variants={itemVariants}>
-            <SectionList
-              title="Services"
-              subtitle="Service health, status, and performance"
-              items={dashboard.services || []}
-              limit={serviceLimit}
-              onCopyFailure={showManualCopy}
-              onCopySuccess={showCopySuccess}
-            />
-          </motion.section>
-
-          {/* Logs */}
-          <motion.section id="logs" className="grid grid-cols-1 gap-6" variants={itemVariants}>
-            <ResourceTable
-              rows={dashboard.logs?.map((log) => ({
-                name: log.time,
-                type: log.level,
-                scope: log.scope || "app",
-                status: log.message,
-              })) || []}
-              title="System Logs"
-              isLogs={true}
-              limit={logLimit}
-              onCopyFailure={showManualCopy}
-              onCopySuccess={showCopySuccess}
-            />
-          </motion.section>
+              <LockedPanel
+                title="System Resources"
+                message="System resources not enabled. Sign in to view."
+                onSignIn={() => openAuthModal("Sign in to view system resources.")}
+              />
+              <LockedPanel
+                title="Services"
+                message="Services not enabled. Sign in to view."
+                onSignIn={() => openAuthModal("Sign in to view service health.")}
+              />
+              <LockedPanel
+                title="System Logs"
+                message="Logs not enabled. Sign in to view."
+                onSignIn={() => openAuthModal("Sign in to view logs.")}
+              />
+            </motion.section>
+          )}
         </motion.main>
       </motion.div>
+      <AuthModal
+        open={authModal.open}
+        message={authModal.message}
+        error={authError}
+        isSubmitting={isSigningIn}
+        onClose={closeAuthModal}
+        onSubmit={handleAuthSubmit}
+      />
       {manualCopyModal}
       {copySuccessToast}
     </div>

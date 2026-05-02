@@ -5,7 +5,7 @@ import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 import Card from "./Card";
 import { buildSystemResourcesSnapshot } from "../utils/widgetSnapshots";
 
-export default function SystemResourcesCard({ resources, onCopyFailure, onCopySuccess }) {
+export default function SystemResourcesCard({ authHeaders = {}, resources, onCopyFailure, onCopySuccess }) {
   const [cpuHistory, setCpuHistory] = useState(() => resources?.cpu?.history || []);
   const [currentCpu, setCurrentCpu] = useState(resources?.cpu?.usage || 0);
 
@@ -22,7 +22,7 @@ export default function SystemResourcesCard({ resources, onCopyFailure, onCopySu
   useEffect(() => {
     const fetchCpu = async () => {
       try {
-        const response = await fetch("/api/dashboard", { cache: "no-store" });
+        const response = await fetch("/api/dashboard", { cache: "no-store", headers: authHeaders });
         if (response.ok) {
           const data = await response.json();
           const cpuCard = data.summaryCards?.find(card => card.label === "CPU");
@@ -43,7 +43,7 @@ export default function SystemResourcesCard({ resources, onCopyFailure, onCopySu
     fetchCpu();
     const interval = setInterval(fetchCpu, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [authHeaders]);
 
   const formatBytes = (mb) => {
     if (!mb) return "0 MB";

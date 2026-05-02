@@ -4,7 +4,7 @@ import { Gauge, TrendingUp, Activity } from "lucide-react";
 import Card from "./Card";
 import { buildSystemLoadTrendSnapshot } from "../utils/widgetSnapshots";
 
-export default function LoadTrendChart({ onCopyFailure, onCopySuccess }) {
+export default function LoadTrendChart({ authHeaders = {}, onCopyFailure, onCopySuccess }) {
   const [historicalLoad, setHistoricalLoad] = useState([0.45, 0.52, 0.48, 0.61, 0.55, 0.49, 0.58, 0.62, 0.51, 0.47]);
   const [currentLoad, setCurrentLoad] = useState("0.00");
   const [maxLoad, setMaxLoad] = useState(2.0); // Scale up to 2.0 for the chart
@@ -12,7 +12,7 @@ export default function LoadTrendChart({ onCopyFailure, onCopySuccess }) {
   // Fetch metrics to update historical data
   const fetchMetrics = async () => {
     try {
-      const response = await fetch("/api/dashboard", { cache: "no-store" });
+      const response = await fetch("/api/dashboard", { cache: "no-store", headers: authHeaders });
       if (response.ok) {
         const data = await response.json();
         const loadValue = parseFloat(data.systemLoad || "0");
@@ -38,7 +38,7 @@ export default function LoadTrendChart({ onCopyFailure, onCopySuccess }) {
     fetchMetrics();
     const interval = setInterval(fetchMetrics, 10000); // Changed from 30000 to 10000
     return () => clearInterval(interval);
-  }, []);
+  }, [authHeaders]);
 
   const getLoadStatus = (load) => {
     if (load < 0.7) return "healthy";

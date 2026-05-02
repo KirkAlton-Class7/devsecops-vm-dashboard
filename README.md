@@ -50,10 +50,12 @@ The Terraform stack can manage:
 
 * GCP VM, VPC/subnet, NAT, firewall, static IP, service account, and IAM roles
 * AWS Route 53 `A` record for the dashboard hostname
-* VM metadata used by the startup script for hostname and Let’s Encrypt email
+* VM metadata used by the startup script for hostname, Let’s Encrypt email, and Secret Manager credential IDs
 * HTTPS firewall access on port `443`
 
 Certificate private keys are intentionally **not** managed directly by Terraform. Certbot stores them on the VM under `/etc/letsencrypt`.
+
+Dashboard Basic Auth secrets are also intentionally **not** stored in Git or Terraform state. Store the password in GCP Secret Manager, then let the VM fetch it during bootstrap.
 
 Terraform setup docs:
 
@@ -67,11 +69,13 @@ Terraform setup docs:
 * **Endpoints**
 
   * `/healthz` – health check
-  * `/metadata` – instance info
-  * `/api/dashboard` – infra metrics
-  * `/api/finops` – cost + optimization data
+  * `/metadata` – protected instance info
+  * `/api/dashboard/summary` – public DevSecOps summary cards
+  * `/api/dashboard` – protected infra metrics
+  * `/api/finops/summary` – public FinOps summary cards
+  * `/api/finops` – protected cost + optimization data
   * `/api/config` – static API settings
-  * `/api/logs` – paginated journal logs with `limit`, `offset`, and optional `minutes`
+  * `/api/logs` – protected paginated journal logs with `limit`, `offset`, and optional `minutes`
 
 * **Copy/export controls**
 

@@ -1057,6 +1057,47 @@ class MonitoringHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(f"Error: {e}".encode())
             return
+
+        # Public dashboard summary endpoint. Full details are served by /api/dashboard.
+        if self.path == '/api/dashboard/summary':
+            try:
+                data = build_dashboard_data()
+                summary = {
+                    "summaryCards": data.get("summaryCards", []),
+                    "meta": data.get("meta", {}),
+                    "systemLoad": data.get("systemLoad"),
+                    "protected": True
+                }
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(summary).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(f"Error building dashboard summary: {e}".encode())
+            return
+
+        # Public FinOps summary endpoint. Full details are served by /api/finops.
+        if self.path == '/api/finops/summary':
+            try:
+                finops_data = get_cached_finops_data()
+                summary = {
+                    "summaryCards": finops_data.get("summaryCards", []),
+                    "identity": finops_data.get("identity", {}),
+                    "protected": True
+                }
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(summary).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(f"Error building FinOps summary: {e}".encode())
+            return
         
         # Logs API endpoint with pagination
         if self.path.startswith('/api/logs'):
