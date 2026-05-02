@@ -6,12 +6,15 @@
 
 **Quick summary:**
 
-* **Enable APIs**: `compute`, `bigquery`, `monitoring`, `logging`, `recommender`, `billingbudgets`, `cloudbilling`.
+* **Enable APIs**: `compute`, `bigquery`, `monitoring`, `logging`, `recommender`, `billingbudgets`, `cloudbilling`, `secretmanager`, `pubsub`.
 * **Create a custom service account** (recommended) or use the default Compute Engine service account.
 * **Grant IAM roles**:
   * `roles/billing.viewer` on the **billing account**
   * `roles/compute.viewer`, `roles/bigquery.dataViewer`, `roles/bigquery.jobUser`, `roles/monitoring.viewer`, `roles/recommender.viewer` on the **project**.
+  * `roles/secretmanager.secretAccessor` on the four dashboard auth secrets.
 * **Set up BigQuery billing export** to a dataset named `billing_export`.
+* **Create Secret Manager auth secrets** for DevSecOps and FinOps.
+* **Attach the four auth secret IDs as VM custom metadata** when using ClickOps.
 * **Ensure the VM is created with the `cloud-platform` OAuth scope**.
 
 The FinOps dashboard will show real data only after these prerequisites are met and the BigQuery export has populated (up to 24 hours).
@@ -43,9 +46,35 @@ Use this path when creating a VM manually in the GCP Console and pasting a start
 
 ![GCP VM creation page showing the startup script metadata field populated with gcp_startup.sh](assets/32_gcp_vm_startup_script.png)
 
-2. **Launch a VM** (Debian 11 or Ubuntu 20.04/22.04 recommended).
+2. **Add the required dashboard auth metadata** under the VM custom metadata section.
 
-3. **Wait 5–10 minutes** while the scripts:
+| Metadata key | Value |
+| --- | --- |
+| `dashboard-dev-auth-user-secret` | `vm-dashboard-dev-username` |
+| `dashboard-dev-auth-password-secret` | `vm-dashboard-dev-password` |
+| `dashboard-finops-auth-user-secret` | `vm-dashboard-finops-username` |
+| `dashboard-finops-auth-password-secret` | `vm-dashboard-finops-password` |
+
+> [!IMPORTANT]
+> These metadata values are Secret Manager secret IDs, not usernames or passwords. If any required auth metadata is missing and no environment fallback credentials are provided, bootstrap fails closed with `DevSecOps Basic Auth username and password must be provided by Secret Manager or environment variables`. In that failed state, Nginx may remain on the default **Welcome to nginx** page because the dashboard Nginx site was never configured.
+
+If creating the VM from the CLI, pass the same metadata keys:
+
+```bash
+gcloud compute instances create vm-dashboard \
+  --zone=us-central1-a \
+  --machine-type=e2-medium \
+  --image-family=debian-11 \
+  --image-project=debian-cloud \
+  --service-account="vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --scopes=https://www.googleapis.com/auth/cloud-platform \
+  --metadata-from-file=startup-script=infra/startup/gcp_startup.sh \
+  --metadata=dashboard-dev-auth-user-secret=vm-dashboard-dev-username,dashboard-dev-auth-password-secret=vm-dashboard-dev-password,dashboard-finops-auth-user-secret=vm-dashboard-finops-username,dashboard-finops-auth-password-secret=vm-dashboard-finops-password
+```
+
+3. **Launch a VM** (Debian 11 or Ubuntu 20.04/22.04 recommended).
+
+4. **Wait 5–10 minutes** while the scripts:
    * Install basic tools (nginx, Python, Node.js, git, **Google Cloud SDK**)
    * Clone the repository to `/opt/deploy`
    * Install Python packages (`google-cloud-bigquery`, `google-cloud-monitoring`, etc.)
@@ -55,7 +84,7 @@ Use this path when creating a VM manually in the GCP Console and pasting a start
    * Set up cron jobs for quotes (every 10 min), pricing (monthly), and auto‑deploy (every 15 min)
    * Start everything
 
-4. **Open the VM’s public IP** in your browser at `http://<VM_EXTERNAL_IP>`.
+5. **Open the VM’s public IP** in your browser at `http://<VM_EXTERNAL_IP>`.
 
 ![Dashboard loading successfully over HTTP using the VM external IP](assets/33_http_dashboard_external_ip.png)
 

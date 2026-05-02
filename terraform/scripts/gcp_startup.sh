@@ -74,12 +74,25 @@ metadata_value() {
 
 DASHBOARD_HOSTNAME="$(metadata_value dashboard-hostname)"
 LETSENCRYPT_EMAIL="$(metadata_value letsencrypt-email)"
+DASHBOARD_DEV_AUTH_USER_SECRET_ID="$(metadata_value dashboard-dev-auth-user-secret)"
+DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID="$(metadata_value dashboard-dev-auth-password-secret)"
+DASHBOARD_FINOPS_AUTH_USER_SECRET_ID="$(metadata_value dashboard-finops-auth-user-secret)"
+DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID="$(metadata_value dashboard-finops-auth-password-secret)"
 export DASHBOARD_HOSTNAME LETSENCRYPT_EMAIL
+export DASHBOARD_DEV_AUTH_USER_SECRET_ID DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID
+export DASHBOARD_FINOPS_AUTH_USER_SECRET_ID DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID
 
 if [ -n "$DASHBOARD_HOSTNAME" ]; then
     echo "INFO: Dashboard hostname configured as $DASHBOARD_HOSTNAME"
 else
     echo "INFO: No dashboard hostname configured; HTTPS setup will be skipped"
+fi
+
+if [ -n "$DASHBOARD_DEV_AUTH_USER_SECRET_ID" ] && [ -n "$DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID" ] && \
+   [ -n "$DASHBOARD_FINOPS_AUTH_USER_SECRET_ID" ] && [ -n "$DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID" ]; then
+    echo "INFO: Dashboard auth Secret Manager metadata configured"
+else
+    echo "WARN: Dashboard auth Secret Manager metadata is incomplete; app bootstrap will fail closed without env fallback credentials"
 fi
 
 # ------------------------------------------------------------

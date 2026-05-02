@@ -294,7 +294,10 @@ For production Terraform deployments, passwords should live in GCP Secret Manage
 | `dashboard-finops-auth-user-secret` | Secret Manager secret ID/resource path for the FinOps username |
 | `dashboard-finops-auth-password-secret` | Secret Manager secret ID/resource path for the FinOps password |
 
-The VM service account needs `roles/secretmanager.secretAccessor`. The bootstrap fetches the secret values at runtime and writes only local hashed credential files for Nginx.
+> [!IMPORTANT]
+> If these metadata keys are missing, the VM bootstrap exits before the dashboard Nginx site is configured. A failed VM can appear to be running but still show the default **Welcome to nginx** page.
+
+The VM service account needs `roles/secretmanager.secretAccessor` on those four secrets. Terraform grants that access to the `vm-dashboard` service account for the secret IDs below. The bootstrap fetches the secret values at runtime and writes only local hashed credential files for Nginx.
 
 Secret Manager is not queried on every browser request. It is read during VM bootstrap, then Nginx authenticates requests against `/etc/nginx/.vm-dashboard-dev.htpasswd` and `/etc/nginx/.vm-dashboard-finops.htpasswd`.
 
@@ -309,7 +312,7 @@ By default, Terraform expects these manually managed secret IDs:
 
 ![Secret Manager showing manually managed dashboard authentication secrets](../assets/52_secret_manager_auth_secrets.png)
 
-Create the secrets outside Terraform and grant the dashboard VM service account access:
+Create the secrets outside Terraform. Terraform grants the dashboard VM service account access during `terraform apply`.
 
 ```bash
 PROJECT_ID="$(gcloud config get-value project)"
@@ -327,11 +330,6 @@ do
     gcloud secrets create "${SECRET_ID}" \
       --project="${PROJECT_ID}" \
       --replication-policy="automatic"
-
-  gcloud secrets add-iam-policy-binding "${SECRET_ID}" \
-    --project="${PROJECT_ID}" \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/secretmanager.secretAccessor"
 done
 ```
 

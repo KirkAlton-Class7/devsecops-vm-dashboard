@@ -13,6 +13,15 @@ locals {
   route53_zone_name   = "${local.root_domain}."
   route53_zone_id     = coalesce(try(aws_route53_zone.vm_dashboard[0].zone_id, null), try(data.aws_route53_zone.vm_dashboard[0].zone_id, null))
 
+  # Secret Manager accepts short secret IDs for IAM bindings.
+  # These locals also tolerate full resource paths such as projects/<project>/secrets/<secret>.
+  dashboard_auth_secret_ids = toset([
+    regex("[^/]+$", var.dashboard_dev_auth_user_secret_id),
+    regex("[^/]+$", var.dashboard_dev_auth_password_secret_id),
+    regex("[^/]+$", var.dashboard_finops_auth_user_secret_id),
+    regex("[^/]+$", var.dashboard_finops_auth_password_secret_id)
+  ])
+
   # -----------------------------------------------------------------------------
   # LABELS
   # -----------------------------------------------------------------------------

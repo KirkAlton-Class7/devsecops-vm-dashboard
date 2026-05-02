@@ -34,8 +34,11 @@ resource "google_compute_instance" "vm_dashboard" {
 
   metadata = merge(
     {
-      dashboard-hostname                    = local.dashboard_fqdn
-      letsencrypt-email                     = var.letsencrypt_email
+      dashboard-hostname = local.dashboard_fqdn
+      letsencrypt-email  = var.letsencrypt_email
+
+      # Secret Manager secret IDs used by the startup script to build local
+      # Nginx Basic Auth files. The secret values stay outside Terraform state.
       dashboard-dev-auth-user-secret        = var.dashboard_dev_auth_user_secret_id
       dashboard-dev-auth-password-secret    = var.dashboard_dev_auth_password_secret_id
       dashboard-finops-auth-user-secret     = var.dashboard_finops_auth_user_secret_id

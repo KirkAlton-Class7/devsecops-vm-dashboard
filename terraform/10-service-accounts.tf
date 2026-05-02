@@ -96,19 +96,24 @@ resource "google_project_iam_member" "vm_dashboard_recommender_viewer" {
 }
 
 # ----------------------------------------------------------------
-# IAM ROLE - SECRET MANAGER SECRET ACCESSOR
+# IAM ROLE - SECRET MANAGER SECRET ACCESSOR ON AUTH SECRETS
 # ----------------------------------------------------------------
 # Allows the VM bootstrap to read the DevSecOps and FinOps Basic Auth credentials
 # from Secret Manager at runtime.
 #
+# The secrets are created and rotated outside Terraform. Terraform only grants
+# the VM dashboard service account read access to the expected secret IDs.
+#
 # Secret values are not stored in Terraform state.
 # ----------------------------------------------------------------
 
-resource "google_project_iam_member" "vm_dashboard_secret_accessor" {
-  project = "kirk-devsecops-sandbox" # Replace with your project
-  role    = "roles/secretmanager.secretAccessor"
+resource "google_secret_manager_secret_iam_member" "vm_dashboard_auth_secret_accessor" {
+  for_each = local.dashboard_auth_secret_ids
 
-  member = "serviceAccount:${google_service_account.vm_dashboard.email}"
+  project   = "kirk-devsecops-sandbox" # Replace with your project
+  secret_id = each.value
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.vm_dashboard.email}"
 }
 
 # ----------------------------------------------------------------

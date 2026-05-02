@@ -106,7 +106,7 @@ The Pub/Sub notification topic should also be managed outside Terraform. Use the
 
 ![Secret Manager password rotation schedule for dashboard password secret](assets/54_secret_manager_password_rotation_settings.png)
 
-If a VM deployment appears to hang during credential setup, check `/var/log/startup-script.log` for `Secret Manager credential lookup enabled`. Common causes are a missing secret version, `secretmanager.googleapis.com` not enabled, the VM service account missing `roles/secretmanager.secretAccessor`, or no outbound path to `secretmanager.googleapis.com`. Metadata lookups fail quickly, and Secret Manager calls use a bounded timeout so these failures should be visible in the startup log.
+If a VM deployment appears to hang during credential setup, check `/var/log/startup-script.log` for `Secret Manager credential lookup enabled` and `/var/log/bootstrap.log` for `Dashboard auth Secret Manager metadata configured`. Common causes are missing VM metadata keys, a missing secret version, `secretmanager.googleapis.com` not enabled, the VM service account missing `roles/secretmanager.secretAccessor` on the auth secrets, or no outbound path to `secretmanager.googleapis.com`. Metadata lookups fail quickly, and Secret Manager calls use a bounded timeout so these failures should be visible in the startup log. If bootstrap exits before Nginx is configured, the browser may still show the default **Welcome to nginx** page.
 
 ---
 
