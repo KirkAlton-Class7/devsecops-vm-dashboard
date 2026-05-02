@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { memo, useState, useEffect } from "react";
 import { Quote, RefreshCw, Bookmark, Copy, Check, BookmarkCheck, Heart, Star, X } from "lucide-react";
 import Card from "./Card";
 import { writeClipboardText } from "../utils/clipboard";
@@ -52,7 +52,7 @@ function getAttribution(quote) {
   return { primary, secondary };
 }
 
-export default function QuoteCard({ quote: initialQuote, onCopyFailure, onCopySuccess }) {
+function QuoteCard({ quote: initialQuote, onCopyFailure, onCopySuccess }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -344,3 +344,5 @@ export default function QuoteCard({ quote: initialQuote, onCopyFailure, onCopySu
     </>
   );
 }
+
+export default memo(QuoteCard);

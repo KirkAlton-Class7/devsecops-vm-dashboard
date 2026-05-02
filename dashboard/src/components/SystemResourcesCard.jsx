@@ -5,7 +5,7 @@ import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 import Card from "./Card";
 import { buildSystemResourcesSnapshot } from "../utils/widgetSnapshots";
 
-export default function SystemResourcesCard({ authHeaders = {}, resources, onCopyFailure, onCopySuccess }) {
+export default function SystemResourcesCard({ authHeaders = {}, fetchEnabled = true, resources, onCopyFailure, onCopySuccess }) {
   const [cpuHistory, setCpuHistory] = useState(() => resources?.cpu?.history || []);
   const [currentCpu, setCurrentCpu] = useState(resources?.cpu?.usage || 0);
 
@@ -20,6 +20,7 @@ export default function SystemResourcesCard({ authHeaders = {}, resources, onCop
 
   // Fetch CPU usage from the VM every 10 seconds
   useEffect(() => {
+    if (!fetchEnabled) return undefined;
     const fetchCpu = async () => {
       try {
         const response = await fetch("/api/dashboard", { cache: "no-store", headers: authHeaders });
@@ -43,7 +44,7 @@ export default function SystemResourcesCard({ authHeaders = {}, resources, onCop
     fetchCpu();
     const interval = setInterval(fetchCpu, 10000);
     return () => clearInterval(interval);
-  }, [authHeaders]);
+  }, [authHeaders, fetchEnabled]);
 
   const formatBytes = (mb) => {
     if (!mb) return "0 MB";

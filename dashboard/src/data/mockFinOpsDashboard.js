@@ -1,7 +1,7 @@
 export const mockFinOpsData = {
   summaryCards: [
-    { label: "Total Cost (MTD)", value: "87.42", status: "warning" },
-    { label: "Forecast (EOM)", value: "128.60", status: "critical" },
+    { label: "Total Cost (MTD)", value: "Protected", status: "info" },
+    { label: "Forecast (EOM)", value: "Protected", status: "warning" },
     { label: "Potential Savings", value: "42.18", status: "healthy" },
     { label: "CUD Coverage", value: "64%", status: "healthy" },
   ],

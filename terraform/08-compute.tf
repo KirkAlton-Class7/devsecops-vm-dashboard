@@ -34,12 +34,12 @@ resource "google_compute_instance" "vm_dashboard" {
 
   metadata = merge(
     {
-      dashboard-hostname             = local.dashboard_fqdn
-      letsencrypt-email              = var.letsencrypt_email
-      dashboard-auth-password-secret = var.dashboard_auth_password_secret_id
-    },
-    var.dashboard_auth_user_secret_id == null ? {} : {
-      dashboard-auth-user-secret = var.dashboard_auth_user_secret_id
+      dashboard-hostname                    = local.dashboard_fqdn
+      letsencrypt-email                     = var.letsencrypt_email
+      dashboard-dev-auth-user-secret        = var.dashboard_dev_auth_user_secret_id
+      dashboard-dev-auth-password-secret    = var.dashboard_dev_auth_password_secret_id
+      dashboard-finops-auth-user-secret     = var.dashboard_finops_auth_user_secret_id
+      dashboard-finops-auth-password-secret = var.dashboard_finops_auth_password_secret_id
     }
   )
 

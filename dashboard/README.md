@@ -4,7 +4,7 @@ React + Vite frontend for the VM Dashboard.
 
 It renders:
 
-- DevSecOps summary cards from `/api/dashboard/summary`, with protected details from `/api/dashboard`
+- DevSecOps summary cards from `/api/dashboard/summary`, with protected utilization details from `/api/dashboard` after sign-in
 - FinOps summary cards from `/api/finops/summary`, with protected details from `/api/finops`
 - Text mode from the protected DevSecOps payload, plus `/api/logs` for the all-logs modal
 - Quotes from `/data/quotes.json`
@@ -57,11 +57,15 @@ Because frontend requests use relative paths like `/api/dashboard`, local develo
 Local sign-in uses development-only credentials because Vite does not run the VM Nginx Basic Auth layer. Set these values before starting Vite:
 
 ```bash
-VITE_DASHBOARD_AUTH_USER=dashboard
-VITE_DASHBOARD_AUTH_PASSWORD=your-local-dev-password
+VITE_DASHBOARD_DEV_AUTH_USER=dashboard
+VITE_DASHBOARD_DEV_AUTH_PASSWORD=your-local-dev-password
+VITE_DASHBOARD_FINOPS_AUTH_USER=finops
+VITE_DASHBOARD_FINOPS_AUTH_PASSWORD=your-local-finops-password
 ```
 
-If `VITE_DASHBOARD_AUTH_PASSWORD` is not set, local sign-in stays locked. Production sign-in is enforced by Nginx using the hashed password file generated during VM bootstrap from Secret Manager.
+Production sign-in is enforced by Nginx using hashed password files generated during VM bootstrap from Secret Manager. DevSecOps and FinOps sessions are stored separately in the browser.
+
+If these variables are omitted in local development, the fallback demo credentials are `dashboard/password` for DevSecOps and `finops/password` for FinOps.
 
 Successful sign-in is remembered in `sessionStorage` for the current browser session, up to 8 hours. This survives page refreshes but is cleared when the browser session ends or when protected API credentials stop working.
 

@@ -26,17 +26,42 @@ variable "letsencrypt_email" {
   type        = string
 }
 
+variable "dashboard_dev_auth_user_secret_id" {
+  description = "Secret Manager secret ID or resource path containing the DevSecOps Basic Auth username."
+  default     = "vm-dashboard-dev-username"
+  type        = string
+}
+
+variable "dashboard_dev_auth_password_secret_id" {
+  description = "Secret Manager secret ID or resource path containing the DevSecOps Basic Auth password. The secret value is fetched by the VM at bootstrap time and is not stored in Terraform state."
+  default     = "vm-dashboard-dev-password"
+  type        = string
+}
+
+variable "dashboard_finops_auth_user_secret_id" {
+  description = "Secret Manager secret ID or resource path containing the FinOps Basic Auth username."
+  default     = "vm-dashboard-finops-username"
+  type        = string
+}
+
+variable "dashboard_finops_auth_password_secret_id" {
+  description = "Secret Manager secret ID or resource path containing the FinOps Basic Auth password. The secret value is fetched by the VM at bootstrap time and is not stored in Terraform state."
+  default     = "vm-dashboard-finops-password"
+  type        = string
+}
+
 variable "dashboard_auth_user_secret_id" {
-  description = "Optional Secret Manager secret ID or resource path containing the dashboard Basic Auth username. If null, the bootstrap uses the non-secret username default."
+  description = "Deprecated legacy Secret Manager secret ID for the old single dashboard username. Prefer dashboard_dev_auth_user_secret_id."
   default     = null
   type        = string
   nullable    = true
 }
 
 variable "dashboard_auth_password_secret_id" {
-  description = "Secret Manager secret ID or resource path containing the dashboard Basic Auth password. The secret value is fetched by the VM at bootstrap time and is not stored in Terraform state."
-  default     = "vm-dashboard-auth-password"
+  description = "Deprecated legacy Secret Manager secret ID for the old single dashboard password. Prefer dashboard_dev_auth_password_secret_id."
+  default     = null
   type        = string
+  nullable    = true
 }
 
 variable "create_route53_record" {

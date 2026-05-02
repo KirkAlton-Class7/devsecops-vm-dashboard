@@ -3,7 +3,7 @@ export const mockDashboard = {
     { label: "CPU", value: "56%", status: "healthy" },
     { label: "Memory", value: "78%", status: "warning" },
     { label: "Disk", value: "92%", status: "critical" },
-    { label: "Estimated Cost", value: "$38.72", status: "warning" },
+    { label: "Estimated Cost", value: "38.72", status: "info" },
   ],
 
   identity: {

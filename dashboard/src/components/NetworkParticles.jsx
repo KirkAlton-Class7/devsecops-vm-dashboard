@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { memo, useState, useEffect, useRef } from "react";
 
 // ---------- Mode 0: Drift (cyan drifting particles with connections) ----------
 const DriftParticles = () => {
@@ -455,4 +455,4 @@ const ToggleNetworkParticles = () => {
   );
 };
 
-export default ToggleNetworkParticles;
+export default memo(ToggleNetworkParticles);

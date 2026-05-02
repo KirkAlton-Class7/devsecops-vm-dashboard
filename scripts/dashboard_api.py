@@ -414,6 +414,8 @@ def get_system_logs(limit=30):
 # Simple time-based cache (can also use @ttl_cache)
 _all_logs_cache = None
 _all_logs_cache_time = 0
+_logs_since_cache = {}
+LOGS_SINCE_CACHE_TTL_SECONDS = 5
 ALL_LOGS_MAX_LINES = 5000
 
 def _parse_journalctl_logs(raw_output):
@@ -461,23 +463,32 @@ def get_all_logs(limit=100, offset=0, minutes=None):
     journalctl_path = "/usr/bin/journalctl"
 
     if minutes:
-        cmd = [
-            journalctl_path,
-            "--since",
-            f"{minutes} minutes ago",
-            "--no-pager",
-            "-o",
-            "json"
-        ]
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            if result.returncode != 0 or not result.stdout.strip():
+        cache_key = int(minutes)
+        cached = _logs_since_cache.get(cache_key)
+        if cached and time.time() - cached["time"] <= LOGS_SINCE_CACHE_TTL_SECONDS:
+            filtered_logs = cached["logs"]
+        else:
+            cmd = [
+                journalctl_path,
+                "--since",
+                f"{minutes} minutes ago",
+                "--no-pager",
+                "-o",
+                "json"
+            ]
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+                if result.returncode != 0 or not result.stdout.strip():
+                    filtered_logs = []
+                else:
+                    filtered_logs = _parse_journalctl_logs(result.stdout)
+                _logs_since_cache[cache_key] = {
+                    "time": time.time(),
+                    "logs": filtered_logs,
+                }
+            except Exception as e:
+                print(f"Error fetching logs since {minutes} minutes ago: {e}", file=sys.stderr)
                 filtered_logs = []
-            else:
-                filtered_logs = _parse_journalctl_logs(result.stdout)
-        except Exception as e:
-            print(f"Error fetching logs since {minutes} minutes ago: {e}", file=sys.stderr)
-            filtered_logs = []
     else:
         # Cache unbounded log browsing for 10 seconds.
         if not _all_logs_cache or time.time() - _all_logs_cache_time > 10:
@@ -914,8 +925,8 @@ def get_cached_finops_data():
         forecast = 0.0
 
     summary_cards = [
-        {"label": "Total Cost (MTD)", "value": f"{mtd_total:.2f}", "status": "info"},
-        {"label": "Forecast (EOM)", "value": f"{forecast:.2f}", "status": "warning"},
+        {"label": "Total Cost (MTD)", "value": "Protected", "status": "info"},
+        {"label": "Forecast (EOM)", "value": "Protected", "status": "warning"},
         {"label": "Potential Savings", "value": f"{get_potential_savings():.2f}", "status": "healthy"},
         {"label": "CUD Coverage", "value": "N/A", "status": "info"}
     ]
@@ -932,6 +943,23 @@ def get_cached_finops_data():
         "potentialSavings": get_potential_savings(),
         "quote": random.choice(load_quotes())
     }
+
+
+def protect_dashboard_summary_cards(cards):
+    """Redact protected summary values for the public dashboard endpoint."""
+    protected_labels = {"CPU", "Memory", "Disk", "Estimated Cost"}
+    protected_cards = []
+    for card in cards:
+        if card.get("label") in protected_labels:
+            protected_cards.append({
+                **card,
+                "value": "Protected",
+                "status": "info"
+            })
+        else:
+            protected_cards.append(card)
+    return protected_cards
+
 
 # -------------------------------
 # HTTP Request Handler
@@ -1063,7 +1091,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
             try:
                 data = build_dashboard_data()
                 summary = {
-                    "summaryCards": data.get("summaryCards", []),
+                    "summaryCards": protect_dashboard_summary_cards(data.get("summaryCards", [])),
                     "meta": data.get("meta", {}),
                     "systemLoad": data.get("systemLoad"),
                     "protected": True

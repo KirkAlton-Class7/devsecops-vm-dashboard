@@ -55,9 +55,9 @@ The Terraform stack can manage:
 
 Certificate private keys are intentionally **not** managed directly by Terraform. Certbot stores them on the VM under `/etc/letsencrypt`.
 
-Dashboard Basic Auth secrets are also intentionally **not** stored in Git or Terraform state. Store the password in GCP Secret Manager, then let the VM fetch it during bootstrap.
+Dashboard Basic Auth secrets are also intentionally **not** stored in Git or Terraform state. Store the DevSecOps and FinOps credentials in GCP Secret Manager, then let the VM fetch them during bootstrap.
 
-The dashboard remembers successful sign-in for the current browser session so refreshes do not repeatedly prompt for credentials.
+DevSecOps and FinOps sign-ins are separate. The dashboard remembers successful sign-in for the current browser session so refreshes do not repeatedly prompt for credentials.
 
 Terraform setup docs:
 
@@ -73,9 +73,9 @@ Terraform setup docs:
   * `/healthz` – health check
   * `/metadata` – protected instance info
   * `/api/dashboard/summary` – public DevSecOps summary cards
-  * `/api/dashboard` – protected infra metrics
+  * `/api/dashboard` – protected infra metrics and estimated VM cost
   * `/api/finops/summary` – public FinOps summary cards
-  * `/api/finops` – protected cost + optimization data
+  * `/api/finops` – separately protected cost + optimization data
   * `/api/config` – static API settings
   * `/api/logs` – protected paginated journal logs with `limit`, `offset`, and optional `minutes`
 

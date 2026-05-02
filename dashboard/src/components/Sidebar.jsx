@@ -38,27 +38,48 @@ export default function Sidebar({
   const [isOpen, setIsOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(navItems[0]?.id || "overview");
   const scrollLockRef = useRef(false);
+  const activeSectionRef = useRef(activeSection);
+  const frameRef = useRef(null);
   const collapsedClass = isCollapsed ? "w-72 xl:w-20" : "w-72";
 
   const ENABLE_CUSTOM_OFFSET = true;
   const CUSTOM_OFFSET_PX = 70;
 
   useEffect(() => {
-    const handleScroll = () => {
+    activeSectionRef.current = activeSection;
+  }, [activeSection]);
+
+  useEffect(() => {
+    const updateActiveSection = () => {
+      frameRef.current = null;
       if (scrollLockRef.current) return;
       const sections = navItems.map(item => item.id);
       const scrollPosition = window.scrollY + 100;
       for (const section of sections.reverse()) {
         const element = document.getElementById(section);
         if (element && element.offsetTop <= scrollPosition) {
-          setActiveSection(section);
+          if (activeSectionRef.current !== section) {
+            activeSectionRef.current = section;
+            setActiveSection(section);
+          }
           break;
         }
       }
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [navItems]); // depend on navItems
+
+    const handleScroll = () => {
+      if (frameRef.current !== null) return;
+      frameRef.current = requestAnimationFrame(updateActiveSection);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    updateActiveSection();
+
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [navItems]);
 
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
@@ -106,7 +127,7 @@ export default function Sidebar({
             animate={{ x: 0 }}
             exit={{ x: -300 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className={`fixed top-0 left-0 h-full ${collapsedClass} bg-gradient-to-b from-slate-900/95 to-slate-950/95 backdrop-blur-xl border-r border-white/10 shadow-2xl z-30 xl:block overflow-y-auto overflow-x-hidden transition-[width] duration-300`}
+            className={`fixed top-0 left-0 h-full ${collapsedClass} bg-gradient-to-b from-slate-900/95 to-slate-950/95 border-r border-white/10 shadow-2xl z-30 xl:block overflow-y-auto overflow-x-hidden transition-[width] duration-300 supports-[backdrop-filter]:backdrop-blur-md`}
           >
             <div className="flex flex-col h-full">
               {/* Header */}

@@ -22,7 +22,7 @@ DevSecOps and FinOps modes share the same header copy controls:
 
 Both buttons use the same clipboard handling as widget-level copy actions. If the browser blocks clipboard access, the dashboard opens the Manual Copy modal with the generated snapshot or JSON payload selected. See [API Configuration](./API_CONFIG.md#clipboard-json-payload-structure) for the JSON payload structure.
 
-If protected API access is not unlocked, dashboard snapshot and JSON payload actions open the sign-in modal instead of copying protected data.
+If protected API access is not unlocked, dashboard snapshot and JSON payload actions open the appropriate sign-in modal instead of copying protected data. DevSecOps and FinOps use separate sign-ins.
 
 ---
 
@@ -30,12 +30,13 @@ If protected API access is not unlocked, dashboard snapshot and JSON payload act
 
 * Four interactive summary cards:
 
-  * **CPU Usage** – current percentage with color-coded health status
-  * **Memory Usage** – real-time memory consumption
-  * **Disk Usage** – root partition utilization
-  * **Estimated Cost** – heuristic, cloud-specific running cost (approximate)
+  * **CPU Usage** – protected utilization placeholder until sign-in
+  * **Memory Usage** – protected utilization placeholder until sign-in
+  * **Disk Usage** – protected root partition placeholder until sign-in
+  * **Estimated Cost** – protected VM cost placeholder until DevSecOps sign-in
 
-Before sign-in, these cards remain visible through the public summary endpoint and include a Sign in button for unlocking protected dashboard details.
+Before sign-in, these cards remain visible through the public summary endpoint and include a Sign in button for unlocking protected dashboard details. CPU, Memory, Disk, and Estimated Cost display `Protected` in the locked state.
+CPU, Memory, and Disk also show `Utilization: Redacted` and an `Active` indicator instead of percentage bars. After DevSecOps sign-in, CPU, Memory, Disk, and Estimated Cost return to live values with their normal color-coded status bars.
 
 ![DevSecOps summary cards showing CPU memory disk and estimated cost status](assets/06_devsecops_summary_cards.png)
 
@@ -282,15 +283,16 @@ To enable, press `F` or click the **FinOps** button.
 
 ### Core Widgets
 
-* **Total Cost (MTD)** – month-to-date spend (BigQuery)
+* **Total Cost (MTD)** – protected month-to-date cost placeholder
 
-* **Forecast (EOM)** – projected end-of-month cost
+* **Forecast (EOM)** – protected end-of-month forecast placeholder
 
 * **Potential Savings** – estimated savings from rightsizing
 
 * **CUD Coverage** – placeholder (coming soon)
 
-Before sign-in, FinOps summary cards remain visible through the public summary endpoint and include a Sign in button for unlocking protected cost, utilization, recommendation, and idle-resource details.
+Before FinOps sign-in, FinOps summary cards remain visible through the public summary endpoint and include a Sign in button for unlocking protected cost, utilization, recommendation, and idle-resource details.
+Total Cost MTD, Forecast EOM, Potential Savings, and CUD Coverage display `Protected` in the locked state. Protected summary cards use the lock icon until sign-in, then return to their normal card icons.
 
 * **FinOps summary cards are clickable:**
 
@@ -395,7 +397,7 @@ Quick reference for built-in endpoints:
 
 * `/healthz` – plain text health check
 * `/metadata` – protected VM metadata + health JSON
-* `/api/dashboard/summary` – public DevSecOps summary cards
+* `/api/dashboard/summary` – public DevSecOps summary cards with protected utilization values redacted
 * `/api/dashboard` – protected DevSecOps data
 * `/api/finops/summary` – public FinOps summary cards
 * `/api/finops` – protected FinOps data
@@ -410,7 +412,7 @@ The frontend Monitoring Endpoints card is part of the protected dashboard detail
 | ---------------- | ------ | ------------------------------------------------ |
 | `/healthz`       | GET    | Returns `ok` for Nginx/service health checks     |
 | `/metadata`      | GET    | Returns protected GCP VM identity, network, location, and health data |
-| `/api/dashboard/summary` | GET | Returns public DevSecOps summary cards |
+| `/api/dashboard/summary` | GET | Returns public DevSecOps summary cards with protected CPU, Memory, Disk, and Estimated Cost values |
 | `/api/dashboard` | GET    | Returns protected DevSecOps dashboard data       |
 | `/api/finops/summary` | GET | Returns public FinOps summary cards |
 | `/api/finops`    | GET    | Returns protected FinOps cost, budget, and recommendation data |

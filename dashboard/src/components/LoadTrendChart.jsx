@@ -4,10 +4,19 @@ import { Gauge, TrendingUp, Activity } from "lucide-react";
 import Card from "./Card";
 import { buildSystemLoadTrendSnapshot } from "../utils/widgetSnapshots";
 
-export default function LoadTrendChart({ authHeaders = {}, onCopyFailure, onCopySuccess }) {
+export default function LoadTrendChart({ authHeaders = {}, fetchEnabled = true, initialLoad, onCopyFailure, onCopySuccess }) {
   const [historicalLoad, setHistoricalLoad] = useState([0.45, 0.52, 0.48, 0.61, 0.55, 0.49, 0.58, 0.62, 0.51, 0.47]);
-  const [currentLoad, setCurrentLoad] = useState("0.00");
+  const [currentLoad, setCurrentLoad] = useState(() => {
+    const loadValue = parseFloat(initialLoad);
+    return Number.isFinite(loadValue) ? loadValue.toFixed(2) : "0.00";
+  });
   const [maxLoad, setMaxLoad] = useState(2.0); // Scale up to 2.0 for the chart
+
+  useEffect(() => {
+    if (fetchEnabled) return;
+    const loadValue = parseFloat(initialLoad);
+    if (Number.isFinite(loadValue)) setCurrentLoad(loadValue.toFixed(2));
+  }, [fetchEnabled, initialLoad]);
 
   // Fetch metrics to update historical data
   const fetchMetrics = async () => {
@@ -35,10 +44,11 @@ export default function LoadTrendChart({ authHeaders = {}, onCopyFailure, onCopy
 
   // Fetch immediately and then every 10 seconds
   useEffect(() => {
+    if (!fetchEnabled) return undefined;
     fetchMetrics();
     const interval = setInterval(fetchMetrics, 10000); // Changed from 30000 to 10000
     return () => clearInterval(interval);
-  }, [authHeaders]);
+  }, [authHeaders, fetchEnabled]);
 
   const getLoadStatus = (load) => {
     if (load < 0.7) return "healthy";

@@ -81,7 +81,7 @@ The Terraform deployment can coordinate:
 - firewall rules for `80` and `443`
 - GCP service account and IAM roles
 - AWS Route 53 `A` record
-- instance metadata for the dashboard hostname and Let’s Encrypt email
+- instance metadata for the dashboard hostname, Let’s Encrypt email, and DevSecOps/FinOps Secret Manager IDs
 
 The VM startup script then:
 
@@ -139,23 +139,74 @@ VITE_GITHUB_URL="https://github.com/KirkAlton-Class7"
 VITE_LINKEDIN_URL="https://www.linkedin.com/in/kirkcochranjr/"
 ```
 
-Protected dashboard credentials should come from GCP Secret Manager for production:
+Protected credentials should come from GCP Secret Manager for production. DevSecOps and FinOps use separate Basic Auth pairs:
 
 ```bash
-gcloud secrets create vm-dashboard-auth-username \
+gcloud secrets create vm-dashboard-dev-username \
   --replication-policy="automatic"
 
 printf '%s' 'dashboard' | \
-  gcloud secrets versions add vm-dashboard-auth-username --data-file=-
+  gcloud secrets versions add vm-dashboard-dev-username --data-file=-
 
-gcloud secrets create vm-dashboard-auth-password \
+gcloud secrets create vm-dashboard-dev-password \
   --replication-policy="automatic"
 
 printf '%s' 'use-a-long-unique-password' | \
-  gcloud secrets versions add vm-dashboard-auth-password --data-file=-
+  gcloud secrets versions add vm-dashboard-dev-password --data-file=-
+
+gcloud secrets create vm-dashboard-finops-username \
+  --replication-policy="automatic"
+
+printf '%s' 'finops' | \
+  gcloud secrets versions add vm-dashboard-finops-username --data-file=-
+
+gcloud secrets create vm-dashboard-finops-password \
+  --replication-policy="automatic"
+
+printf '%s' 'use-a-different-long-unique-password' | \
+  gcloud secrets versions add vm-dashboard-finops-password --data-file=-
 ```
 
-Terraform passes the secret IDs to the VM as metadata. The bootstrap fetches the secret values at runtime and writes only a hashed password to Nginx.
+Terraform passes the secret IDs to the VM as metadata. The bootstrap fetches the secret values at runtime and writes only hashed password files to Nginx.
+
+Manage the Secret Manager notification topic outside Terraform so it stays coupled to the secrets and survives `terraform destroy`:
+
+```bash
+gcloud services enable pubsub.googleapis.com secretmanager.googleapis.com
+
+gcloud pubsub topics create vm-dashboard-secret-events
+
+PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)")"
+
+gcloud beta services identity create \
+  --service="secretmanager.googleapis.com" \
+  --project="${PROJECT_ID}"
+
+gcloud pubsub topics add-iam-policy-binding vm-dashboard-secret-events \
+  --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-secretmanager.iam.gserviceaccount.com" \
+  --role="roles/pubsub.publisher"
+
+NEXT_ROTATION="$(date -u -v+90d '+%Y-%m-%dT%H:%M:%SZ')"
+
+for SECRET_ID in \
+  vm-dashboard-dev-username \
+  vm-dashboard-dev-password \
+  vm-dashboard-finops-username \
+  vm-dashboard-finops-password
+do
+  gcloud secrets update "${SECRET_ID}" \
+    --add-topics="projects/${PROJECT_ID}/topics/vm-dashboard-secret-events"
+done
+
+for SECRET_ID in vm-dashboard-dev-password vm-dashboard-finops-password
+do
+  gcloud secrets update "${SECRET_ID}" \
+    --next-rotation-time="${NEXT_ROTATION}" \
+    --rotation-period="7776000s"
+done
+```
+
+The topic ID is `vm-dashboard-secret-events`. Secret Manager uses the full topic resource path: `projects/${PROJECT_ID}/topics/vm-dashboard-secret-events`.
 
 > [!NOTE]
 > Do not edit below the configuration block unless you know what you are doing.
@@ -225,7 +276,7 @@ curl -s http://127.0.0.1:8080/api/finops | jq '.summaryCards'
 ```
 > [!NOTE]
 > Expected result: a JSON array with four summary cards: Total Cost MTD, Forecast EOM, Potential Savings, and CUD Coverage.
-> Values may be `"0.00"` if no data is available yet. If you see `"Error building FinOps data"`, check the API logs with `sudo journalctl -u dashboard-api.service -n 50`. This often indicates missing IAM roles or an unconfigured BigQuery export.
+> Total Cost MTD and Forecast EOM display `"Protected"` in the summary cards. If you see `"Error building FinOps data"`, check the API logs with `sudo journalctl -u dashboard-api.service -n 50`. This often indicates missing IAM roles or an unconfigured BigQuery export.
 
 ```bash
 curl -s "http://127.0.0.1:8080/api/logs?limit=5&offset=0&minutes=10" | jq '.logs[0]'
@@ -235,7 +286,7 @@ curl -s "http://127.0.0.1:8080/api/logs?limit=5&offset=0&minutes=10" | jq '.logs
 > Log timestamps are emitted as ISO 8601 UTC strings, such as `2026-04-27T14:58:42Z`. The React UI formats them for local display.
 
 > [!NOTE]
-> These local API tests run directly against `127.0.0.1:8080` and bypass Nginx. Public browser traffic goes through Nginx and requires the dashboard username/password for protected endpoints.
+> These local API tests run directly against `127.0.0.1:8080` and bypass Nginx. Public browser traffic goes through Nginx and requires the DevSecOps or FinOps username/password for protected endpoints.
 
 ### Verify Copy and Snapshot Controls
 

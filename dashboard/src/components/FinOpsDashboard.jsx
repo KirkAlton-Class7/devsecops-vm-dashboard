@@ -18,7 +18,6 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import StatCard from "./StatCard";
 import Card from "./Card";
-import LockedPanel from "./LockedPanel";
 import ResourceTable from "./ResourceTable";
 import CostTrendChart from "./CostTrendChart";
 import BudgetCard from "./BudgetCard";
@@ -470,8 +469,6 @@ export default function FinOpsDashboard({
   onCopySnapshot,
   onCopyJsonSnapshot,
   authHeaders = {},
-  isAuthenticated = false,
-  onAuthRequired,
 }) {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -524,10 +521,9 @@ export default function FinOpsDashboard({
   useEffect(() => {
     async function fetchFinOpsData() {
       try {
-        const endpoint = isAuthenticated ? "/api/finops" : "/api/finops/summary";
-        const res = await fetch(endpoint, {
+        const res = await fetch("/api/finops", {
           cache: "no-store",
-          headers: isAuthenticated ? authHeaders : {},
+          headers: authHeaders,
         });
 
         if (!res.ok) {
@@ -546,14 +542,12 @@ export default function FinOpsDashboard({
           idleResources: json.idleResources || [],
           quote: json.quote,
         });
-        if (isAuthenticated) {
-          hasLiveFinOpsRef.current = true;
-          setCpuFilters({});
-          setRightsizingFilters({});
-          setCpuSearch("");
-          setRightsizingSearch("");
-          setFinOpsRefreshKey((current) => current + 1);
-        }
+        hasLiveFinOpsRef.current = true;
+        setCpuFilters({});
+        setRightsizingFilters({});
+        setCpuSearch("");
+        setRightsizingSearch("");
+        setFinOpsRefreshKey((current) => current + 1);
         setFinOpsDiagnostics([]);
       } catch (err) {
         console.error("FinOps API error, using mock data:", err);
@@ -576,7 +570,7 @@ export default function FinOpsDashboard({
     const interval = setInterval(fetchFinOpsData, 600000);  // 10 minutes
 
     return () => clearInterval(interval);
-  }, [authHeaders, isAuthenticated]);
+  }, [authHeaders]);
 
   if (isLoading) {
     return (
@@ -775,36 +769,14 @@ export default function FinOpsDashboard({
                 projectId={data.identity?.project || ""}
                 billingAccountId={data.identity?.billingAccountId || ""}
                 monthlyBudget={monthlyBudget}
-                requiresAuth={!isAuthenticated}
-                onSignIn={() => onAuthRequired?.("Sign in to view protected FinOps data.")}
               />
             ))}
           </section>
 
-          {!isAuthenticated && (
-            <section
-              id="ambience"
-              className="grid grid-cols-1 gap-6 md:grid-cols-2"
-            >
-              <div className="space-y-6">
-                <QuoteCard
-                  quote={featuredQuote}
-                  onCopyFailure={onCopyFailure}
-                  onCopySuccess={onCopySuccess}
-                />
-                <NetworkParticles />
-              </div>
-
-              <ImageGallery onCopyFailure={onCopyFailure} onCopySuccess={onCopySuccess} />
-            </section>
-          )}
-
-          {isAuthenticated ? (
-            <>
-              <section
-                id="cost-trends"
-                className="grid grid-cols-1 gap-6 lg:grid-cols-2"
-              >
+          <section
+            id="cost-trends"
+            className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+          >
                 <CostTrendChart
                   title={
                     <WidgetTitle icon={BarChart3} tone="cyan">
@@ -829,12 +801,12 @@ export default function FinOpsDashboard({
                   onCopyFailure={onCopyFailure}
                   onCopySuccess={onCopySuccess}
                 />
-              </section>
+          </section>
 
-              <section
-                id="ambience"
-                className="grid grid-cols-1 gap-6 md:grid-cols-2"
-              >
+          <section
+            id="ambience"
+            className="grid grid-cols-1 gap-6 md:grid-cols-2"
+          >
                 <div className="space-y-6">
                   <QuoteCard
                     quote={featuredQuote}
@@ -845,7 +817,7 @@ export default function FinOpsDashboard({
                 </div>
 
                 <ImageGallery onCopyFailure={onCopyFailure} onCopySuccess={onCopySuccess} />
-              </section>
+          </section>
 
               {data.budgets && data.budgets.length > 0 && (
                 <section id="budgets">
@@ -1019,36 +991,6 @@ export default function FinOpsDashboard({
                   snapshotLabel="Idle Resources snapshot"
                 />
               </section>
-            </>
-          ) : (
-            <section id="finops-protected" className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <LockedPanel
-                title="Cost Details"
-                message="Cost details not enabled. Sign in to view."
-                onSignIn={() => onAuthRequired?.("Sign in to view FinOps cost details.")}
-              />
-              <LockedPanel
-                title="Budgets"
-                message="Budgets not enabled. Sign in to view."
-                onSignIn={() => onAuthRequired?.("Sign in to view budgets.")}
-              />
-              <LockedPanel
-                title="VM Utilization"
-                message="VM utilization not enabled. Sign in to view."
-                onSignIn={() => onAuthRequired?.("Sign in to view VM utilization.")}
-              />
-              <LockedPanel
-                title="Rightsizing Recommendations"
-                message="Rightsizing recommendations not enabled. Sign in to view."
-                onSignIn={() => onAuthRequired?.("Sign in to view rightsizing recommendations.")}
-              />
-              <LockedPanel
-                title="Idle Resources"
-                message="Idle resources not enabled. Sign in to view."
-                onSignIn={() => onAuthRequired?.("Sign in to view idle resources.")}
-              />
-            </section>
-          )}
         </main>
       </div>
 

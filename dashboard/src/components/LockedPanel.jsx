@@ -2,7 +2,7 @@ import { LockKeyhole } from "lucide-react";
 
 export default function LockedPanel({
   title = "Protected section",
-  message = "Protected data is not enabled. Sign in to view.",
+  message = "Protected data is protected. Sign in to view.",
   onSignIn,
 }) {
   return (

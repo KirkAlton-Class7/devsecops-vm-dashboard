@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   BarChart,
   Bar,
@@ -45,7 +46,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-export default function CostBreakdownChart({
+function CostBreakdownChart({
   data,
   title = "Cost by Service",
   dataKey = "value",
@@ -126,3 +127,5 @@ export default function CostBreakdownChart({
     </Card>
   );
 }
+
+export default memo(CostBreakdownChart);

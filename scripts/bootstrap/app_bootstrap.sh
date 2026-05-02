@@ -7,10 +7,19 @@ DASHBOARD_APP_NAME="GCP Deployment"
 DASHBOARD_TAGLINE="Infrastructure health and activity"
 DASHBOARD_USER="Kirk Alton"
 DASHBOARD_NAME="DevSecOps Dashboard"
-DASHBOARD_AUTH_USER="${DASHBOARD_AUTH_USER:-dashboard}"
-DASHBOARD_AUTH_PASSWORD="${DASHBOARD_AUTH_PASSWORD:-}"
-DASHBOARD_AUTH_USER_SECRET_ID="${DASHBOARD_AUTH_USER_SECRET_ID:-}"
-DASHBOARD_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_AUTH_PASSWORD_SECRET_ID:-}"
+
+# -------------------------------
+# Dashboard credentials
+# -------------------------------
+DASHBOARD_DEV_AUTH_USER="${DASHBOARD_DEV_AUTH_USER:-${DASHBOARD_AUTH_USER:-dashboard}}"
+DASHBOARD_DEV_AUTH_PASSWORD="${DASHBOARD_DEV_AUTH_PASSWORD:-${DASHBOARD_AUTH_PASSWORD:-}}"
+DASHBOARD_DEV_AUTH_USER_SECRET_ID="${DASHBOARD_DEV_AUTH_USER_SECRET_ID:-${DASHBOARD_AUTH_USER_SECRET_ID:-}}"
+DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID:-${DASHBOARD_AUTH_PASSWORD_SECRET_ID:-}}"
+
+DASHBOARD_FINOPS_AUTH_USER="${DASHBOARD_FINOPS_AUTH_USER:-finops}"
+DASHBOARD_FINOPS_AUTH_PASSWORD="${DASHBOARD_FINOPS_AUTH_PASSWORD:-}"
+DASHBOARD_FINOPS_AUTH_USER_SECRET_ID="${DASHBOARD_FINOPS_AUTH_USER_SECRET_ID:-}"
+DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID:-}"
 
 # ---------------------------------
 # React build link configuration
@@ -165,18 +174,27 @@ read_secret_manager_value() {
 
 resolve_auth_credentials() {
   local xtrace_was_on=0
-  local project_id metadata_user_secret metadata_password_secret
+  local project_id
+  local metadata_dev_user_secret metadata_dev_password_secret
+  local metadata_finops_user_secret metadata_finops_password_secret
 
   case "$-" in
     *x*) xtrace_was_on=1; set +x ;;
   esac
 
-  metadata_user_secret="$(metadata_attr dashboard-auth-user-secret)"
-  metadata_password_secret="$(metadata_attr dashboard-auth-password-secret)"
-  DASHBOARD_AUTH_USER_SECRET_ID="${DASHBOARD_AUTH_USER_SECRET_ID:-$metadata_user_secret}"
-  DASHBOARD_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_AUTH_PASSWORD_SECRET_ID:-$metadata_password_secret}"
+  metadata_dev_user_secret="$(metadata_attr dashboard-dev-auth-user-secret)"
+  metadata_dev_password_secret="$(metadata_attr dashboard-dev-auth-password-secret)"
+  metadata_finops_user_secret="$(metadata_attr dashboard-finops-auth-user-secret)"
+  metadata_finops_password_secret="$(metadata_attr dashboard-finops-auth-password-secret)"
 
-  if [ -n "$DASHBOARD_AUTH_USER_SECRET_ID" ] || [ -n "$DASHBOARD_AUTH_PASSWORD_SECRET_ID" ]; then
+  # Backward-compatible metadata names map to the DevSecOps login.
+  DASHBOARD_DEV_AUTH_USER_SECRET_ID="${DASHBOARD_DEV_AUTH_USER_SECRET_ID:-${metadata_dev_user_secret:-$(metadata_attr dashboard-auth-user-secret)}}"
+  DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID:-${metadata_dev_password_secret:-$(metadata_attr dashboard-auth-password-secret)}}"
+  DASHBOARD_FINOPS_AUTH_USER_SECRET_ID="${DASHBOARD_FINOPS_AUTH_USER_SECRET_ID:-$metadata_finops_user_secret}"
+  DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID:-$metadata_finops_password_secret}"
+
+  if [ -n "$DASHBOARD_DEV_AUTH_USER_SECRET_ID" ] || [ -n "$DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID" ] || \
+     [ -n "$DASHBOARD_FINOPS_AUTH_USER_SECRET_ID" ] || [ -n "$DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID" ]; then
     log "Secret Manager credential lookup enabled"
     project_id="$(metadata_project_id)"
     if [ -z "$project_id" ]; then
@@ -185,28 +203,48 @@ resolve_auth_credentials() {
       return 1
     fi
 
-    if [ -n "$DASHBOARD_AUTH_USER_SECRET_ID" ]; then
-      if ! DASHBOARD_AUTH_USER="$(read_secret_manager_value "$DASHBOARD_AUTH_USER_SECRET_ID" "$project_id")"; then
+    if [ -n "$DASHBOARD_DEV_AUTH_USER_SECRET_ID" ]; then
+      if ! DASHBOARD_DEV_AUTH_USER="$(read_secret_manager_value "$DASHBOARD_DEV_AUTH_USER_SECRET_ID" "$project_id")"; then
         [ "$xtrace_was_on" -eq 1 ] && set -x
         return 1
       fi
     fi
 
-    if [ -n "$DASHBOARD_AUTH_PASSWORD_SECRET_ID" ]; then
-      if ! DASHBOARD_AUTH_PASSWORD="$(read_secret_manager_value "$DASHBOARD_AUTH_PASSWORD_SECRET_ID" "$project_id")"; then
+    if [ -n "$DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID" ]; then
+      if ! DASHBOARD_DEV_AUTH_PASSWORD="$(read_secret_manager_value "$DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID" "$project_id")"; then
+        [ "$xtrace_was_on" -eq 1 ] && set -x
+        return 1
+      fi
+    fi
+
+    if [ -n "$DASHBOARD_FINOPS_AUTH_USER_SECRET_ID" ]; then
+      if ! DASHBOARD_FINOPS_AUTH_USER="$(read_secret_manager_value "$DASHBOARD_FINOPS_AUTH_USER_SECRET_ID" "$project_id")"; then
+        [ "$xtrace_was_on" -eq 1 ] && set -x
+        return 1
+      fi
+    fi
+
+    if [ -n "$DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID" ]; then
+      if ! DASHBOARD_FINOPS_AUTH_PASSWORD="$(read_secret_manager_value "$DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID" "$project_id")"; then
         [ "$xtrace_was_on" -eq 1 ] && set -x
         return 1
       fi
     fi
   fi
 
-  if [ -z "$DASHBOARD_AUTH_USER" ] || [ -z "$DASHBOARD_AUTH_PASSWORD" ]; then
-    log "ERROR: Dashboard Basic Auth username and password must be provided by Secret Manager or environment variables"
+  if [ -z "$DASHBOARD_DEV_AUTH_USER" ] || [ -z "$DASHBOARD_DEV_AUTH_PASSWORD" ]; then
+    log "ERROR: DevSecOps Basic Auth username and password must be provided by Secret Manager or environment variables"
     [ "$xtrace_was_on" -eq 1 ] && set -x
     return 1
   fi
 
-  log "Protected dashboard credentials resolved"
+  if [ -z "$DASHBOARD_FINOPS_AUTH_USER" ] || [ -z "$DASHBOARD_FINOPS_AUTH_PASSWORD" ]; then
+    log "ERROR: FinOps Basic Auth username and password must be provided by Secret Manager or environment variables"
+    [ "$xtrace_was_on" -eq 1 ] && set -x
+    return 1
+  fi
+
+  log "Protected DevSecOps and FinOps credentials resolved"
   [ "$xtrace_was_on" -eq 1 ] && set -x
 }
 
@@ -493,18 +531,21 @@ systemctl stop nginx || true
 rm -f /etc/nginx/sites-enabled/*
 rm -f /etc/nginx/sites-available/default
 
-AUTH_FILE="/etc/nginx/.${APP_NAME}.htpasswd"
+DEV_AUTH_FILE="/etc/nginx/.${APP_NAME}-dev.htpasswd"
+FINOPS_AUTH_FILE="/etc/nginx/.${APP_NAME}-finops.htpasswd"
 XTRACE_WAS_ON=0
 case "$-" in
     *x*) XTRACE_WAS_ON=1; set +x ;;
 esac
-AUTH_HASH="$(openssl passwd -apr1 "${DASHBOARD_AUTH_PASSWORD}")"
-printf '%s:%s\n' "${DASHBOARD_AUTH_USER}" "${AUTH_HASH}" > "${AUTH_FILE}"
+DEV_AUTH_HASH="$(openssl passwd -apr1 "${DASHBOARD_DEV_AUTH_PASSWORD}")"
+FINOPS_AUTH_HASH="$(openssl passwd -apr1 "${DASHBOARD_FINOPS_AUTH_PASSWORD}")"
+printf '%s:%s\n' "${DASHBOARD_DEV_AUTH_USER}" "${DEV_AUTH_HASH}" > "${DEV_AUTH_FILE}"
+printf '%s:%s\n' "${DASHBOARD_FINOPS_AUTH_USER}" "${FINOPS_AUTH_HASH}" > "${FINOPS_AUTH_FILE}"
 if [ "$XTRACE_WAS_ON" -eq 1 ]; then
     set -x
 fi
-chown root:www-data "${AUTH_FILE}" 2>/dev/null || chown root:root "${AUTH_FILE}"
-chmod 640 "${AUTH_FILE}"
+chown root:www-data "${DEV_AUTH_FILE}" "${FINOPS_AUTH_FILE}" 2>/dev/null || chown root:root "${DEV_AUTH_FILE}" "${FINOPS_AUTH_FILE}"
+chmod 640 "${DEV_AUTH_FILE}" "${FINOPS_AUTH_FILE}"
 
 cat > /etc/nginx/conf.d/${APP_NAME}-rate-limit.conf <<'EOF'
 limit_req_zone $binary_remote_addr zone=vm_dashboard_public:10m rate=120r/m;
@@ -519,14 +560,19 @@ server {
     server_name _;
     root ${APP_DIR};
     index index.html;
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_vary on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml image/svg+xml;
     location = /healthz {
         access_log off;
         return 200 'ok\n';
         add_header Content-Type text/plain;
     }
     location = /metadata {
-        auth_basic "VM Dashboard Protected Data";
-        auth_basic_user_file ${AUTH_FILE};
+        auth_basic "VM Dashboard DevSecOps Data";
+        auth_basic_user_file ${DEV_AUTH_FILE};
         limit_req zone=vm_dashboard_protected burst=10 nodelay;
         proxy_pass http://127.0.0.1:8080/metadata;
         proxy_set_header Host \$host;
@@ -548,8 +594,8 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
     location = /api/dashboard {
-        auth_basic "VM Dashboard Protected Data";
-        auth_basic_user_file ${AUTH_FILE};
+        auth_basic "VM Dashboard DevSecOps Data";
+        auth_basic_user_file ${DEV_AUTH_FILE};
         limit_req zone=vm_dashboard_protected burst=10 nodelay;
         proxy_pass http://127.0.0.1:8080/api/dashboard;
         proxy_set_header Host \$host;
@@ -557,8 +603,8 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
     location = /api/finops {
-        auth_basic "VM Dashboard Protected Data";
-        auth_basic_user_file ${AUTH_FILE};
+        auth_basic "VM Dashboard FinOps Data";
+        auth_basic_user_file ${FINOPS_AUTH_FILE};
         limit_req zone=vm_dashboard_protected burst=10 nodelay;
         proxy_pass http://127.0.0.1:8080/api/finops;
         proxy_set_header Host \$host;
@@ -566,8 +612,8 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
     location /api/logs {
-        auth_basic "VM Dashboard Protected Data";
-        auth_basic_user_file ${AUTH_FILE};
+        auth_basic "VM Dashboard DevSecOps Data";
+        auth_basic_user_file ${DEV_AUTH_FILE};
         limit_req zone=vm_dashboard_protected burst=10 nodelay;
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host \$host;
@@ -586,6 +632,10 @@ server {
         add_header Access-Control-Allow-Origin *;
         add_header Cache-Control "no-store";
         types { image/webp webp; image/jpeg jpg jpeg; image/png png; }
+    }
+    location /assets/ {
+        try_files \$uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable";
     }
     location / {
         try_files \$uri \$uri/ /index.html;

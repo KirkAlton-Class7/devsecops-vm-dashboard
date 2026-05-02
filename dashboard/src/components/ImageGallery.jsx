@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
+import { memo, useState, useEffect, useRef } from "react";
 import { RefreshCw, Heart, ChevronLeft, ChevronRight, ImageOff, Plane, X, Home, Info, Copy, Check } from "lucide-react";
 import { createPortal } from "react-dom";
 import Card from "./Card";
@@ -14,7 +14,7 @@ const shuffleArray = (array) => {
   return shuffled;
 };
 
-export default function ImageGallery({ onCopyFailure, onCopySuccess }) {
+function ImageGallery({ onCopyFailure, onCopySuccess }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedImageIds, setLikedImageIds] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -241,6 +241,8 @@ Image: ${imageUrl || "N/A"}`;
                   <img
                     src={imageUrl}
                     alt={currentImage.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                     onError={() => setImageError(true)}
                     onLoad={handleImageLoad}
@@ -461,3 +463,5 @@ Image: ${imageUrl || "N/A"}`;
     </>
   );
 }
+
+export default memo(ImageGallery);

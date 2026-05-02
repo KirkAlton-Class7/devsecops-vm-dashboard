@@ -278,26 +278,84 @@ The bootstrap configures Nginx Basic Auth for protected dashboard data:
 | `/api/dashboard/summary` | `/api/finops` |
 | `/api/finops/summary` | `/api/logs` |
 
-The public summary endpoints allow the top dashboard cards to render before sign-in. The full DevSecOps dashboard, FinOps details, logs, and VM metadata require the dashboard username/password.
+The public summary endpoints allow the top dashboard cards to render before sign-in. DevSecOps and FinOps use separate Basic Auth credentials so a DevSecOps login can unlock VM health, logs, and estimated VM cost without also unlocking FinOps cost-optimization details.
 
-For production Terraform deployments, the password should live in GCP Secret Manager. Terraform passes only the Secret Manager secret ID to VM metadata:
+| Protected route | Credential pair |
+| --- | --- |
+| `/api/dashboard`, `/api/logs`, `/metadata` | DevSecOps username/password |
+| `/api/finops` | FinOps username/password |
+
+For production Terraform deployments, passwords should live in GCP Secret Manager. Terraform passes only Secret Manager secret IDs to VM metadata:
 
 | Metadata key | Purpose |
 | --- | --- |
-| `dashboard-auth-user-secret` | Optional Secret Manager secret ID/resource path for the username |
-| `dashboard-auth-password-secret` | Secret Manager secret ID/resource path for the password |
+| `dashboard-dev-auth-user-secret` | Secret Manager secret ID/resource path for the DevSecOps username |
+| `dashboard-dev-auth-password-secret` | Secret Manager secret ID/resource path for the DevSecOps password |
+| `dashboard-finops-auth-user-secret` | Secret Manager secret ID/resource path for the FinOps username |
+| `dashboard-finops-auth-password-secret` | Secret Manager secret ID/resource path for the FinOps password |
 
-The VM service account needs `roles/secretmanager.secretAccessor`. The bootstrap fetches the secret value at runtime and writes only the hashed credential file for Nginx.
+The VM service account needs `roles/secretmanager.secretAccessor`. The bootstrap fetches the secret values at runtime and writes only local hashed credential files for Nginx.
 
-Secret Manager is not queried on every browser request. It is read during VM bootstrap, then Nginx authenticates requests against the local hashed credential file.
+Secret Manager is not queried on every browser request. It is read during VM bootstrap, then Nginx authenticates requests against `/etc/nginx/.vm-dashboard-dev.htpasswd` and `/etc/nginx/.vm-dashboard-finops.htpasswd`.
 
-By default, Terraform expects the password secret ID to be `vm-dashboard-auth-password` and uses the fallback username `dashboard`. To store the username in Secret Manager too, set:
+By default, Terraform expects these manually managed secret IDs:
+
+| Terraform variable | Default secret ID |
+| --- | --- |
+| `dashboard_dev_auth_user_secret_id` | `vm-dashboard-dev-username` |
+| `dashboard_dev_auth_password_secret_id` | `vm-dashboard-dev-password` |
+| `dashboard_finops_auth_user_secret_id` | `vm-dashboard-finops-username` |
+| `dashboard_finops_auth_password_secret_id` | `vm-dashboard-finops-password` |
+
+### External Secret Rotation Alert Topic
+
+The Secret Manager notification topic should be managed outside Terraform, alongside the manually managed Secret Manager secrets. This keeps event notifications and password rotation reminders intact if the dashboard infrastructure is destroyed.
+
+Create or reuse the topic and grant the Secret Manager service agent publisher access:
 
 ```bash
-terraform apply \
-  -var="dashboard_auth_user_secret_id=vm-dashboard-auth-username" \
-  -var="dashboard_auth_password_secret_id=vm-dashboard-auth-password"
+PROJECT_ID="$(gcloud config get-value project)"
+PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)")"
+
+gcloud services enable pubsub.googleapis.com secretmanager.googleapis.com
+
+gcloud beta services identity create \
+  --service="secretmanager.googleapis.com" \
+  --project="${PROJECT_ID}"
+
+gcloud pubsub topics create vm-dashboard-secret-events
+
+gcloud pubsub topics add-iam-policy-binding vm-dashboard-secret-events \
+  --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-secretmanager.iam.gserviceaccount.com" \
+  --role="roles/pubsub.publisher"
 ```
+
+Attach all four auth secrets to the topic. Configure a 90-day rotation schedule only on the password secrets:
+
+```bash
+NEXT_ROTATION="$(date -u -v+90d '+%Y-%m-%dT%H:%M:%SZ')"
+
+for SECRET_ID in \
+  vm-dashboard-dev-username \
+  vm-dashboard-dev-password \
+  vm-dashboard-finops-username \
+  vm-dashboard-finops-password
+do
+  gcloud secrets update "${SECRET_ID}" \
+    --add-topics="projects/${PROJECT_ID}/topics/vm-dashboard-secret-events"
+done
+
+for SECRET_ID in vm-dashboard-dev-password vm-dashboard-finops-password
+do
+  gcloud secrets update "${SECRET_ID}" \
+    --next-rotation-time="${NEXT_ROTATION}" \
+    --rotation-period="7776000s"
+done
+```
+
+`7776000s` is 90 days.
+
+The topic ID is `vm-dashboard-secret-events`. Secret Manager uses the full topic resource path: `projects/${PROJECT_ID}/topics/vm-dashboard-secret-events`.
 
 Nginx also applies request rate limits:
 
@@ -308,7 +366,7 @@ Nginx also applies request rate limits:
 
 Rate-limited requests return HTTP `429 Too Many Requests`.
 
-The frontend sign-in modal sends the user-entered credentials as a Basic Auth header. Credentials are not embedded in the React build or Terraform state.
+The frontend sign-in modal sends the user-entered credentials as a Basic Auth header. DevSecOps and FinOps sessions are stored separately in browser `sessionStorage` for the current browser session. Credentials are not embedded in the React build or Terraform state.
 
 ---
 
@@ -346,6 +404,16 @@ Apply:
 
 ```bash
 terraform apply
+```
+
+Terraform defaults to the standard DevSecOps and FinOps Secret Manager IDs. Override them only if you intentionally use different secret names:
+
+```bash
+terraform apply \
+  -var="dashboard_dev_auth_user_secret_id=vm-dashboard-dev-username" \
+  -var="dashboard_dev_auth_password_secret_id=vm-dashboard-dev-password" \
+  -var="dashboard_finops_auth_user_secret_id=vm-dashboard-finops-username" \
+  -var="dashboard_finops_auth_password_secret_id=vm-dashboard-finops-password"
 ```
 
 If using a named AWS profile:

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
+import { memo, useEffect, useState, useRef } from "react";
 import {
   Server,
   Database,
@@ -324,7 +324,7 @@ const fetchLogsJson = async ({ limit, offset = 0, minutes, authHeaders = {} } = 
   return res.json();
 };
 
-export default function ResourceTable({
+function ResourceTable({
   rows = [],
   title = "Resources",
   subtitle = "Service logs and operational events",
@@ -1342,3 +1342,5 @@ export default function ResourceTable({
     </>
   );
 }
+
+export default memo(ResourceTable);

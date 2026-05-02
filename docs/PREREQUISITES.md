@@ -78,6 +78,7 @@ gcloud services enable \
   monitoring.googleapis.com \
   bigquery.googleapis.com \
   logging.googleapis.com \
+  pubsub.googleapis.com \
   secretmanager.googleapis.com
 ```
 
@@ -85,7 +86,8 @@ gcloud services enable \
 
 > [!NOTE]
 > This step is required once per project. If any API fails, check your project owner permissions.
-> The Terraform snippet in `terraform/02-required-api.tf` enables this same API set.
+> Terraform enables the dashboard infrastructure APIs in `terraform/02-required-api.tf`. Pub/Sub is listed here because the external Secret Manager rotation topic is managed outside Terraform.
+> Secret Manager event notifications use the Google-managed service agent `service-${PROJECT_NUMBER}@gcp-sa-secretmanager.iam.gserviceaccount.com`, which must have `roles/pubsub.publisher` on the external `vm-dashboard-secret-events` topic.
 
 ---
 

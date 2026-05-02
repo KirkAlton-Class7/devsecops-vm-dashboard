@@ -18,10 +18,14 @@ DASHBOARD_APP_NAME="GCP Deployment"
 DASHBOARD_TAGLINE="Infrastructure health and activity"
 DASHBOARD_USER="Kirk Alton"
 DASHBOARD_NAME="DevSecOps Dashboard"
-DASHBOARD_AUTH_USER="${DASHBOARD_AUTH_USER:-dashboard}"
-DASHBOARD_AUTH_PASSWORD="${DASHBOARD_AUTH_PASSWORD:-}"
-DASHBOARD_AUTH_USER_SECRET_ID="${DASHBOARD_AUTH_USER_SECRET_ID:-}"
-DASHBOARD_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_AUTH_PASSWORD_SECRET_ID:-}"
+DASHBOARD_DEV_AUTH_USER="${DASHBOARD_DEV_AUTH_USER:-${DASHBOARD_AUTH_USER:-dashboard}}"
+DASHBOARD_DEV_AUTH_PASSWORD="${DASHBOARD_DEV_AUTH_PASSWORD:-${DASHBOARD_AUTH_PASSWORD:-}}"
+DASHBOARD_DEV_AUTH_USER_SECRET_ID="${DASHBOARD_DEV_AUTH_USER_SECRET_ID:-${DASHBOARD_AUTH_USER_SECRET_ID:-}}"
+DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID:-${DASHBOARD_AUTH_PASSWORD_SECRET_ID:-}}"
+DASHBOARD_FINOPS_AUTH_USER="${DASHBOARD_FINOPS_AUTH_USER:-finops}"
+DASHBOARD_FINOPS_AUTH_PASSWORD="${DASHBOARD_FINOPS_AUTH_PASSWORD:-}"
+DASHBOARD_FINOPS_AUTH_USER_SECRET_ID="${DASHBOARD_FINOPS_AUTH_USER_SECRET_ID:-}"
+DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID="${DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID:-}"
 
 # ---------------------------------
 # Env Variables for React build
@@ -40,10 +44,14 @@ Update these values as needed:
 | `DASHBOARD_TAGLINE`  | Subtitle beneath the app name              | `Live infrastructure insights` |
 | `DASHBOARD_USER`     | Shown in the sidebar (user attribution)    | `Jane Doe`                     |
 | `DASHBOARD_NAME`     | Title of the dashboard (sidebar heading)   | `Ops Center`                   |
-| `DASHBOARD_AUTH_USER` | Fallback username for protected dashboard data | `dashboard`                    |
-| `DASHBOARD_AUTH_PASSWORD` | Fallback password for protected dashboard data | Usually unset                  |
-| `DASHBOARD_AUTH_USER_SECRET_ID` | Optional Secret Manager secret ID/resource path for the username | `vm-dashboard-auth-username` |
-| `DASHBOARD_AUTH_PASSWORD_SECRET_ID` | Secret Manager secret ID/resource path for the password | `vm-dashboard-auth-password` |
+| `DASHBOARD_DEV_AUTH_USER` | Fallback username for protected DevSecOps data | `dashboard` |
+| `DASHBOARD_DEV_AUTH_PASSWORD` | Fallback password for protected DevSecOps data | Usually unset |
+| `DASHBOARD_DEV_AUTH_USER_SECRET_ID` | Secret Manager secret ID/resource path for the DevSecOps username | `vm-dashboard-dev-username` |
+| `DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID` | Secret Manager secret ID/resource path for the DevSecOps password | `vm-dashboard-dev-password` |
+| `DASHBOARD_FINOPS_AUTH_USER` | Fallback username for protected FinOps data | `finops` |
+| `DASHBOARD_FINOPS_AUTH_PASSWORD` | Fallback password for protected FinOps data | Usually unset |
+| `DASHBOARD_FINOPS_AUTH_USER_SECRET_ID` | Secret Manager secret ID/resource path for the FinOps username | `vm-dashboard-finops-username` |
+| `DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID` | Secret Manager secret ID/resource path for the FinOps password | `vm-dashboard-finops-password` |
 | `VITE_GITHUB_URL`    | GitHub link compiled into the React build  | `https://github.com/example`   |
 | `VITE_LINKEDIN_URL`  | LinkedIn link compiled into the React build | `https://www.linkedin.com/in/example/` |
 
@@ -51,23 +59,36 @@ Update these values as needed:
 > `DASHBOARD_*` values are exported for the API service and returned through `/api/dashboard`. `VITE_*` values are read by Vite during `npm run build`, so they require a frontend rebuild.
 
 > [!IMPORTANT]
-> For production, store the dashboard password in **GCP Secret Manager** and pass the secret ID through Terraform metadata. Nginx stores only a hashed password in `/etc/nginx/.vm-dashboard.htpasswd`; the frontend only sends credentials entered by the user and does not embed the password in JavaScript.
+> For production, store DevSecOps and FinOps passwords in **GCP Secret Manager** and pass the secret IDs through Terraform metadata. Nginx stores only local hashed password files; the frontend only sends credentials entered by the user and does not embed passwords in JavaScript.
 
 ### Secret Manager Credentials
 
-The bootstrap resolves Basic Auth credentials in this order:
+The bootstrap resolves DevSecOps and FinOps Basic Auth credentials in this order:
 
 1. Secret Manager secret IDs from environment variables.
 2. Secret Manager secret IDs from VM metadata:
-   - `dashboard-auth-user-secret`
-   - `dashboard-auth-password-secret`
+   - `dashboard-dev-auth-user-secret`
+   - `dashboard-dev-auth-password-secret`
+   - `dashboard-finops-auth-user-secret`
+   - `dashboard-finops-auth-password-secret`
 3. Direct environment variables:
-   - `DASHBOARD_AUTH_USER`
-   - `DASHBOARD_AUTH_PASSWORD`
+   - `DASHBOARD_DEV_AUTH_USER`
+   - `DASHBOARD_DEV_AUTH_PASSWORD`
+   - `DASHBOARD_FINOPS_AUTH_USER`
+   - `DASHBOARD_FINOPS_AUTH_PASSWORD`
 
-`DASHBOARD_AUTH_PASSWORD` must resolve to a non-empty value. The script fails closed if no password is provided.
+Both password values must resolve to non-empty values. The script fails closed if either protected area is missing a password.
 
-Secret Manager is accessed during VM bootstrap only. The script then writes `/etc/nginx/.vm-dashboard.htpasswd` with a hashed credential, and Nginx uses that local file for Basic Auth checks. Browser sign-in attempts do not call Secret Manager.
+Secret Manager is accessed during VM bootstrap only. The script then writes `/etc/nginx/.vm-dashboard-dev.htpasswd` and `/etc/nginx/.vm-dashboard-finops.htpasswd` with hashed credentials, and Nginx uses those local files for Basic Auth checks. Browser sign-in attempts do not call Secret Manager.
+
+The username and password secrets can be created and versioned manually outside Terraform. The current expected secret IDs are:
+
+* `vm-dashboard-dev-username`
+* `vm-dashboard-dev-password`
+* `vm-dashboard-finops-username`
+* `vm-dashboard-finops-password`
+
+The Pub/Sub notification topic should also be managed outside Terraform. Use the topic ID `vm-dashboard-secret-events` and attach all four secrets for event notifications. Configure rotation only on the password secrets so rotation reminders persist with the secrets after dashboard infrastructure is destroyed.
 
 If a VM deployment appears to hang during credential setup, check `/var/log/startup-script.log` for `Secret Manager credential lookup enabled`. Common causes are a missing secret version, `secretmanager.googleapis.com` not enabled, the VM service account missing `roles/secretmanager.secretAccessor`, or no outbound path to `secretmanager.googleapis.com`. Metadata lookups fail quickly, and Secret Manager calls use a bounded timeout so these failures should be visible in the startup log.
 

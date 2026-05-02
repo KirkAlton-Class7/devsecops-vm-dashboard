@@ -15,6 +15,7 @@ It runs as a **systemd service** on the VM (port `8080`).
 
 > [!IMPORTANT]
 > Public traffic reaches the API through Nginx. Nginx protects `/api/dashboard`, `/api/finops`, `/api/logs`, and `/metadata` with Basic Auth and rate limiting. The summary endpoints remain public so the top dashboard cards can load before sign-in.
+> DevSecOps and FinOps use separate Basic Auth credentials. The public DevSecOps summary redacts CPU, Memory, Disk, and Estimated Cost values as `Protected`; signed-in DevSecOps users receive the full utilization and estimated VM cost payload from `/api/dashboard`.
 
 ---
 
@@ -116,7 +117,7 @@ This section outlines how the values returned by the API are structured and wher
 The API exposes three main data outputs:
 
 * **`/api/dashboard`** – main dataset used by the frontend UI
-* **`/api/dashboard/summary`** – limited public DevSecOps dataset for top cards
+* **`/api/dashboard/summary`** – limited public DevSecOps dataset for top cards with protected utilization values redacted
 * **`/api/finops`** – FinOps dataset used by the FinOps UI
 * **`/api/finops/summary`** – limited public FinOps dataset for top cards
 * **`/metadata`** – structured instance and health information

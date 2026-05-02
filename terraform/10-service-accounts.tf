@@ -98,7 +98,7 @@ resource "google_project_iam_member" "vm_dashboard_recommender_viewer" {
 # ----------------------------------------------------------------
 # IAM ROLE - SECRET MANAGER SECRET ACCESSOR
 # ----------------------------------------------------------------
-# Allows the VM bootstrap to read the dashboard Basic Auth credentials
+# Allows the VM bootstrap to read the DevSecOps and FinOps Basic Auth credentials
 # from Secret Manager at runtime.
 #
 # Secret values are not stored in Terraform state.
