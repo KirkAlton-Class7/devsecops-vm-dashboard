@@ -76,6 +76,7 @@ wait_for_apt
 retry apt-get install -y \
   nginx \
   python3 \
+  python3-venv \
   python3-pip \
   curl \
   jq \
@@ -254,16 +255,16 @@ chown -R ${APP_USER}:${APP_USER} "${DATA_DIR}/images" 2>/dev/null || true
 chmod -R 755 "${DATA_DIR}/images" 2>/dev/null || true
 
 # ---------------------------------
-# Install required Python packages
+# Install required Python packages (virtual environment)
 # ---------------------------------
-if command -v pip3 >/dev/null 2>&1; then
-    echo "INFO: Installing Python dependencies for dashboard API"
-    pip3 install --upgrade google-cloud-monitoring google-cloud-bigquery
-else
-    echo "INFO: pip3 not found, installing python3-pip"
-    apt-get install -y python3-pip
-    pip3 install --upgrade google-cloud-monitoring google-cloud-bigquery
+VENV_DIR="/opt/dashboard-venv"
+if [ ! -d "$VENV_DIR" ]; then
+    echo "INFO: Creating Python virtual environment at $VENV_DIR"
+    python3 -m venv "$VENV_DIR"
 fi
+echo "INFO: Installing Python dependencies for dashboard API"
+"$VENV_DIR/bin/pip" install --upgrade pip
+"$VENV_DIR/bin/pip" install --upgrade google-cloud-monitoring google-cloud-bigquery
 
 # ---------------------------------
 # Configure dashboard API service
@@ -285,7 +286,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/deploy/scripts
-ExecStart=/usr/bin/python3 $API_SCRIPT
+ExecStart=$VENV_DIR/bin/python3 $API_SCRIPT
 Restart=always
 RestartSec=5
 Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
