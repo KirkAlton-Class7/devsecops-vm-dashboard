@@ -95,6 +95,16 @@ else
 fi
 
 # ------------------------------------------------------------
+# Force update to the latest commit from the main branch
+# ------------------------------------------------------------
+cd "$REPO_DIR"
+if git fetch --depth=1 origin main && git reset --hard origin/main; then
+    echo "INFO: Updated repository to latest commit (origin/main)"
+else
+    echo "WARN: Could not update repository; using existing version"
+fi
+
+# ------------------------------------------------------------
 # Run the main application bootstrap script
 # ------------------------------------------------------------
 MAIN_SCRIPT="/opt/deploy/scripts/bootstrap/app_bootstrap.sh"
