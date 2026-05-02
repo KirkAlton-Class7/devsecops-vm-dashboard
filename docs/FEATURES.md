@@ -26,6 +26,22 @@ If protected API access is not unlocked, dashboard snapshot and JSON payload act
 
 ---
 
+### Header Auth Controls
+
+Locked dashboards use a centralized **Sign In** menu in the header. The menu provides separate entries for **DevSecOps** and **FinOps** so each protected API surface can be unlocked independently.
+
+![Header Sign In dropdown showing DevSecOps and FinOps options](assets/44_header_sign_in_dropdown.png)
+
+Selecting either protected area opens the sign-in modal for that dashboard scope.
+
+![Dashboard sign-in modal requesting username and password](assets/51_auth_sign_in_modal.png)
+
+After sign-in, the same header menu becomes an account menu. **Sign Out** locks the current dashboard only. **Sign Out Everywhere** clears both DevSecOps and FinOps sessions and returns all protected views to their locked state.
+
+![Authenticated account dropdown showing sign-out options](assets/45_header_account_dropdown.png)
+
+---
+
 ### Summary Cards
 
 * Four interactive summary cards:
@@ -35,14 +51,16 @@ If protected API access is not unlocked, dashboard snapshot and JSON payload act
   * **Disk Usage** – protected root partition placeholder until sign-in
   * **Estimated Cost** – protected VM cost placeholder until DevSecOps sign-in
 
-Before sign-in, these cards remain visible through the public summary endpoint and include a Sign in button for unlocking protected dashboard details. CPU, Memory, Disk, and Estimated Cost display `Protected` in the locked state.
+Before sign-in, these cards remain visible through the public summary endpoint. CPU, Memory, Disk, and Estimated Cost display `Protected` in the locked state.
 CPU, Memory, and Disk also show `Utilization: Redacted` and an `Active` indicator instead of percentage bars. After DevSecOps sign-in, CPU, Memory, Disk, and Estimated Cost return to live values with their normal color-coded status bars.
+
+![Locked DevSecOps summary cards showing protected values and redacted utilization](assets/46_locked_devsecops_summary_cards.png)
 
 ![DevSecOps summary cards showing CPU memory disk and estimated cost status](assets/06_devsecops_summary_cards.png)
 
 * Each card updates every **10 seconds** via the live API.
 
-* **Cards are clickable:**
+* **After DevSecOps sign-in, cards are clickable:**
 
   * **CPU / Memory / Disk** → GCP Compute Engine instance details page
   * **Estimated Cost** → GCP Billing overview
@@ -225,6 +243,8 @@ To enable, press `T` or click **TEXT MODE** (top-right).
 
 ![Text Mode dashboard showing terminal-style layout top controls and keyboard shortcuts](assets/13_text_mode_dashboard.png)
 
+![Locked Text Mode dashboard showing protected mock data state](assets/49_text_mode_locked_mock.png)
+
 Displays:
 
 * Identity, Overview, Network, Location
@@ -250,6 +270,8 @@ Exit with `Esc` or `[Esc] EXIT`.
 | `FL`  | Filter logs                                |
 | `LL`  | View all logs                              |
 | `LS`  | Copy loaded logs snapshot as JSON          |
+| `SO`  | Sign out of DevSecOps                      |
+| `SE`  | Sign out everywhere                        |
 | `S`   | Sort services                              |
 | `FS`  | Filter services                            |
 | `SS`  | View all services                          |
@@ -264,6 +286,8 @@ Text mode filter popups use the same filter options as the graphical dashboard:
 Text mode log sorting cycles through Time Newest, Time Oldest, Level Error-Debug, and Level Debug-Error.
 
 When `ALL SYSTEM LOGS` is open, press `R` to refresh the loaded log window and `LS` to copy the currently loaded/filter-matched logs as JSON.
+
+![Text Mode controls showing sign-out and sign-out everywhere actions](assets/50_text_mode_signout_controls.png)
 
 ![Text Mode ALL SYSTEM LOGS modal showing refresh filter sort and snapshot controls](assets/14_text_mode_logs_modal_controls.png)
 
@@ -283,18 +307,19 @@ To enable, press `F` or click the **FinOps** button.
 
 ### Core Widgets
 
-* **Total Cost (MTD)** – protected month-to-date cost placeholder
+* **Total Cost (MTD)** – protected before sign-in; live month-to-date cost after FinOps sign-in
 
-* **Forecast (EOM)** – protected end-of-month forecast placeholder
+* **Forecast (EOM)** – protected before sign-in; live end-of-month forecast after FinOps sign-in
 
 * **Potential Savings** – estimated savings from rightsizing
 
 * **CUD Coverage** – placeholder (coming soon)
 
-Before FinOps sign-in, FinOps summary cards remain visible through the public summary endpoint and include a Sign in button for unlocking protected cost, utilization, recommendation, and idle-resource details.
-Total Cost MTD, Forecast EOM, Potential Savings, and CUD Coverage display `Protected` in the locked state. Protected summary cards use the lock icon until sign-in, then return to their normal card icons.
+Before FinOps sign-in, FinOps summary cards remain visible through the public summary endpoint. Total Cost MTD, Forecast EOM, Potential Savings, and CUD Coverage display `Protected` in the locked state. Locked cards keep their normal identity icons, use redacted values, and do not expose billing or optimization links until sign-in.
 
-* **FinOps summary cards are clickable:**
+![Locked FinOps summary cards showing protected cost forecast savings and CUD values](assets/47_locked_finops_summary_cards.png)
+
+* **After FinOps sign-in, summary cards are clickable:**
 
   * **Total Cost / Forecast** → GCP Billing overview
   * **Potential Savings** → FinOps Hub
@@ -303,6 +328,10 @@ Total Cost MTD, Forecast EOM, Potential Savings, and CUD Coverage display `Prote
 * **Daily Cost Trend** – last 10 days
 
 * **Top Services by Cost** – spend breakdown
+
+* **Budget Status** – locked as one full-width protected widget before sign-in; after sign-in, budget status, forecast, and guardrail details render in the normal FinOps budget section
+
+![Locked FinOps Budget Status and Rightsizing widgets showing protected states](assets/48_locked_finops_budget_rightsizing.png)
 
 * **Budgets** – configured budgets with placeholder spent/forecast values
 

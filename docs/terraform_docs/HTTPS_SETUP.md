@@ -307,6 +307,8 @@ By default, Terraform expects these manually managed secret IDs:
 | `dashboard_finops_auth_user_secret_id` | `vm-dashboard-finops-username` |
 | `dashboard_finops_auth_password_secret_id` | `vm-dashboard-finops-password` |
 
+![Secret Manager showing manually managed dashboard authentication secrets](../assets/52_secret_manager_auth_secrets.png)
+
 ### External Secret Rotation Alert Topic
 
 The Secret Manager notification topic should be managed outside Terraform, alongside the manually managed Secret Manager secrets. This keeps event notifications and password rotation reminders intact if the dashboard infrastructure is destroyed.
@@ -357,6 +359,10 @@ done
 
 The topic ID is `vm-dashboard-secret-events`. Secret Manager uses the full topic resource path: `projects/${PROJECT_ID}/topics/vm-dashboard-secret-events`.
 
+![Pub/Sub topic used by Secret Manager for dashboard auth secret events](../assets/53_pubsub_secret_events_topic.png)
+
+![Secret Manager password rotation configuration for dashboard auth password](../assets/54_secret_manager_password_rotation_settings.png)
+
 Nginx also applies request rate limits:
 
 | Zone | Purpose |
@@ -366,7 +372,7 @@ Nginx also applies request rate limits:
 
 Rate-limited requests return HTTP `429 Too Many Requests`.
 
-The frontend sign-in modal sends the user-entered credentials as a Basic Auth header. DevSecOps and FinOps sessions are stored separately in browser `sessionStorage` for the current browser session. Credentials are not embedded in the React build or Terraform state.
+The frontend header sign-in menu sends the user-entered credentials as a Basic Auth header. DevSecOps and FinOps sessions are stored separately in browser `sessionStorage` for the current browser session. The account menu can sign out of the current dashboard only or sign out everywhere. Credentials are not embedded in the React build or Terraform state.
 
 ---
 

@@ -88,7 +88,13 @@ The username and password secrets can be created and versioned manually outside 
 * `vm-dashboard-finops-username`
 * `vm-dashboard-finops-password`
 
+![Secret Manager showing dashboard authentication secrets](assets/52_secret_manager_auth_secrets.png)
+
 The Pub/Sub notification topic should also be managed outside Terraform. Use the topic ID `vm-dashboard-secret-events` and attach all four secrets for event notifications. Configure rotation only on the password secrets so rotation reminders persist with the secrets after dashboard infrastructure is destroyed.
+
+![Pub/Sub topic used for dashboard secret event notifications](assets/53_pubsub_secret_events_topic.png)
+
+![Secret Manager password rotation schedule for dashboard password secret](assets/54_secret_manager_password_rotation_settings.png)
 
 If a VM deployment appears to hang during credential setup, check `/var/log/startup-script.log` for `Secret Manager credential lookup enabled`. Common causes are a missing secret version, `secretmanager.googleapis.com` not enabled, the VM service account missing `roles/secretmanager.secretAccessor`, or no outbound path to `secretmanager.googleapis.com`. Metadata lookups fail quickly, and Secret Manager calls use a bounded timeout so these failures should be visible in the startup log.
 

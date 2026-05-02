@@ -11,7 +11,7 @@ It renders:
 - Gallery images from `/data/images.json` and `/data/images/*`
 - Client-side sort, filter, search, and view-all modals for logs, services, and FinOps tables
 - Clipboard actions for dashboard snapshots, dashboard JSON payloads, widget snapshots, and JSON System Logs payloads
-- A sign-in modal for Nginx Basic Auth protected dashboard sections, with Sign in buttons on the visible summary cards and locked panels
+- A centralized header sign-in menu for Nginx Basic Auth protected dashboard sections, with separate DevSecOps and FinOps sessions
 
 ## Local Development
 
@@ -63,7 +63,9 @@ VITE_DASHBOARD_FINOPS_AUTH_USER=finops
 VITE_DASHBOARD_FINOPS_AUTH_PASSWORD=your-local-finops-password
 ```
 
-Production sign-in is enforced by Nginx using hashed password files generated during VM bootstrap from Secret Manager. DevSecOps and FinOps sessions are stored separately in the browser.
+Production sign-in is enforced by Nginx using hashed password files generated during VM bootstrap from Secret Manager. DevSecOps and FinOps sessions are stored separately in the browser. The header account menu can sign out of the current dashboard or sign out everywhere.
+
+![Dashboard header Sign In dropdown showing DevSecOps and FinOps options](../docs/assets/44_header_sign_in_dropdown.png)
 
 If these variables are omitted in local development, the fallback demo credentials are `dashboard/password` for DevSecOps and `finops/password` for FinOps.
 

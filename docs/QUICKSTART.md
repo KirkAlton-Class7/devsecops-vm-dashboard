@@ -167,6 +167,8 @@ printf '%s' 'use-a-different-long-unique-password' | \
   gcloud secrets versions add vm-dashboard-finops-password --data-file=-
 ```
 
+![Secret Manager showing the dashboard DevSecOps and FinOps auth secrets](assets/52_secret_manager_auth_secrets.png)
+
 Terraform passes the secret IDs to the VM as metadata. The bootstrap fetches the secret values at runtime and writes only hashed password files to Nginx.
 
 Manage the Secret Manager notification topic outside Terraform so it stays coupled to the secrets and survives `terraform destroy`:
@@ -207,6 +209,10 @@ done
 ```
 
 The topic ID is `vm-dashboard-secret-events`. Secret Manager uses the full topic resource path: `projects/${PROJECT_ID}/topics/vm-dashboard-secret-events`.
+
+![Pub/Sub topic for dashboard Secret Manager events](assets/53_pubsub_secret_events_topic.png)
+
+![Secret Manager password rotation settings for dashboard auth password](assets/54_secret_manager_password_rotation_settings.png)
 
 > [!NOTE]
 > Do not edit below the configuration block unless you know what you are doing.
@@ -276,7 +282,7 @@ curl -s http://127.0.0.1:8080/api/finops | jq '.summaryCards'
 ```
 > [!NOTE]
 > Expected result: a JSON array with four summary cards: Total Cost MTD, Forecast EOM, Potential Savings, and CUD Coverage.
-> Total Cost MTD and Forecast EOM display `"Protected"` in the summary cards. If you see `"Error building FinOps data"`, check the API logs with `sudo journalctl -u dashboard-api.service -n 50`. This often indicates missing IAM roles or an unconfigured BigQuery export.
+> Before FinOps sign-in, Total Cost MTD and Forecast EOM display `"Protected"` in the public summary cards. After FinOps sign-in, `/api/finops` returns live calculated values. If you see `"Error building FinOps data"`, check the API logs with `sudo journalctl -u dashboard-api.service -n 50`. This often indicates missing IAM roles or an unconfigured BigQuery export.
 
 ```bash
 curl -s "http://127.0.0.1:8080/api/logs?limit=5&offset=0&minutes=10" | jq '.logs[0]'
@@ -304,6 +310,10 @@ Text Mode includes:
 | `[C] COPY` | Copies the DevSecOps dashboard text snapshot |
 | `[J] COPY JSON` | Copies the DevSecOps dashboard JSON payload |
 | `[LL]` then `[LS] SNAPSHOT` | Opens all logs, then copies the loaded/filter-matched logs as JSON |
+| `[SO] SIGN OUT` | Signs out of DevSecOps |
+| `[SE] SIGN OUT EVERYWHERE` | Clears all dashboard sessions |
+
+![Text Mode controls showing sign-out and sign-out everywhere actions](assets/50_text_mode_signout_controls.png)
 
 ![Text Mode dashboard showing copy controls in context](assets/36_text_mode.png)
 

@@ -57,7 +57,7 @@ Certificate private keys are intentionally **not** managed directly by Terraform
 
 Dashboard Basic Auth secrets are also intentionally **not** stored in Git or Terraform state. Store the DevSecOps and FinOps credentials in GCP Secret Manager, then let the VM fetch them during bootstrap.
 
-DevSecOps and FinOps sign-ins are separate. The dashboard remembers successful sign-in for the current browser session so refreshes do not repeatedly prompt for credentials.
+DevSecOps and FinOps sign-ins are separate. Use the header **Sign In** menu to unlock either dashboard. The dashboard remembers successful sign-in for the current browser session so refreshes do not repeatedly prompt for credentials. The account menu supports signing out of the current dashboard or signing out everywhere.
 
 Terraform setup docs:
 
