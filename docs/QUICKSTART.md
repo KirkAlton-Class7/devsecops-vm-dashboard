@@ -49,7 +49,10 @@ Use this path when creating a VM manually in the GCP Console and pasting a start
 
 ![GCP VM creation page showing the startup script metadata field populated with gcp_startup.sh](assets/32_gcp_vm_startup_script.png)
 
-2. **Add the required dashboard auth metadata** under the VM custom metadata section.
+2. **Add the required dashboard metadata** under the VM custom metadata section
+
+> [!NOTE]
+> Metadata can be set at the **project level** (default key-value pairs for all VMs in the project) or at the **VM level** (key-value pairs for a specific VM). If the same metadata **key** is defined at both levels, the **VM-level value overrides the project-level value** for that VM.
 
 ![VM custom metadata with auth secret ID keys and values for ClickOps deployment](assets/55_auth_secret_metadata.png)
 
@@ -62,15 +65,26 @@ Use this path when creating a VM manually in the GCP Console and pasting a start
 
 In VM metadata, the **key** describes which credential the startup script should load. The **value** is the Secret Manager secret ID. Do not put the actual username or password in VM metadata.
 
-> [!TIP]
-> For ClickOps HTTPS testing, add `letsencrypt-staging=true` with `dashboard-hostname` and `letsencrypt-email` metadata. This makes Certbot use Let’s Encrypt staging while you validate DNS, firewall, and Nginx behavior.
-
 > [!IMPORTANT]
-> These metadata values are Secret Manager secret IDs, not usernames or passwords. If any required auth metadata is missing and no environment fallback credentials are provided, bootstrap fails closed with `DevSecOps Basic Auth username and password must be provided by Secret Manager or environment variables`. In that failed state, Nginx may remain on the default **Welcome to nginx** page because the dashboard Nginx site was never configured.
+> For ClickOps HTTPS testing, add the metadata below and fill placeholders with your FQDN and email.
+>| Metadata key | Value |
+>| --- | --- |
+>| `dashboard-hostname` | `FULLY-QUALIFIED-DOMAIN-NAME` |
+>| `letsencrypt-email` | `VERIFICATION-EMAIL` |
+>| `letsencrypt-staging` | `true` |
 
-If creating the VM from the CLI, pass the same metadata keys:
+> [!NOTE]
+> The metadata values are Secret Manager secret IDs, not usernames or passwords. If any required auth metadata is missing and no environment fallback credentials are provided, bootstrap fails closed with `DevSecOps Basic Auth username and password must be provided by Secret Manager or environment variables`. In that failed state, Nginx may remain on the default **Welcome to nginx** page because the dashboard Nginx site was never configured.
+
+
+If creating the VM from the CLI, run these commands from the repo root to pass the same metadata keys:
 
 ```bash
+PROJECT_ID=kirk-devsecops-sandbox # Replace with your project ID
+FQDN=dashboard.kirkdevsecops.com # Replace with your FQDN
+EMAIL=your.email@example.com # Replace with your email
+STAGING_VAR=true # For production, replace with false
+
 gcloud compute instances create vm-dashboard \
   --zone=us-central1-a \
   --machine-type=e2-medium \
@@ -79,7 +93,7 @@ gcloud compute instances create vm-dashboard \
   --service-account="vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com" \
   --scopes=https://www.googleapis.com/auth/cloud-platform \
   --metadata-from-file=startup-script=infra/startup/gcp_startup.sh \
-  --metadata=dashboard-dev-auth-user-secret=vm-dashboard-dev-username,dashboard-dev-auth-password-secret=vm-dashboard-dev-password,dashboard-finops-auth-user-secret=vm-dashboard-finops-username,dashboard-finops-auth-password-secret=vm-dashboard-finops-password
+  --metadata=dashboard-dev-auth-user-secret=vm-dashboard-dev-username,dashboard-dev-auth-password-secret=vm-dashboard-dev-password,dashboard-finops-auth-user-secret=vm-dashboard-finops-username,dashboard-finops-auth-password-secret=vm-dashboard-finops-password,dashboard-hostname=${FQDN},letsencrypt-staging=${STAGING_VAR},letsencrypt-email=${EMAIL}
 ```
 
 3. **Launch a VM** (Debian 11 or Ubuntu 20.04/22.04 recommended).
