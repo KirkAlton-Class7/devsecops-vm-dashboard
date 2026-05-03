@@ -48,12 +48,16 @@ Use this path when creating a VM manually in the GCP Console and pasting a start
 
 2. **Add the required dashboard auth metadata** under the VM custom metadata section.
 
+![VM custom metadata with auth secret ID keys and values for ClickOps deployment](assets/55_auth_secret_metadata.png)
+
 | Metadata key | Value |
 | --- | --- |
 | `dashboard-dev-auth-user-secret` | `vm-dashboard-dev-username` |
 | `dashboard-dev-auth-password-secret` | `vm-dashboard-dev-password` |
 | `dashboard-finops-auth-user-secret` | `vm-dashboard-finops-username` |
 | `dashboard-finops-auth-password-secret` | `vm-dashboard-finops-password` |
+
+In VM metadata, the **key** describes which credential the startup script should load. The **value** is the Secret Manager secret ID. Do not put the actual username or password in VM metadata.
 
 > [!IMPORTANT]
 > These metadata values are Secret Manager secret IDs, not usernames or passwords. If any required auth metadata is missing and no environment fallback credentials are provided, bootstrap fails closed with `DevSecOps Basic Auth username and password must be provided by Secret Manager or environment variables`. In that failed state, Nginx may remain on the default **Welcome to nginx** page because the dashboard Nginx site was never configured.
