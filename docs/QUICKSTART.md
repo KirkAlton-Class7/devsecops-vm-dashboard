@@ -156,6 +156,9 @@ Expected HTTPS URL: `https://dashboard.kirkdevsecops.com`
 > [!NOTE]
 > If HTTP loads the dashboard but HTTPS hangs, DNS and the React build are probably working. Check whether Nginx is listening on `443` with `sudo ss -ltnp | grep ':443'`, then start the retry service with `sudo systemctl start vm-dashboard-https.service`. The wrapper owns Certbot setup through `vm-dashboard-https.service`; `app_bootstrap.sh` should not run Certbot inline.
 
+> [!WARNING]
+> If Certbot reports `too many certificates (5) already issued for this exact set of identifiers`, Let’s Encrypt has rate-limited the hostname. Stop the retry timer with `sudo systemctl disable --now vm-dashboard-https.timer`, use HTTP temporarily, and retry after the UTC time shown in the Certbot log.
+
 See **[Terraform HTTPS with GCP + Route 53](./terraform_docs/HTTPS_SETUP.md)** for the full infrastructure setup.
 
 ---
@@ -543,3 +546,19 @@ devsecops-vm-dashboard/
 - **Clipboard API access** usually requires HTTPS or localhost. On public HTTP, copy actions fall back to the Manual Copy modal when the browser blocks clipboard access.
 - **Auto-deploy behavior** keeps the existing frontend in place if the Git pull, dependency install, or frontend build fails. Review `/var/log/dashboard-deploy.log` when a pushed update does not appear.
 - **FinOps data** requires BigQuery billing export, which takes up to 24 hours to populate after first setup.
+- **Let’s Encrypt production certificates are rate-limited.** Repeated Terraform destroy/apply cycles or repeated Certbot retries can exhaust the limit for a hostname:
+  - `5` duplicate certificates for the exact same set of domains per rolling `7` days.
+  - The `6th` request for that exact set is blocked until the rolling reset time shown by Certbot.
+  - `50` certificates per registered domain per rolling `7` days.
+  - `5` failed validations per account, hostname, and hour.
+
+Use unique subdomains for experiments, such as `lab1.example.com`, `lab2.example.com`, or `test.example.com`. For repeated HTTPS testing, use the Let’s Encrypt staging environment before requesting production certificates.
+
+Official references:
+
+- [Let’s Encrypt Rate Limits](https://letsencrypt.org/docs/rate-limits/)
+- [Certbot User Guide](https://certbot.eff.org/docs/using.html)
+- [Certbot Testing and Staging](https://certbot.eff.org/docs/using.html#testing)
+- [Let’s Encrypt Staging Environment](https://letsencrypt.org/docs/staging-environment/)
+- [Let’s Encrypt Challenge Types](https://letsencrypt.org/docs/challenge-types/)
+- [Let’s Encrypt Integration Guide](https://letsencrypt.org/docs/integration-guide/)

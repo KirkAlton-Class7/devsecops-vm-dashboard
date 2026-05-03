@@ -574,6 +574,44 @@ sudo /opt/certbot-venv/bin/certbot certificates
 
 ![Certbot certificates output showing dashboard certificate paths and expiry](../assets/43_certbot_certificate_output.png)
 
+If Certbot reports `too many certificates (5) already issued for this exact set of identifiers`, Let’s Encrypt has rate-limited the dashboard hostname. HTTP can continue serving the dashboard, but production HTTPS cannot be issued again until the `retry after` time shown in the log.
+
+Stop the retry timer so the VM does not keep re-requesting certificates:
+
+```bash
+sudo systemctl disable --now vm-dashboard-https.timer
+sudo systemctl reset-failed vm-dashboard-https.service
+```
+
+After the retry time passes, re-enable HTTPS setup:
+
+```bash
+sudo systemctl enable --now vm-dashboard-https.timer
+sudo systemctl start vm-dashboard-https.service
+```
+
+> [!TIP]
+> During repeated lab rebuilds, use HTTP until the hostname is stable, or test HTTPS issuance with a different temporary subdomain. Let’s Encrypt production certificates are rate-limited per exact hostname set.
+
+Important Let’s Encrypt production limits:
+
+| Limit | Scope |
+| --- | --- |
+| `5` duplicate certificates | Same exact set of domains per rolling `7` days |
+| `50` certificates | Per registered domain per rolling `7` days |
+| `5` failed validations | Per account, hostname, and hour |
+
+The `6th` duplicate request for the same exact hostname set is blocked until the rolling reset. For repeated experiments, use different subdomains such as `lab1.example.com`, `lab2.example.com`, or `test.example.com`, or use the staging environment while debugging DNS, Nginx, and firewall behavior.
+
+References:
+
+- [Let’s Encrypt Rate Limits](https://letsencrypt.org/docs/rate-limits/)
+- [Certbot User Guide](https://certbot.eff.org/docs/using.html)
+- [Certbot Testing and Staging](https://certbot.eff.org/docs/using.html#testing)
+- [Let’s Encrypt Staging Environment](https://letsencrypt.org/docs/staging-environment/)
+- [Let’s Encrypt Challenge Types](https://letsencrypt.org/docs/challenge-types/)
+- [Let’s Encrypt Integration Guide](https://letsencrypt.org/docs/integration-guide/)
+
 Test renewal:
 
 ```bash

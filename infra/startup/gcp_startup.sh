@@ -191,13 +191,24 @@ if [ ! -x "\${CERTBOT_BIN}" ]; then
     "\${CERTBOT_VENV}/bin/python" -m pip install --upgrade certbot certbot-nginx
 fi
 
-"\${CERTBOT_BIN}" --nginx \
-    -d "\${DASHBOARD_HOSTNAME}" \
-    --non-interactive \
-    --agree-tos \
-    --email "\${LETSENCRYPT_EMAIL}" \
-    --redirect \
-    --keep-until-expiring
+CERTBOT_OUTPUT=\$(mktemp)
+if ! "\${CERTBOT_BIN}" --nginx \
+        -d "\${DASHBOARD_HOSTNAME}" \
+        --non-interactive \
+        --agree-tos \
+        --email "\${LETSENCRYPT_EMAIL}" \
+        --redirect \
+        --keep-until-expiring 2>&1 | tee "\${CERTBOT_OUTPUT}"; then
+    if grep -qi "too many certificates" "\${CERTBOT_OUTPUT}"; then
+        log "Let's Encrypt rate limit reached for \${DASHBOARD_HOSTNAME}; leaving HTTP available and disabling HTTPS retry timer until the limit resets"
+        systemctl disable --now vm-dashboard-https.timer 2>/dev/null || true
+        rm -f "\${CERTBOT_OUTPUT}"
+        exit 0
+    fi
+    rm -f "\${CERTBOT_OUTPUT}"
+    exit 1
+fi
+rm -f "\${CERTBOT_OUTPUT}"
 
 if [ ! -f "/etc/letsencrypt/live/\${DASHBOARD_HOSTNAME}/fullchain.pem" ]; then
     log "Certbot completed without creating the expected certificate"
