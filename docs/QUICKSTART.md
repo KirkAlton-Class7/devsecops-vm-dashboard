@@ -35,6 +35,9 @@ This project supports two deployment paths:
 
 The dashboard application does not require HTTPS to show real data. Real versus fallback data depends on GCP APIs, IAM roles, service account scopes, and BigQuery billing export. HTTPS only changes how browsers securely connect to the already-running dashboard.
 
+> [!TIP]
+> For repeated Terraform lab rebuilds, enable `letsencrypt_staging_enabled=true` to test DNS, Nginx, Certbot, and redirect behavior without consuming Let’s Encrypt production certificate limits. Staging certificates are not browser-trusted, so disable staging for production or final demos.
+
 ---
 
 ## HTTP ClickOps Deployment
@@ -58,6 +61,9 @@ Use this path when creating a VM manually in the GCP Console and pasting a start
 | `dashboard-finops-auth-password-secret` | `vm-dashboard-finops-password` |
 
 In VM metadata, the **key** describes which credential the startup script should load. The **value** is the Secret Manager secret ID. Do not put the actual username or password in VM metadata.
+
+> [!TIP]
+> For ClickOps HTTPS testing, add `letsencrypt-staging=true` with `dashboard-hostname` and `letsencrypt-email` metadata. This makes Certbot use Let’s Encrypt staging while you validate DNS, firewall, and Nginx behavior.
 
 > [!IMPORTANT]
 > These metadata values are Secret Manager secret IDs, not usernames or passwords. If any required auth metadata is missing and no environment fallback credentials are provided, bootstrap fails closed with `DevSecOps Basic Auth username and password must be provided by Secret Manager or environment variables`. In that failed state, Nginx may remain on the default **Welcome to nginx** page because the dashboard Nginx site was never configured.

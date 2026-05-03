@@ -26,6 +26,12 @@ variable "letsencrypt_email" {
   type        = string
 }
 
+variable "letsencrypt_staging_enabled" {
+  description = "If true, Certbot uses the Let's Encrypt staging environment. Useful for labs because it avoids production certificate rate limits, but the resulting certificate is not browser-trusted."
+  default     = false
+  type        = bool
+}
+
 variable "dashboard_dev_auth_user_secret_id" {
   description = "Secret Manager secret ID or resource path containing the DevSecOps Basic Auth username."
   default     = "vm-dashboard-dev-username"

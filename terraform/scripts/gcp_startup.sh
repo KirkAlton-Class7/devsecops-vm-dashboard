@@ -74,11 +74,13 @@ metadata_value() {
 
 DASHBOARD_HOSTNAME="$(metadata_value dashboard-hostname)"
 LETSENCRYPT_EMAIL="$(metadata_value letsencrypt-email)"
+LETSENCRYPT_STAGING="$(metadata_value letsencrypt-staging)"
 DASHBOARD_DEV_AUTH_USER_SECRET_ID="$(metadata_value dashboard-dev-auth-user-secret)"
 DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID="$(metadata_value dashboard-dev-auth-password-secret)"
 DASHBOARD_FINOPS_AUTH_USER_SECRET_ID="$(metadata_value dashboard-finops-auth-user-secret)"
 DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID="$(metadata_value dashboard-finops-auth-password-secret)"
-export DASHBOARD_HOSTNAME LETSENCRYPT_EMAIL
+LETSENCRYPT_STAGING="${LETSENCRYPT_STAGING:-false}"
+export DASHBOARD_HOSTNAME LETSENCRYPT_EMAIL LETSENCRYPT_STAGING
 export DASHBOARD_DEV_AUTH_USER_SECRET_ID DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID
 export DASHBOARD_FINOPS_AUTH_USER_SECRET_ID DASHBOARD_FINOPS_AUTH_PASSWORD_SECRET_ID
 
@@ -86,6 +88,10 @@ if [ -n "$DASHBOARD_HOSTNAME" ]; then
     echo "INFO: Dashboard hostname configured as $DASHBOARD_HOSTNAME"
 else
     echo "INFO: No dashboard hostname configured; HTTPS setup will be skipped"
+fi
+
+if printf '%s' "$LETSENCRYPT_STAGING" | grep -Eiq '^(1|true|yes)$'; then
+    echo "INFO: Let's Encrypt staging mode enabled"
 fi
 
 if [ -n "$DASHBOARD_DEV_AUTH_USER_SECRET_ID" ] && [ -n "$DASHBOARD_DEV_AUTH_PASSWORD_SECRET_ID" ] && \
@@ -152,6 +158,7 @@ set -euo pipefail
 APP_NAME="vm-dashboard"
 DASHBOARD_HOSTNAME="${DASHBOARD_HOSTNAME}"
 LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL}"
+LETSENCRYPT_STAGING="${LETSENCRYPT_STAGING}"
 NGINX_SITE="/etc/nginx/sites-available/\${APP_NAME}"
 CERTBOT_VENV="/opt/certbot-venv"
 CERTBOT_BIN="\${CERTBOT_VENV}/bin/certbot"
@@ -192,13 +199,22 @@ if [ ! -x "\${CERTBOT_BIN}" ]; then
 fi
 
 CERTBOT_OUTPUT=\$(mktemp)
-if ! "\${CERTBOT_BIN}" --nginx \
-        -d "\${DASHBOARD_HOSTNAME}" \
-        --non-interactive \
-        --agree-tos \
-        --email "\${LETSENCRYPT_EMAIL}" \
-        --redirect \
-        --keep-until-expiring 2>&1 | tee "\${CERTBOT_OUTPUT}"; then
+CERTBOT_ARGS=(
+    --nginx
+    -d "\${DASHBOARD_HOSTNAME}"
+    --non-interactive
+    --agree-tos
+    --email "\${LETSENCRYPT_EMAIL}"
+    --redirect
+    --keep-until-expiring
+)
+
+if printf '%s' "\${LETSENCRYPT_STAGING}" | grep -Eiq '^(1|true|yes)$'; then
+    log "Using Let's Encrypt staging environment"
+    CERTBOT_ARGS+=(--staging)
+fi
+
+if ! "\${CERTBOT_BIN}" "\${CERTBOT_ARGS[@]}" 2>&1 | tee "\${CERTBOT_OUTPUT}"; then
     if grep -qi "too many certificates" "\${CERTBOT_OUTPUT}"; then
         log "Let's Encrypt rate limit reached for \${DASHBOARD_HOSTNAME}; leaving HTTP available and disabling HTTPS retry timer until the limit resets"
         systemctl disable --now vm-dashboard-https.timer 2>/dev/null || true

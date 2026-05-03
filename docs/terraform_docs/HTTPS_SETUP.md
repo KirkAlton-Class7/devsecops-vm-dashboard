@@ -149,6 +149,21 @@ resource "aws_route53_record" "vm_dashboard" {
 
 This points `dashboard.kirkdevsecops.com` to the GCP VM static external IP.
 
+### Optional Let's Encrypt Staging Mode
+
+For repeated lab rebuilds, use the Let’s Encrypt staging environment:
+
+```bash
+terraform apply -var="letsencrypt_staging_enabled=true"
+```
+
+Staging mode still validates DNS, Nginx, Certbot, and HTTP-to-HTTPS redirect behavior, but it does not consume Let’s Encrypt production certificate limits.
+
+> [!IMPORTANT]
+> Let’s Encrypt staging certificates are not browser-trusted. The browser will show a certificate warning, which is expected. Use staging for lab validation and production mode for a real trusted HTTPS dashboard.
+
+For production or final demos, leave `letsencrypt_staging_enabled` as `false`.
+
 ![AWS Route 53 hosted zone showing the dashboard A record pointing to the GCP static IP](../assets/39_route53_dashboard_record.png)
 
 ---
@@ -214,12 +229,13 @@ Terraform passes the hostname and email into the VM:
 
 ```hcl
 metadata = {
-  dashboard-hostname = local.dashboard_fqdn
-  letsencrypt-email  = var.letsencrypt_email
+  dashboard-hostname  = local.dashboard_fqdn
+  letsencrypt-email   = var.letsencrypt_email
+  letsencrypt-staging = tostring(var.letsencrypt_staging_enabled)
 }
 ```
 
-The startup script reads these values from the GCP metadata service.
+The startup script reads these values from the GCP metadata service. When `letsencrypt-staging` is `true`, Certbot adds `--staging` to the certificate request.
 
 If these values are missing, the dashboard remains HTTP-only.
 
@@ -519,7 +535,7 @@ On a fresh apply:
 - the new VM starts over HTTP
 - Certbot requests a new certificate after DNS points to the VM
 
-Avoid repeated destroy/apply loops in a short time window because Let’s Encrypt has rate limits.
+Avoid repeated destroy/apply loops in a short time window because Let’s Encrypt has rate limits. For lab rebuilds, enable `letsencrypt_staging_enabled` so Certbot uses the staging environment instead of production certificate issuance.
 
 ---
 
@@ -592,6 +608,14 @@ sudo systemctl start vm-dashboard-https.service
 
 > [!TIP]
 > During repeated lab rebuilds, use HTTP until the hostname is stable, or test HTTPS issuance with a different temporary subdomain. Let’s Encrypt production certificates are rate-limited per exact hostname set.
+
+For lab HTTPS validation, prefer staging mode:
+
+```bash
+terraform apply -var="letsencrypt_staging_enabled=true"
+```
+
+Staging mode avoids production certificate limits while you debug DNS, Nginx, firewall, and Certbot behavior.
 
 Important Let’s Encrypt production limits:
 
