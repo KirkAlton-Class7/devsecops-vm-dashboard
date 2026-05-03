@@ -2150,85 +2150,93 @@
   "author": "Dr. T Hasan Johnson",
   "source": "Canceled, Erased, and Broken: How Allegations Destroyed Justin Fairfax (43:49)",
   "tags": ["patience", "change", "time", "resilience"]
-},
-{
-  "id": 270,
-  "text": "Nothing stays the same indefinitely.",
-  "speaker": null,
-  "author": "Dr. T Hasan Johnson",
-  "source": "Canceled, Erased, and Broken: How Allegations Destroyed Justin Fairfax (44:20)",
-  "tags": ["impermanence", "change", "time"]
-},
-{
-  "id": 271,
-  "text": "“The impediment to action advances action; what stands in the way becomes the way.",
-  "speaker": null,
-  "author": "Marcus Aurelius",
-  "source": "Meditations 5:20",
-  "tags": ["perseverance", "action", "obstacles", "determination"]
-},
-{
-  "id": 272,
-  "text": "Hate is a necessary emotion. You just have to hate the right things.",
-  "speaker": null,
-  "author": "@HistoryStudent (19:55)",
-  "source": "Views From Other Black Men",
-  "tags": ["justice", "hate", "integrity", "righteousness"]
-},
-{
-  "id": 273,
-  "text": "Only those who dare to fail greatly can ever achieve greatly.",
-  "speaker": null,
-  "author": "Robert F. Kennedy",
-  "source": null,
-  "tags": ["failure", "courage", "risk", "achievement"]
-},
-{
-  "id": 274,
-  "text": "Quitting only extends poverty",
-  "speaker": null,
-  "author": "Theo WAF",
-  "source": null,
-  "tags": ["persistence", "discipline", "resilience", "mindset"]
-},
-{
-  "id": 275,
-  "text": "It's easy to sell your soul, but it's impossible to buy it back.",
-  "speaker": "Andrew Cooper",
-  "author": "Jonathan Trooper",
-  "source": "Your Friends & Neighbors",
-  "tags": ["morality", "consequence", "ethics", "warning"]
-},
-{
-  "id": 276,
-  "text": "To heal the world, we first have to heal ourselves, and to heal the kids, we first have to heal the child within each and every one of us.",
-  "speaker": "Michael Jackson",
-  "author": "Michael Jackson, Shmuley Boteach",
-  "source": "Oxford Union Speech, Oxford University, 2001",
-  "tags": ["healing", "personal-growth", "children", "humanity"]
-},
-{
-  "id": 277,
-  "text": "To all of you who feel let down by your parents, let down your disappointments. To all of you tonight who feel cheated by your fathers and mothers, I ask you not to cheat yourself further... extend your hand to them instead.",
-  "speaker": "Michael Jackson",
-  "author": "Michael Jackson, Shmuley Boteach",
-  "source": "Oxford Union Speech, Oxford University, 2001",
-  "tags": ["forgiveness", "parents", "healing", "family"]
-},
-{
-  "id": 278,
-  "text": "Cowardice is not just avoiding fear; its allowing fear to control your actions and your life.",
-  "speaker": null,
-  "author": "Sunshine Shoulders (@calroach1)",
-  "source": "COWARDICE Is The Reason Men Struggle In The West!",
-  "tags": ["fear", "cowardice", "self-mastery", "agency"]
-},
-{
-  "id": 279,
-  "text": "Courage is acting, despite fear.",
-  "speaker": null,
-  "author": "Sunshine Shoulders (@calroach1)",
-  "source": "COWARDICE Is The Reason Men Struggle In The West!",
-  "tags": ["courage", "fear", "bravery", "action"]
-}
+  },
+  {
+    "id": 270,
+    "text": "Nothing stays the same indefinitely.",
+    "speaker": null,
+    "author": "Dr. T Hasan Johnson",
+    "source": "Canceled, Erased, and Broken: How Allegations Destroyed Justin Fairfax (44:20)",
+    "tags": ["impermanence", "change", "time"]
+  },
+  {
+    "id": 271,
+    "text": "“The impediment to action advances action; what stands in the way becomes the way.",
+    "speaker": null,
+    "author": "Marcus Aurelius",
+    "source": "Meditations 5:20",
+    "tags": ["perseverance", "action", "obstacles", "determination"]
+  },
+  {
+    "id": 272,
+    "text": "Hate is a necessary emotion. You just have to hate the right things.",
+    "speaker": null,
+    "author": "@HistoryStudent (19:55)",
+    "source": "Views From Other Black Men",
+    "tags": ["justice", "hate", "integrity", "righteousness"]
+  },
+  {
+    "id": 273,
+    "text": "Only those who dare to fail greatly can ever achieve greatly.",
+    "speaker": null,
+    "author": "Robert F. Kennedy",
+    "source": null,
+    "tags": ["failure", "courage", "risk", "achievement"]
+  },
+  {
+    "id": 274,
+    "text": "Quitting only extends poverty",
+    "speaker": null,
+    "author": "Theo WAF",
+    "source": null,
+    "tags": ["persistence", "discipline", "resilience", "mindset"]
+  },
+  {
+    "id": 275,
+    "text": "It's easy to sell your soul, but it's impossible to buy it back.",
+    "speaker": "Andrew Cooper",
+    "author": "Jonathan Trooper",
+    "source": "Your Friends & Neighbors",
+    "tags": ["morality", "consequence", "ethics", "warning"]
+  },
+  {
+    "id": 276,
+    "text": "To heal the world, we first have to heal ourselves, and to heal the kids, we first have to heal the child within each and every one of us.",
+    "speaker": "Michael Jackson",
+    "author": "Michael Jackson, Shmuley Boteach",
+    "source": "Oxford Union Speech, Oxford University, 2001",
+    "tags": ["healing", "personal-growth", "children", "humanity"]
+  },
+  {
+    "id": 277,
+    "text": "To all of you who feel let down by your parents, let down your disappointments. To all of you tonight who feel cheated by your fathers and mothers, I ask you not to cheat yourself further... extend your hand to them instead.",
+    "speaker": "Michael Jackson",
+    "author": "Michael Jackson, Shmuley Boteach",
+    "source": "Oxford Union Speech, Oxford University, 2001",
+    "tags": ["forgiveness", "parents", "healing", "family"]
+  },
+  {
+    "id": 278,
+    "text": "Cowardice is not just avoiding fear; its allowing fear to control your actions and your life.",
+    "speaker": null,
+    "author": "Sunshine Shoulders (@calroach1)",
+    "source": "COWARDICE Is The Reason Men Struggle In The West!",
+    "tags": ["fear", "cowardice", "self-mastery", "agency"]
+  },
+  {
+    "id": 279,
+    "text": "Courage is acting, despite fear.",
+    "speaker": null,
+    "author": "Sunshine Shoulders (@calroach1)",
+    "source": "COWARDICE Is The Reason Men Struggle In The West!",
+    "tags": ["courage", "fear", "bravery", "action"]
+  },
+  {
+    "id": 280,
+    "text": "Strategy is choices and tradeoffs based on your unique strenghts, weaknesses and constraints.",
+    "speaker": null,
+    "author": "Brendan Dell (@BrendanDell)",
+    "source": "Harvard Just Caught AI Lying to Every Executive in America",
+    "tags": ["strategy", "decisions", "tradeoffs", "business"]
+  }
 ]
