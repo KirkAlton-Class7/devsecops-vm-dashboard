@@ -2,13 +2,6 @@
 # SUBNETS
 # ----------------------------------------------------------------
 
-# Go to:
-# VPC Network → Subnets
-# Confirm:
-
-#    subnet exists
-#    secondary ranges visible
-
 resource "google_compute_subnetwork" "private" {
   name                     = "private-subnet"
   ip_cidr_range            = "10.0.0.0/18"
