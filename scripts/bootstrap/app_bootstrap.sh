@@ -655,43 +655,9 @@ systemctl start nginx
 systemctl enable nginx
 
 # ---------------------------------
-# Enable HTTPS with Let's Encrypt (if domain is configured)
+# HTTPS is handled by the wrapper retry service
 # ---------------------------------
-log "Checking for HTTPS configuration"
-
-# Read metadata values (requires wrapper script to provide them or set via environment)
-DASHBOARD_HOSTNAME="$(curl -fsS -H "Metadata-Flavor: Google" \
-    "http://metadata.google.internal/computeMetadata/v1/instance/attributes/dashboard-hostname" \
-    2>/dev/null || echo "")"
-LETSENCRYPT_EMAIL="$(curl -fsS -H "Metadata-Flavor: Google" \
-    "http://metadata.google.internal/computeMetadata/v1/instance/attributes/letsencrypt-email" \
-    2>/dev/null || echo "")"
-
-if [ -n "$DASHBOARD_HOSTNAME" ] && [ -n "$LETSENCRYPT_EMAIL" ]; then
-    log "HTTPS requested for domain $DASHBOARD_HOSTNAME – setting up Let's Encrypt"
-    
-    # Install certbot and its nginx plugin
-    apt-get update
-    apt-get install -y certbot python3-certbot-nginx
-    
-    # Temporarily configure nginx with the actual domain name for Certbot
-    sed -i "s/server_name _;/server_name $DASHBOARD_HOSTNAME;/" "${NGINX_SITE}"
-    systemctl reload nginx || systemctl restart nginx
-    
-    # Obtain certificate (this also modifies nginx config to listen on 443)
-    certbot --nginx -d "$DASHBOARD_HOSTNAME" \
-        --non-interactive \
-        --agree-tos \
-        --email "$LETSENCRYPT_EMAIL" \
-        --redirect \
-        --keep-until-expiring
-    
-    # Ensure HTTP to HTTPS redirection is active (already done by --redirect)
-    systemctl reload nginx
-    log "HTTPS enabled for https://$DASHBOARD_HOSTNAME"
-else
-    log "Skipping HTTPS setup: DASHBOARD_HOSTNAME or LETSENCRYPT_EMAIL missing"
-fi
+log "Skipping inline HTTPS setup; wrapper manages Certbot with vm-dashboard-https.service"
 
 # ---------------------------------
 # Resolve public access IP

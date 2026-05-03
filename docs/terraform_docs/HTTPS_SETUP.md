@@ -543,6 +543,22 @@ Check HTTPS:
 curl -I https://dashboard.kirkdevsecops.com
 ```
 
+If HTTP loads the dashboard but HTTPS hangs, check whether Nginx is listening on `443`:
+
+```bash
+sudo ss -ltnp | grep ':443'
+```
+
+If nothing is listening, start the HTTPS retry service:
+
+```bash
+sudo systemctl start vm-dashboard-https.service
+sudo journalctl -u vm-dashboard-https.service --no-pager
+```
+
+> [!NOTE]
+> The wrapper script owns Certbot setup through `vm-dashboard-https.service`. The application bootstrap should configure the HTTP dashboard and then leave HTTPS issuance to the retry service so DNS propagation or Certbot failures do not block the whole deployment.
+
 Check the HTTPS setup service:
 
 ```bash

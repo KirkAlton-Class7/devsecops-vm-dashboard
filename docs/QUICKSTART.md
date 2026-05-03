@@ -153,6 +153,9 @@ Expected HTTPS URL: `https://dashboard.kirkdevsecops.com`
 | Certbot certificates | `sudo /opt/certbot-venv/bin/certbot certificates` |
 | Renewal dry run | `sudo /opt/certbot-venv/bin/certbot renew --dry-run` |
 
+> [!NOTE]
+> If HTTP loads the dashboard but HTTPS hangs, DNS and the React build are probably working. Check whether Nginx is listening on `443` with `sudo ss -ltnp | grep ':443'`, then start the retry service with `sudo systemctl start vm-dashboard-https.service`. The wrapper owns Certbot setup through `vm-dashboard-https.service`; `app_bootstrap.sh` should not run Certbot inline.
+
 See **[Terraform HTTPS with GCP + Route 53](./terraform_docs/HTTPS_SETUP.md)** for the full infrastructure setup.
 
 ---

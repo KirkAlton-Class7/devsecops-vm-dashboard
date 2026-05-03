@@ -159,8 +159,7 @@ CERTBOT_BIN="\${CERTBOT_VENV}/bin/certbot"
 log() { echo "[\${APP_NAME}-https] \$1"; }
 
 if [ -f "/etc/letsencrypt/live/\${DASHBOARD_HOSTNAME}/fullchain.pem" ]; then
-    log "Certificate already exists for \${DASHBOARD_HOSTNAME}"
-    exit 0
+    log "Certificate already exists for \${DASHBOARD_HOSTNAME}; ensuring nginx HTTPS config is installed"
 fi
 
 PUBLIC_IP=\$(curl -fsS -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip" 2>/dev/null || true)
