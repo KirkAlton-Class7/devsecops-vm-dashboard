@@ -260,10 +260,6 @@ export default function TextDashboard({
   const serviceFiltersModalRef = useRef(null);
   const mockDiagnosticsModalRef = useRef(null);
 
-  // New refs for "SO" and "SE" combo
-  const pendingSignOutRef = useRef(null);
-  const pendingSignOutEverywhereRef = useRef(null);
-
   // Flash effect
   useEffect(() => {
     if (!flashTitle) return undefined;
@@ -840,20 +836,6 @@ export default function TextDashboard({
         }, 240);
       }
       else if (e.key === "s" || e.key === "S") {
-        // SO / SE combos handling
-        if (pendingSignOutRef.current) {
-          clearTimeout(pendingSignOutRef.current);
-          pendingSignOutRef.current = null;
-          onSignOut?.("dev");
-          return;
-        }
-        if (pendingSignOutEverywhereRef.current) {
-          clearTimeout(pendingSignOutEverywhereRef.current);
-          pendingSignOutEverywhereRef.current = null;
-          onSignOutEverywhere?.();
-          return;
-        }
-
         if (showLiveLogs && pendingLiveLogOpenRef.current) {
           clearTimeout(pendingLiveLogOpenRef.current);
           pendingLiveLogOpenRef.current = null;
@@ -875,33 +857,10 @@ export default function TextDashboard({
           return;
         }
 
-        // Start timer for combo detection (O or E)
         pendingServiceModalRef.current = setTimeout(() => {
           toggleServiceSort();
           pendingServiceModalRef.current = null;
         }, 240);
-      }
-      else if (e.key === "o" || e.key === "O") {
-        // If we are waiting for a sign out combo, trigger sign out
-        if (pendingServiceModalRef.current) {
-          clearTimeout(pendingServiceModalRef.current);
-          pendingServiceModalRef.current = null;
-          // Set a small delay to ensure we don't also capture other keys
-          pendingSignOutRef.current = setTimeout(() => {
-            pendingSignOutRef.current = null;
-            onSignOut?.("dev");
-          }, 0);
-        }
-      }
-      else if (e.key === "e" || e.key === "E") {
-        if (pendingServiceModalRef.current) {
-          clearTimeout(pendingServiceModalRef.current);
-          pendingServiceModalRef.current = null;
-          pendingSignOutEverywhereRef.current = setTimeout(() => {
-            pendingSignOutEverywhereRef.current = null;
-            onSignOutEverywhere?.();
-          }, 0);
-        }
       }
     };
 
@@ -920,14 +879,6 @@ export default function TextDashboard({
       if (pendingLogFilterRef.current) {
         clearTimeout(pendingLogFilterRef.current);
         pendingLogFilterRef.current = null;
-      }
-      if (pendingSignOutRef.current) {
-        clearTimeout(pendingSignOutRef.current);
-        pendingSignOutRef.current = null;
-      }
-      if (pendingSignOutEverywhereRef.current) {
-        clearTimeout(pendingSignOutEverywhereRef.current);
-        pendingSignOutEverywhereRef.current = null;
       }
     };
   }, [
@@ -949,8 +900,6 @@ export default function TextDashboard({
     showServiceFilters,
     toggleLiveLogSort,
     toggleServiceSort,
-    onSignOut,
-    onSignOutEverywhere,
   ]);
 
   useEffect(() => {
@@ -1159,8 +1108,6 @@ export default function TextDashboard({
                 <div>S - Sort services</div>
                 <div>FS - Filter services</div>
                 <div>SS - View all services</div>
-                <div>SO - Sign out</div>
-                <div>SE - Sign out everywhere</div>
               </div>
             </motion.div>
           )}

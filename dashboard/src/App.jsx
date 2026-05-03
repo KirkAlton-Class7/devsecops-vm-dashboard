@@ -687,7 +687,7 @@ export default function App() {
     loadQuotes();
   }, []);
 
-  // ✅ NEW: Intercept /api/logs in development mode to return mock paginated logs
+  // Intercept /api/logs in development mode to return mock paginated logs
   useEffect(() => {
     // Only intercept in development mode (optional – you can also remove the condition to always use mock)
     if (import.meta.env.DEV) {
