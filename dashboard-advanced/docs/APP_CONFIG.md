@@ -142,6 +142,8 @@ SHARED_GALLERY_MANIFEST="${SHARED_GALLERY_DIR}/gallery-manifest.json"
 > [!NOTE]
 > Static quote and gallery assets live under the root `shared/assets` folder so `dashboard-advanced` and `dashboard-basic` can use the same source files. The repository clone URL is configured separately in the VM startup wrapper (`infra/startup/gcp_startup.sh`). If you deploy from a fork, update the wrapper script or VM metadata as appropriate.
 
+During local Vite development, the frontend can fall back to the shared gallery manifest and images directly from the repository if `/data/gallery-manifest.json` is not being served by Nginx.
+
 ---
 
 ## System and Path Configuration (Reference)

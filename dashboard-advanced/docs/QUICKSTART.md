@@ -417,6 +417,8 @@ Text Mode includes:
 | `[SO] SIGN OUT` | Signs out of DevSecOps |
 | `[SE] SIGN OUT EVERYWHERE` | Clears all dashboard sessions |
 
+[PICTURE: Screenshot of Advanced Text Mode showing the updated cyan grid interface and top control row]
+
 ![Text Mode controls showing sign-out and sign-out everywhere actions](assets/50_text_mode_signout_controls.png)
 
 ![Text Mode dashboard showing copy controls in context](assets/36_text_mode.png)

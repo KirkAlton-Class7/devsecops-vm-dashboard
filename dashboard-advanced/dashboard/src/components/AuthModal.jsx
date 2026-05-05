@@ -20,6 +20,19 @@ export default function AuthModal({
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose?.();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const submit = (event) => {

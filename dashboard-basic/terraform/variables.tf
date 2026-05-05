@@ -2,17 +2,6 @@
 # VARIABLES
 # ----------------------------------------------------------------
 
-variable "project_id" {
-  description = "Google Cloud project ID where the Basic VM Dashboard is deployed."
-  type        = string
-}
-
-variable "gcp_region" {
-  description = "Google Cloud region for the VM and static IP."
-  default     = "us-central1"
-  type        = string
-}
-
 variable "gcp_zone" {
   description = "Google Cloud zone for the VM."
   default     = "us-central1-a"

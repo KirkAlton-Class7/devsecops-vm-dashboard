@@ -21,6 +21,7 @@ The dashboard reads local Linux system data and the GCE metadata server when ava
 - Region, zone, and uptime
 - Nginx, API, and static build health
 - Local health endpoints
+- Text Mode with `[C] COPY`, `[J] COPY JSON`, refresh, help, and dashboard exit controls
 
 ## ClickOps Deployment
 
@@ -107,6 +108,8 @@ They are served from:
 /var/www/basic-vm-dashboard/data/images/
 ```
 
+Local Vite development also has a build-time fallback to these shared assets, so the Scenes from Around the World card can render even when Nginx is not serving `/data/gallery-manifest.json`.
+
 ## Endpoints
 
 | Endpoint | Description |
@@ -118,7 +121,7 @@ They are served from:
 
 ## Repository
 
-[https://github.com/KirkAlton-Class7/basic-vm-dashboard](https://github.com/KirkAlton-Class7/basic-vm-dashboard)
+[https://github.com/KirkAlton-Class7/devsecops-vm-dashboard/tree/main/dashboard-basic](https://github.com/KirkAlton-Class7/devsecops-vm-dashboard/tree/main/dashboard-basic)
 
 ## License
 

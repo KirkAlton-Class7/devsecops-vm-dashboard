@@ -32,7 +32,7 @@ Locked dashboards use a centralized **Sign In** menu in the header. The menu pro
 
 ![Header Sign In dropdown showing DevSecOps and FinOps options](assets/44_header_sign_in_dropdown.png)
 
-Selecting either protected area opens the sign-in modal for that dashboard scope.
+Selecting either protected area opens the sign-in modal for that dashboard scope. Press `Escape` or click the close button to dismiss the modal without signing in.
 
 ![Dashboard sign-in modal requesting username and password](assets/51_auth_sign_in_modal.png)
 
@@ -241,6 +241,8 @@ A minimalist, terminal-style view of DevSecOps data. Optimized for keyboard navi
 
 To enable, press `T` or click **TEXT MODE** (top-right).
 
+[PICTURE: Screenshot of Advanced Text Mode showing the cyan grid background, blocked Identity, Overview, Network, Location, Services, and Logs panels]
+
 ![Text Mode dashboard showing terminal-style layout top controls and keyboard shortcuts](assets/13_text_mode_dashboard.png)
 
 ![Locked Text Mode dashboard showing protected mock data state](assets/49_text_mode_locked_mock.png)
@@ -287,7 +289,11 @@ Text mode log sorting cycles through Time Newest, Time Oldest, Level Error-Debug
 
 When `ALL SYSTEM LOGS` is open, press `R` to refresh the loaded log window and `LS` to copy the currently loaded/filter-matched logs as JSON.
 
+[PICTURE: Screenshot of Advanced Text Mode help overlay showing copy, JSON, logs, services, and sign-out shortcuts]
+
 ![Text Mode controls showing sign-out and sign-out everywhere actions](assets/50_text_mode_signout_controls.png)
+
+[PICTURE: Screenshot of Advanced Text Mode ALL SYSTEM LOGS modal with cyan terminal styling and LS snapshot control]
 
 ![Text Mode ALL SYSTEM LOGS modal showing refresh filter sort and snapshot controls](assets/14_text_mode_logs_modal_controls.png)
 
@@ -407,6 +413,7 @@ Interactive particle background (click to cycle):
 ### International Photo Gallery
 
 * Images loaded from `/data/images` + `/data/gallery-manifest.json`, staged from `shared/assets/images/image_gallery`
+* Local Vite fallback uses the shared repository gallery assets if `/data/gallery-manifest.json` is unavailable
 * Responsive grid layout
 
 Features:

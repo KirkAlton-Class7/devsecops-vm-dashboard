@@ -54,6 +54,8 @@ export default defineConfig({
 
 Because frontend requests use relative paths like `/api/dashboard`, local development falls back to bundled mock data unless the app is served behind Nginx or a local proxy is added.
 
+The image gallery first attempts `/data/gallery-manifest.json`. If that runtime manifest is unavailable in local Vite development, it falls back to the shared repository gallery assets under `shared/assets/images/image_gallery` so the gallery still renders while you work locally.
+
 Local sign-in uses development-only credentials because Vite does not run the VM Nginx Basic Auth layer. Set these values before starting Vite:
 
 ```bash

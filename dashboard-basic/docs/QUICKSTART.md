@@ -48,6 +48,20 @@ shared/assets/images/image_gallery/gallery-manifest.json
 shared/assets/images/image_gallery/*.webp
 ```
 
+The local frontend also falls back to those shared assets in development if `/data/gallery-manifest.json` is not being served yet. This keeps the Scenes from Around the World card functional in local Vite and deployed Nginx paths.
+
+## Verify Dashboard Modes
+
+The Basic dashboard includes the standard visual dashboard and a lightweight Text Mode.
+
+- Use the header mode selector or press `T` to open Text Mode.
+- Press `B` or `Escape` to return to the visual dashboard.
+- Text Mode supports `[R] REFRESH`, `[C] COPY`, `[J] COPY JSON`, and `[H] HELP`.
+
+[PICTURE: Screenshot of Basic VM Dashboard header mode selector showing BASIC (B) and TEXTMODE (T)]
+
+[PICTURE: Screenshot of Basic VM Dashboard Text Mode after opening it from the header mode selector]
+
 ## ClickOps CLI Example
 
 Run this from the repository root so the startup script path resolves correctly:

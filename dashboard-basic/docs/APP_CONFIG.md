@@ -47,3 +47,5 @@ At runtime those files are staged into:
 /var/www/basic-vm-dashboard/data/gallery-manifest.json
 /var/www/basic-vm-dashboard/data/images/
 ```
+
+During local Vite development, the frontend can also fall back to the same shared gallery manifest and image files directly from the repository. This prevents the gallery from showing an empty state when Nginx is not serving `/data/gallery-manifest.json`.

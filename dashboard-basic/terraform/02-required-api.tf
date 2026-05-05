@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------
 
 resource "google_project_service" "compute" {
-  project            = var.project_id
+  project            = "kirk-devsecops-sandbox"
   service            = "compute.googleapis.com"
   disable_on_destroy = false
 }

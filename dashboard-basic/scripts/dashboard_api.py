@@ -128,6 +128,29 @@ def get_uptime():
         return "unknown"
 
 
+def get_load_avg():
+    try:
+        return f"{os.getloadavg()[1]:.2f}"
+    except (AttributeError, OSError):
+        return "unknown"
+
+
+def estimate_monthly_cost(machine):
+    # Lightweight local estimate only; avoids Cloud Billing APIs for the Basic dashboard.
+    normalized = (machine or "").lower()
+    monthly = {
+        "e2-micro": 6.11,
+        "e2-small": 12.23,
+        "e2-medium": 24.46,
+        "e2-standard-2": 48.92,
+        "e2-standard-4": 97.84,
+    }
+    for key, value in monthly.items():
+        if key in normalized:
+            return f"{value:.2f}"
+    return "N/A"
+
+
 def get_internal_ip():
     ips = run(["hostname", "-I"])
     if ips != "unknown":
@@ -179,20 +202,23 @@ def build_dashboard():
     network = basename(metadata("instance/network-interfaces/0/network"))
     subnet = basename(metadata("instance/network-interfaces/0/subnet"))
     external_ip = metadata("instance/network-interfaces/0/access-configs/0/external-ip")
+    machine = machine_type()
+    load_avg = get_load_avg()
 
     return {
         "summaryCards": [
             {"label": "CPU", "value": f"{cpu}%", "status": get_status(cpu)},
             {"label": "Memory", "value": f"{memory['usage']}%", "status": get_status(memory["usage"])},
             {"label": "Disk", "value": f"{disk['usage']}%", "status": get_status(disk["usage"])},
-            {"label": "Uptime", "value": get_uptime(), "status": "info"},
+            {"label": "Estimated Cost", "value": estimate_monthly_cost(machine), "status": "info"},
         ],
         "identity": {
             "project": project,
             "instanceId": instance_id,
             "instanceName": instance_name,
             "hostname": hostname,
-            "machineType": machine_type(),
+            "machineType": machine,
+            "billingAccountId": "not configured",
         },
         "network": {
             "vpc": network,
@@ -204,26 +230,32 @@ def build_dashboard():
             "region": region,
             "zone": zone,
             "uptime": get_uptime(),
+            "loadAvg": load_avg,
         },
         "systemResources": {
             "cpu": {
                 "cores": os.cpu_count() or 1,
                 "usage": cpu,
                 "frequency": "unknown",
+                "loadAvg": load_avg,
                 "history": [{"time": datetime.now().strftime("%H:%M"), "value": cpu}],
             },
             "memory": memory,
             "disk": disk,
         },
         "monitoringEndpoints": [
-            {"name": "Health Check", "url": "/healthz", "status": "up"},
-            {"name": "Dashboard API", "url": "/api/dashboard", "status": "up"},
-            {"name": "Metadata", "url": "/metadata", "status": "up"},
+            {"name": "Health Check", "url": "http://localhost/healthz", "status": "up"},
+            {"name": "Metadata API", "url": "http://localhost:8080/metadata", "status": "up"},
+            {"name": "Dashboard API", "url": "http://localhost:8080/api/dashboard", "status": "up"},
+            {"name": "Static Assets", "url": "http://localhost/data/quotes.json", "status": "up"},
         ],
         "services": [
-            {"label": "Nginx", "value": service_state("nginx"), "status": service_status("nginx")},
-            {"label": "Dashboard API", "value": service_state("dashboard-api"), "status": service_status("dashboard-api")},
-            {"label": "Static Build", "value": "served from /var/www/basic-vm-dashboard", "status": "healthy"},
+            {"label": "Nginx", "value": f"{service_state('nginx')}; serving dashboard on port 80", "status": service_status("nginx")},
+            {"label": "Dashboard API", "value": f"{service_state('dashboard-api')}; basic VM metadata endpoint on port 8080", "status": service_status("dashboard-api")},
+            {"label": "React Static Build", "value": "assets present in /var/www/basic-vm-dashboard", "status": "healthy"},
+            {"label": "Metadata Service", "value": "best-effort project/zone resolution", "status": "healthy"},
+            {"label": "Shared Assets", "value": "quotes and gallery manifest staged from shared/assets", "status": "healthy"},
+            {"label": "Startup Script", "value": "ClickOps startup-script friendly", "status": "healthy"},
         ],
         "meta": {
             "appName": APP_NAME,
