@@ -73,7 +73,7 @@ export default function ProtectedFinOpsDashboard({
       <div className={isSidebarCollapsed ? "xl:ml-20" : "xl:ml-72"}>
         <Header
           appName="FinOps"
-          tagline="Optimize resources and cost"
+          tagline="Cost trends, budgets, and rightsizing"
           uptime=""
           currentMode={currentMode}
           onModeChange={onModeChange}

@@ -142,7 +142,7 @@ export const mockDashboard = {
 
   meta: {
     appName: "DevSecOps",
-    tagline: "GCP VM dashboard with live logs, FinOps, and deployment health",
+    tagline: "Live logs, VM health, and detailed metadata",
     dashboardUser: "Kirk Alton",
     dashboardName: "DevSecOps Dashboard",
     uptime: "9 days, 6 hours",

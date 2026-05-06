@@ -4,7 +4,7 @@
 # Dashboard configuration
 # -------------------------------
 DASHBOARD_APP_NAME="GCP Deployment"
-DASHBOARD_TAGLINE="Infrastructure health and activity"
+DASHBOARD_TAGLINE="Live logs, VM health, and detailed metadata"
 DASHBOARD_USER="Kirk Alton"
 DASHBOARD_NAME="DevSecOps Dashboard"
 

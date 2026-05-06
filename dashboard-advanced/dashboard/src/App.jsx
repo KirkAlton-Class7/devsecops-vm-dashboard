@@ -564,7 +564,7 @@ export default function App() {
       logLimit,
       serviceLimit,
       dashboardName: dashboard.meta?.dashboardName || "DevSecOps Dashboard",
-      tagline: dashboard.meta?.tagline || "Real-time infrastructure monitoring",
+      tagline: dashboard.meta?.tagline || "Live logs, VM health, and detailed metadata",
     });
 
     try {
@@ -610,7 +610,7 @@ export default function App() {
       logLimit,
       serviceLimit,
       dashboardName: dashboard.meta?.dashboardName || "DevSecOps Dashboard",
-      tagline: dashboard.meta?.tagline || "Real-time infrastructure monitoring",
+      tagline: dashboard.meta?.tagline || "Live logs, VM health, and detailed metadata",
     });
     const snapshot = JSON.stringify(payload, null, 2);
 

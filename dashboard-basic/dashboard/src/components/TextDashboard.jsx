@@ -567,10 +567,8 @@ export default function TextDashboard({
 
   return (
     <div className="relative min-h-dvh w-full overflow-x-hidden bg-black p-3 font-mono text-white md:p-6">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_30rem),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.12),transparent_34rem),linear-gradient(135deg,rgba(15,23,42,0.65),rgba(2,6,23,0.95))]" />
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.035),transparent_1px)] bg-[size:18px_18px] opacity-40" />
       <div className="relative mx-auto w-full max-w-none min-w-0">
-        <div className="mb-4 rounded border border-cyan-400/25 bg-slate-950/85 p-3 shadow-xl shadow-cyan-950/20">
+        <div className="mb-4 rounded border border-neutral-800 bg-neutral-950/95 p-3 shadow-none">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <div className="text-xl font-bold tracking-tight">{dashboardName}</div>
@@ -586,20 +584,7 @@ export default function TextDashboard({
               {hasMockData && (
                 <motion.button
                   onClick={() => setShowMockDiagnostics(true)}
-                  animate={{
-                    boxShadow: [
-                      "0 0 0px rgba(251,191,36,0.20)",
-                      "0 0 12px rgba(251,191,36,0.60)",
-                      "0 0 0px rgba(251,191,36,0.20)",
-                    ],
-                    borderColor: [
-                      "rgba(251,191,36,0.35)",
-                      "rgba(251,191,36,0.90)",
-                      "rgba(251,191,36,0.35)",
-                    ],
-                  }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-                  className="rounded border px-2 py-1 text-amber-300 hover:bg-amber-500/10"
+                  className="rounded border border-amber-400/50 px-2 py-1 text-amber-300 hover:bg-amber-500/[0.06]"
                 >
                   [WARNING]
                 </motion.button>
@@ -607,9 +592,9 @@ export default function TextDashboard({
 
               <button
                 onClick={copySnapshot}
-                className={`rounded border px-2 py-1 hover:bg-cyan-400/10 ${
+                className={`rounded border px-2 py-1 hover:bg-cyan-400/[0.06] ${
                   copyFlash
-                    ? "border-cyan-400/60 text-cyan-300 shadow-[0_0_8px_theme(colors.cyan.400)]"
+                    ? "border-cyan-400/60 text-cyan-300 bg-cyan-400/[0.06]"
                     : "border-cyan-400/25"
                 }`}
               >
@@ -618,9 +603,9 @@ export default function TextDashboard({
 
               <button
                 onClick={copyJsonSnapshot}
-                className={`rounded border px-2 py-1 hover:bg-cyan-400/10 ${
+                className={`rounded border px-2 py-1 hover:bg-cyan-400/[0.06] ${
                   copyJsonFlash
-                    ? "border-cyan-400/60 text-cyan-300 shadow-[0_0_8px_theme(colors.cyan.400)]"
+                    ? "border-cyan-400/60 text-cyan-300 bg-cyan-400/[0.06]"
                     : "border-cyan-400/25"
                 }`}
               >
@@ -629,21 +614,14 @@ export default function TextDashboard({
 
               <button
                 onClick={() => setShowHelp(!showHelp)}
-                className="rounded border border-cyan-400/25 px-2 py-1 hover:bg-cyan-400/10"
+                className="rounded border border-cyan-400/25 px-2 py-1 hover:bg-cyan-400/[0.06]"
               >
                 [H] HELP
               </button>
 
               <button
                 onClick={onExitTextDash}
-                className="rounded border border-cyan-400/25 px-2 py-1 hover:bg-cyan-400/10"
-              >
-                [B] BASIC
-              </button>
-
-              <button
-                onClick={onExitTextDash}
-                className="rounded border border-cyan-400/25 px-2 py-1 hover:bg-cyan-400/10"
+                className="rounded border border-cyan-400/25 px-2 py-1 hover:bg-cyan-400/[0.06]"
               >
                 [Esc] EXIT
               </button>
@@ -665,7 +643,7 @@ export default function TextDashboard({
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 12 }}
-                className="w-full max-w-4xl border border-amber-400/40 bg-black shadow-2xl shadow-amber-950/40 outline-none"
+                className="w-full max-w-4xl border border-amber-400/40 bg-black outline-none"
               >
                 <div className="flex items-center justify-between border-b border-amber-400/30 p-3">
                   <div className="text-sm font-bold text-amber-300">
@@ -673,7 +651,7 @@ export default function TextDashboard({
                   </div>
                   <button
                     onClick={() => setShowMockDiagnostics(false)}
-                    className="border border-cyan-400/25 px-2 py-1 text-xs text-white/60 hover:bg-cyan-400/10 hover:text-red-300"
+                    className="border border-cyan-400/25 px-2 py-1 text-xs text-white/60 hover:bg-cyan-400/[0.06] hover:text-red-300"
                   >
                     [Esc] CLOSE
                   </button>
@@ -697,7 +675,7 @@ export default function TextDashboard({
                   </div>
                 </div>
 
-                <div className="border-t border-cyan-400/25 p-2 text-center text-xs text-white/30">
+                <div className="border-t border-neutral-800 p-2 text-center text-xs text-white/30">
                   Press Esc to close.
                 </div>
               </motion.div>
@@ -709,7 +687,7 @@ export default function TextDashboard({
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mb-4 rounded border border-cyan-400/25 bg-slate-950/85 p-3 text-xs shadow-xl shadow-cyan-950/10"
+              className="mb-4 rounded border border-neutral-800 bg-neutral-950/95 p-3 text-xs shadow-none"
             >
               <div className="mb-1 font-bold">KEYBOARD SHORTCUTS</div>
 
@@ -738,7 +716,7 @@ export default function TextDashboard({
         </div>
 
         <div className="mb-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded border border-cyan-400/20 bg-slate-950/80 p-3 shadow-xl shadow-cyan-950/10">
+          <div className="rounded border border-neutral-800 bg-neutral-950/90 p-3 shadow-none">
             <div className="mb-2 text-xs uppercase tracking-[0.22em] text-cyan-300">Identity</div>
 
             <div className="space-y-1 text-sm">
@@ -749,7 +727,7 @@ export default function TextDashboard({
             </div>
           </div>
 
-          <div className="rounded border border-cyan-400/20 bg-slate-950/80 p-3 shadow-xl shadow-cyan-950/10">
+          <div className="rounded border border-neutral-800 bg-neutral-950/90 p-3 shadow-none">
             <div className="mb-2 text-xs uppercase tracking-[0.22em] text-cyan-300">Overview</div>
 
             <div className="space-y-1 text-sm">
@@ -777,7 +755,7 @@ export default function TextDashboard({
         </div>
 
         <div className="mb-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded border border-cyan-400/20 bg-slate-950/80 p-3 shadow-xl shadow-cyan-950/10">
+          <div className="rounded border border-neutral-800 bg-neutral-950/90 p-3 shadow-none">
             <div className="mb-2 text-xs uppercase tracking-[0.22em] text-cyan-300">Network</div>
 
             <div className="space-y-1 text-sm">
@@ -788,7 +766,7 @@ export default function TextDashboard({
             </div>
           </div>
 
-          <div className="rounded border border-cyan-400/20 bg-slate-950/80 p-3 shadow-xl shadow-cyan-950/10">
+          <div className="rounded border border-neutral-800 bg-neutral-950/90 p-3 shadow-none">
             <div className="mb-2 text-xs uppercase tracking-[0.22em] text-cyan-300">Location</div>
 
             <div className="space-y-1 text-sm">
@@ -799,7 +777,7 @@ export default function TextDashboard({
           </div>
         </div>
 
-        <div className="mb-4 rounded border border-cyan-400/20 bg-slate-950/80 p-3 shadow-xl shadow-cyan-950/10">
+        <div className="mb-4 rounded border border-neutral-800 bg-neutral-950/90 p-3 shadow-none">
           <div className="mb-2 text-xs uppercase tracking-[0.22em] text-cyan-300">Monitoring Endpoints</div>
 
           <div className="space-y-1 text-sm">
@@ -819,7 +797,7 @@ export default function TextDashboard({
           </div>
         </div>
 
-        <div className="mb-4 rounded border border-cyan-400/20 bg-slate-950/80 p-3 shadow-xl shadow-cyan-950/10">
+        <div className="mb-4 rounded border border-neutral-800 bg-neutral-950/90 p-3 shadow-none">
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="min-w-0 text-xs uppercase tracking-wide text-white/40">
               SERVICES ({Math.min(serviceLimit, serviceStats.total)} of {serviceStats.total}) |{" "}
@@ -829,13 +807,13 @@ export default function TextDashboard({
             <div className="flex flex-wrap justify-end gap-2">
               <button
                 onClick={toggleServiceSort}
-                className="rounded border border-cyan-400/25 px-2 py-1 text-xs text-white/60 hover:bg-cyan-400/10 hover:text-cyan-300"
+                className="rounded border border-cyan-400/25 px-2 py-1 text-xs text-white/60 hover:bg-cyan-400/[0.06] hover:text-cyan-300"
               >
                 [S] SORT {serviceSortLabel}
               </button>
               <button
                 onClick={() => setShowServiceFilters(true)}
-                className={`rounded border px-2 py-1 text-xs hover:bg-cyan-400/10 hover:text-cyan-300 ${
+                className={`rounded border px-2 py-1 text-xs hover:bg-cyan-400/[0.06] hover:text-cyan-300 ${
                   hasActiveServiceFilters
                     ? "border-cyan-400 text-cyan-300"
                     : "border-cyan-400/25 text-white/60"
@@ -845,7 +823,7 @@ export default function TextDashboard({
               </button>
               <button
                 onClick={() => setShowAllServices(true)}
-                className="rounded border border-cyan-400/25 px-2 py-1 text-xs text-white hover:bg-cyan-400/10 hover:text-cyan-300"
+                className="rounded border border-cyan-400/25 px-2 py-1 text-xs text-white hover:bg-cyan-400/[0.06] hover:text-cyan-300"
               >
                 [SS] ALL SERVICES
               </button>
@@ -862,7 +840,7 @@ export default function TextDashboard({
           </div>
         </div>
 
-        <div className="mt-4 border-t border-cyan-400/20 pt-2 text-center text-xs text-white/30">
+        <div className="mt-4 border-t border-neutral-800 pt-2 text-center text-xs text-white/30">
           {dashboardName}
         </div>
       </div>
@@ -881,9 +859,9 @@ export default function TextDashboard({
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 12 }}
-              className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden border border-cyan-400/25 bg-black font-mono text-white shadow-2xl outline-none"
+              className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden border border-neutral-800 bg-black font-mono text-white outline-none"
             >
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-400/25 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 p-3">
                 <div>
                   <div className="text-sm font-bold text-white">ALL SERVICES</div>
                   <div className="text-xs text-white/40">
@@ -895,14 +873,14 @@ export default function TextDashboard({
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <button
                     onClick={toggleServiceSort}
-                    className="border border-cyan-400/25 px-2 py-1 text-white/60 hover:bg-cyan-400/10 hover:text-cyan-300"
+                    className="border border-cyan-400/25 px-2 py-1 text-white/60 hover:bg-cyan-400/[0.06] hover:text-cyan-300"
                     title="Toggle service sort order"
                   >
                     [S] SORT {serviceSortLabel}
                   </button>
                   <button
                     onClick={() => setShowServiceFilters(true)}
-                    className={`border px-2 py-1 hover:bg-cyan-400/10 hover:text-cyan-300 ${
+                    className={`border px-2 py-1 hover:bg-cyan-400/[0.06] hover:text-cyan-300 ${
                       hasActiveServiceFilters
                         ? "border-cyan-400 text-cyan-300"
                         : "border-cyan-400/25 text-white/60"
@@ -912,7 +890,7 @@ export default function TextDashboard({
                   </button>
                   <button
                     onClick={() => setShowAllServices(false)}
-                    className="border border-cyan-400/25 px-2 py-1 text-white/60 hover:bg-cyan-400/10 hover:text-red-300"
+                    className="border border-cyan-400/25 px-2 py-1 text-white/60 hover:bg-cyan-400/[0.06] hover:text-red-300"
                   >
                     [Esc] CLOSE
                   </button>
@@ -936,7 +914,7 @@ export default function TextDashboard({
                 )}
               </div>
 
-              <div className="border-t border-cyan-400/25 p-2 text-center text-xs text-white/30">
+              <div className="border-t border-neutral-800 p-2 text-center text-xs text-white/30">
                 Press S to sort services. Press FS to filter services. Press Esc to close.
               </div>
             </motion.div>
@@ -956,9 +934,9 @@ export default function TextDashboard({
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 12 }}
-              className="w-full max-w-4xl border border-cyan-400/25 bg-black shadow-2xl outline-none"
+              className="w-full max-w-4xl border border-neutral-800 bg-black outline-none"
             >
-              <div className="flex items-center justify-between border-b border-cyan-400/25 p-3">
+              <div className="flex items-center justify-between border-b border-neutral-800 p-3">
                 <div>
                   <div className="text-sm font-bold text-cyan-300">SERVICE FILTERS</div>
                   <div className="text-xs text-white/40">
@@ -968,7 +946,7 @@ export default function TextDashboard({
                 </div>
                 <button
                   onClick={() => setShowServiceFilters(false)}
-                  className="border border-cyan-400/25 px-2 py-1 text-xs text-white/60 hover:bg-cyan-400/10 hover:text-red-300"
+                  className="border border-cyan-400/25 px-2 py-1 text-xs text-white/60 hover:bg-cyan-400/[0.06] hover:text-red-300"
                 >
                   [Esc] CLOSE
                 </button>
@@ -992,7 +970,7 @@ export default function TextDashboard({
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   {serviceFilterSections.map((section, columnIndex) => (
                     <div key={section.key} className="border border-cyan-400/20">
-                      <div className="border-b border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-cyan-300">
+                      <div className="border-b border-neutral-800 bg-cyan-400/[0.06] px-2 py-1 text-cyan-300">
                         {section.label}
                       </div>
                       <div className="p-1">
@@ -1012,7 +990,7 @@ export default function TextDashboard({
                                     toggleFilterValue(current, section.key, option.value)
                                   );
                                 }}
-                                className={`grid w-full grid-cols-[1rem_3rem_1fr] gap-2 px-2 py-1 text-left hover:bg-cyan-400/10 ${
+                                className={`grid w-full grid-cols-[1rem_3rem_1fr] gap-2 px-2 py-1 text-left hover:bg-cyan-400/[0.06] ${
                                   activeCursor ? "bg-white/10 text-cyan-300" : "text-white/70"
                                 }`}
                               >
@@ -1035,7 +1013,7 @@ export default function TextDashboard({
                 )}
               </div>
 
-              <div className="border-t border-cyan-400/25 p-2 text-center text-xs text-white/30">
+              <div className="border-t border-neutral-800 p-2 text-center text-xs text-white/30">
                 Arrow keys move by row and column. Space or Enter toggles. Delete or Backspace clears. Esc closes.
               </div>
             </motion.div>
