@@ -19,8 +19,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP_NAME = os.environ.get("DASHBOARD_APP_NAME", "Basic VM Dashboard")
 DASHBOARD_NAME = os.environ.get("DASHBOARD_NAME", "Basic VM Dashboard")
-DASHBOARD_USER = os.environ.get("DASHBOARD_USER", "VM Operator")
-TAGLINE = os.environ.get("DASHBOARD_TAGLINE", "Lightweight VM health and metadata")
+DASHBOARD_USER = os.environ.get("DASHBOARD_USER", "Kirk Alton")
+TAGLINE = os.environ.get("DASHBOARD_TAGLINE", "VM health and basic metadata")
 PORT = int(os.environ.get("PORT", "8080"))
 
 
@@ -136,7 +136,7 @@ def get_load_avg():
 
 
 def estimate_monthly_cost(machine):
-    # Lightweight local estimate only; avoids Cloud Billing APIs for the Basic dashboard.
+    # Basic local estimate only; avoids Cloud Billing APIs for the Basic dashboard.
     normalized = (machine or "").lower()
     monthly = {
         "e2-micro": 6.11,

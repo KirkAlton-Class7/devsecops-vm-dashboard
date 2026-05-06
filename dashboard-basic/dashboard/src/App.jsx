@@ -385,7 +385,7 @@ export default function App() {
         <TextDashboard
           dashboard={dashboard}
           dashboardName={dashboard.meta?.dashboardName || "Basic VM Dashboard"}
-          tagline={dashboard.meta?.tagline || "Lightweight VM health and metadata"}
+          tagline={dashboard.meta?.tagline || "VM health and basic metadata"}
           mockDataDiagnostics={mockDataDiagnostics}
           onExitTextDash={() => setMode("standard")}
           onRefresh={fetchDashboard}
@@ -403,7 +403,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
       <Sidebar
-        dashboardUser={dashboard.meta?.dashboardUser || "VM Operator"}
+        dashboardUser={dashboard.meta?.dashboardUser || "Kirk Alton"}
         dashboardName={dashboard.meta?.dashboardName || "Basic VM Dashboard"}
         githubUrl={githubUrl}
         linkedinUrl={linkedinUrl}
@@ -419,7 +419,7 @@ export default function App() {
       >
         <Header
           appName={dashboard.meta?.appName || "Basic VM Dashboard"}
-          tagline={dashboard.meta?.tagline || "Lightweight VM health and metadata"}
+          tagline={dashboard.meta?.tagline || "VM health and basic metadata"}
           uptime={dashboard.meta?.uptime || "Unknown"}
           currentMode={mode}
           showAuthControl={false}

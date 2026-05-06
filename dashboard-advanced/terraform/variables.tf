@@ -16,7 +16,7 @@ variable "dashboard_hostname" {
 
 variable "dashboard_subdomain" {
   description = "Subdomain to use under root_domain for the VM dashboard."
-  default     = "dashboard"
+  default     = "dashboard-api"
   type        = string
 }
 

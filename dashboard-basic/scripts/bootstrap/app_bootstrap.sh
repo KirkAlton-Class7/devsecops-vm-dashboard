@@ -4,8 +4,8 @@
 # Dashboard configuration
 # -------------------------------
 DASHBOARD_APP_NAME="${DASHBOARD_APP_NAME:-Basic VM Dashboard}"
-DASHBOARD_TAGLINE="${DASHBOARD_TAGLINE:-Lightweight VM health and metadata}"
-DASHBOARD_USER="${DASHBOARD_USER:-VM Operator}"
+DASHBOARD_TAGLINE="${DASHBOARD_TAGLINE:-VM health and basic metadata}"
+DASHBOARD_USER="${DASHBOARD_USER:-Kirk Alton}"
 DASHBOARD_NAME="${DASHBOARD_NAME:-Basic VM Dashboard}"
 
 # ---------------------------------

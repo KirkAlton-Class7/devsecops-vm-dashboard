@@ -6,8 +6,8 @@ Editable values:
 
 ```bash
 DASHBOARD_APP_NAME="Basic VM Dashboard"
-DASHBOARD_TAGLINE="Lightweight VM health and metadata"
-DASHBOARD_USER="VM Operator"
+DASHBOARD_TAGLINE="VM health and basicmetadata"
+DASHBOARD_USER="Kirk Alton"
 DASHBOARD_NAME="Basic VM Dashboard"
 ```
 

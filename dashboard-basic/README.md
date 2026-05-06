@@ -61,7 +61,7 @@ Use `letsencrypt-staging=true` for repeated lab testing so you do not consume Le
 Terraform is included for portability. The stack creates:
 
 - Compute API enablement
-- Lightweight VPC
+- Basic VPC
 - Firewall rules for SSH, HTTP, and HTTPS
 - Static external IP
 - One VM running the startup script

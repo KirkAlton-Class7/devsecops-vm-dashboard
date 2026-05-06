@@ -25,7 +25,7 @@ During VM bootstrap, each dashboard stages those files into its own `/var/www/..
 
 ```text
 dashboard-advanced/   Full DevSecOps + FinOps dashboard, docs, scripts, infra, Terraform
-dashboard-basic/      Lightweight Basic VM Dashboard, docs, scripts, infra, Terraform
+dashboard-basic/      Basic VM Dashboard, docs, scripts, infra, Terraform
 shared/               Shared quotes and image gallery assets
 ```
 

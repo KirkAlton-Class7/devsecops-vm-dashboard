@@ -500,7 +500,7 @@ devsecops-vm-dashboard/
 │   ├── infra/startup/       # ClickOps startup wrapper
 │   ├── docs/                # Advanced dashboard documentation
 │   └── terraform/           # Advanced GCP/Terraform deployment stack
-├── dashboard-basic/         # Lightweight VM-only dashboard deployment
+├── dashboard-basic/         # Basic VM dashboard deployment
 ├── shared/
 │   └── assets/
 │       ├── quotes/quotes.json

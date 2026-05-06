@@ -12,7 +12,7 @@ Provides:
 * Sort, filter, search, and view-all workflows for logs, services, and FinOps lists
 * Clipboard-friendly dashboard snapshots, JSON payload exports, widget snapshots, and row copies with Manual Copy fallback on public HTTP
 * Header diagnostic warning when mock or fallback data is being displayed
-* Lightweight UI modes (terminal + visual)
+* Basic UI modes (terminal + visual)
 
 DevSecOps system health is collected locally from the VM and GCP metadata. FinOps data uses GCP APIs and BigQuery billing export when configured.
 

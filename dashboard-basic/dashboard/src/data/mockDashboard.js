@@ -69,8 +69,8 @@ export const mockDashboard = {
 
   meta: {
     appName: "Basic VM Dashboard",
-    tagline: "Lightweight VM health and metadata",
-    dashboardUser: "VM Operator",
+    tagline: "VM health and basic metadata",
+    dashboardUser: "Kirk Alton",
     dashboardName: "Basic VM Dashboard",
     uptime: "12 minutes",
     lastRefresh: "unknown",
