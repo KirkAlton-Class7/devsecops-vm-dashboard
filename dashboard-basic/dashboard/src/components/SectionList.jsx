@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowDown, ArrowUp, Eye, Filter, X } from "lucide-react";
 import Card from "./Card";
@@ -65,13 +65,35 @@ const matchesSearch = (item, query) => {
   );
 };
 
-export default function SectionList({ title, subtitle, items, limit, onCopyFailure, onCopySuccess }) {
+export default function SectionList({
+  title,
+  subtitle,
+  items,
+  limit,
+  onCopyFailure,
+  onCopySuccess,
+  filters: controlledFilters,
+  onFiltersChange,
+}) {
   const [showAllModal, setShowAllModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({});
+  const [internalFilters, setInternalFilters] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
   const [sortDirection, setSortDirection] = useState("asc");
   const [sortField, setSortField] = useState("label");
+  const filters = controlledFilters ?? internalFilters;
+  const setFiltersState = useCallback(
+    (updater) => {
+      const nextFilters =
+        typeof updater === "function" ? updater(filters) : updater;
+      if (onFiltersChange) {
+        onFiltersChange(nextFilters);
+      } else {
+        setInternalFilters(nextFilters);
+      }
+    },
+    [filters, onFiltersChange]
+  );
 
   // Convert item status to StatusDot compatible status
   const getStatusDotStatus = (itemStatus) => {
@@ -343,8 +365,8 @@ export default function SectionList({ title, subtitle, items, limit, onCopyFailu
             title="Filter Services"
             sections={filterSections}
             filters={filters}
-            onToggle={(key, value) => setFilters((current) => toggleFilterValue(current, key, value))}
-            onClear={() => setFilters({})}
+            onToggle={(key, value) => setFiltersState((current) => toggleFilterValue(current, key, value))}
+            onClear={() => setFiltersState({})}
             onClose={() => setShowFilters(false)}
           />
         )}

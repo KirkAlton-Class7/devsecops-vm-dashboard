@@ -185,6 +185,8 @@ export default function App() {
   const [authModal, setAuthModal] = useState({ open: false, message: "", target: "dev" });
   const [authError, setAuthError] = useState("");
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [serviceFilters, setServiceFilters] = useState({});
+  const [logFilters, setLogFilters] = useState({});
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
     () => localStorage.getItem("dashboard_sidebar_collapsed") === "true"
   );
@@ -840,6 +842,10 @@ export default function App() {
           mockDataDiagnostics={mockDataDiagnostics}
           onSignOut={handleSignOut}
           onSignOutEverywhere={handleSignOutEverywhere}
+          serviceFilters={serviceFilters}
+          onServiceFiltersChange={setServiceFilters}
+          logFilters={logFilters}
+          onLogFiltersChange={setLogFilters}
           onRefresh={async () => {
             try {
               const res = await fetch("/api/dashboard", { cache: "no-store", headers: devAuthHeaders });
@@ -1110,6 +1116,8 @@ export default function App() {
               limit={serviceLimit}
               onCopyFailure={showManualCopy}
               onCopySuccess={showCopySuccess}
+              filters={serviceFilters}
+              onFiltersChange={setServiceFilters}
             />
           </motion.section>
 
@@ -1123,6 +1131,8 @@ export default function App() {
               authHeaders={devAuthHeaders}
               onCopyFailure={showManualCopy}
               onCopySuccess={showCopySuccess}
+              logFilters={logFilters}
+              onLogFiltersChange={setLogFilters}
             />
           </motion.section>
         </motion.main>

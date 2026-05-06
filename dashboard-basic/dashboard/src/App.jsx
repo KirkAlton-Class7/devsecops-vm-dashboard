@@ -189,6 +189,7 @@ export default function App() {
   const [copySuccessVisible, setCopySuccessVisible] = useState(false);
   const [copySuccessMessage, setCopySuccessMessage] = useState("Copied to clipboard.");
   const [dashboardDiagnostics, setDashboardDiagnostics] = useState([]);
+  const [serviceFilters, setServiceFilters] = useState({});
   const copySuccessTimeoutRef = useRef(null);
   const manualCopyTextareaRef = useRef(null);
 
@@ -390,6 +391,8 @@ export default function App() {
           onRefresh={fetchDashboard}
           onCopyFailure={showManualCopy}
           onCopySuccess={showCopySuccess}
+          serviceFilters={serviceFilters}
+          onServiceFiltersChange={setServiceFilters}
         />
         {manualCopyModal}
         {copySuccessToast}
@@ -523,6 +526,8 @@ export default function App() {
               limit={serviceLimit}
               onCopyFailure={showManualCopy}
               onCopySuccess={showCopySuccess}
+              filters={serviceFilters}
+              onFiltersChange={setServiceFilters}
             />
           </motion.section>
         </motion.main>

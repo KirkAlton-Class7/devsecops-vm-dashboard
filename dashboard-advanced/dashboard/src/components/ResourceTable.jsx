@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { memo, useEffect, useState, useRef } from "react";
+import { memo, useCallback, useEffect, useState, useRef } from "react";
 import {
   Server,
   Database,
@@ -337,12 +337,14 @@ function ResourceTable({
   snapshotText,
   snapshotLabel,
   authHeaders = {},
+  logFilters: controlledLogFilters,
+  onLogFiltersChange,
 }) {
   const [showAllLogsModal, setShowAllLogsModal] = useState(false);
   const [showAllResourcesModal, setShowAllResourcesModal] = useState(false);
   const [showLogFilters, setShowLogFilters] = useState(false);
   const [showResourceFilters, setShowResourceFilters] = useState(false);
-  const [logFilters, setLogFilters] = useState({});
+  const [internalLogFilters, setInternalLogFilters] = useState({});
   const [resourceFilters, setResourceFilters] = useState({});
   const [logSearch, setLogSearch] = useState("");
   const [resourceSearch, setResourceSearch] = useState("");
@@ -359,6 +361,19 @@ function ResourceTable({
   const logsContainerRef = useRef(null);
   const allLogsModalRef = useRef(null);
   const allResourcesModalRef = useRef(null);
+  const logFilters = controlledLogFilters ?? internalLogFilters;
+  const setLogFiltersState = useCallback(
+    (updater) => {
+      const nextFilters =
+        typeof updater === "function" ? updater(logFilters) : updater;
+      if (onLogFiltersChange) {
+        onLogFiltersChange(nextFilters);
+      } else {
+        setInternalLogFilters(nextFilters);
+      }
+    },
+    [logFilters, onLogFiltersChange]
+  );
 
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasOlder, setHasOlder] = useState(true);
@@ -483,7 +498,6 @@ function ResourceTable({
     if (initialLoad) {
       setLoadingLogs(true);
       setAllLogs([]);
-      setLogFilters({});
       setLogSearch("");
       setOlderOffset(0);
       setHasOlder(true);
@@ -1322,8 +1336,8 @@ function ResourceTable({
             title="Filter Logs"
             sections={logFilterSections}
             filters={logFilters}
-            onToggle={(key, value) => setLogFilters((current) => toggleFilterValue(current, key, value))}
-            onClear={() => setLogFilters({})}
+            onToggle={(key, value) => setLogFiltersState((current) => toggleFilterValue(current, key, value))}
+            onClear={() => setLogFiltersState({})}
             onClose={() => setShowLogFilters(false)}
           />
         )}

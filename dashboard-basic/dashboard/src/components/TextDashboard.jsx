@@ -201,6 +201,8 @@ export default function TextDashboard({
   onCopyFailure,
   onCopySuccess,
   mockDataDiagnostics = [],
+  serviceFilters: controlledServiceFilters,
+  onServiceFiltersChange,
 }) {
   const [copyFlash, setCopyFlash] = useState(false);
   const [copyJsonFlash, setCopyJsonFlash] = useState(false);
@@ -208,7 +210,7 @@ export default function TextDashboard({
   const [showHelp, setShowHelp] = useState(false);
   const [showMockDiagnostics, setShowMockDiagnostics] = useState(false);
   const [showServiceFilters, setShowServiceFilters] = useState(false);
-  const [serviceFilters, setServiceFilters] = useState({});
+  const [internalServiceFilters, setInternalServiceFilters] = useState({});
   const [serviceFilterCursor, setServiceFilterCursor] = useState(0);
   const [showAllServices, setShowAllServices] = useState(false);
   const [serviceSortMode, setServiceSortMode] = useState("name-asc");
@@ -219,6 +221,19 @@ export default function TextDashboard({
   const allServicesModalRef = useRef(null);
   const serviceFiltersModalRef = useRef(null);
   const mockDiagnosticsModalRef = useRef(null);
+  const serviceFilters = controlledServiceFilters ?? internalServiceFilters;
+  const setServiceFilters = useCallback(
+    (updater) => {
+      const nextFilters =
+        typeof updater === "function" ? updater(serviceFilters) : updater;
+      if (onServiceFiltersChange) {
+        onServiceFiltersChange(nextFilters);
+      } else {
+        setInternalServiceFilters(nextFilters);
+      }
+    },
+    [serviceFilters, onServiceFiltersChange]
+  );
 
   const serviceStats = useMemo(
     () => ({
@@ -297,6 +312,8 @@ export default function TextDashboard({
   const sortedServices = sortServices(filteredServices, serviceSortMode);
   const visibleServices = sortedServices.slice(0, serviceLimit);
   const serviceSortLabel = getMode(serviceSortMode, SERVICE_SORT_MODES).label;
+  const hasActiveServiceFilters = hasActiveFilters(serviceFilters);
+  const currentFilteredServiceCount = hasActiveServiceFilters ? filteredServices.length : 0;
 
   const copySnapshot = useCallback(async () => {
     const snapshot = buildTextSnapshot({
@@ -819,7 +836,7 @@ export default function TextDashboard({
               <button
                 onClick={() => setShowServiceFilters(true)}
                 className={`rounded border px-2 py-1 text-xs hover:bg-cyan-400/10 hover:text-cyan-300 ${
-                  hasActiveFilters(serviceFilters)
+                  hasActiveServiceFilters
                     ? "border-cyan-400 text-cyan-300"
                     : "border-cyan-400/25 text-white/60"
                 }`}
@@ -886,7 +903,7 @@ export default function TextDashboard({
                   <button
                     onClick={() => setShowServiceFilters(true)}
                     className={`border px-2 py-1 hover:bg-cyan-400/10 hover:text-cyan-300 ${
-                      hasActiveFilters(serviceFilters)
+                      hasActiveServiceFilters
                         ? "border-cyan-400 text-cyan-300"
                         : "border-cyan-400/25 text-white/60"
                     }`}
@@ -946,7 +963,7 @@ export default function TextDashboard({
                   <div className="text-sm font-bold text-cyan-300">SERVICE FILTERS</div>
                   <div className="text-xs text-white/40">
                     loaded: {dashboard.services?.length || 0} | filtered:{" "}
-                    {applyOptionFilters(dashboard.services || [], serviceFilters, SERVICE_FILTER_ACCESSORS).length}
+                    {currentFilteredServiceCount}
                   </div>
                 </div>
                 <button

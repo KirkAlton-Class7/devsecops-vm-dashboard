@@ -226,6 +226,10 @@ export default function TextDashboard({
   mockDataDiagnostics = [],
   onSignOut,
   onSignOutEverywhere,
+  logFilters: controlledLogFilters,
+  onLogFiltersChange,
+  serviceFilters: controlledServiceFilters,
+  onServiceFiltersChange,
 }) {
   const [copyFlash, setCopyFlash] = useState(false);
   const [copyJsonFlash, setCopyJsonFlash] = useState(false);
@@ -242,8 +246,8 @@ export default function TextDashboard({
   const [liveLogUpdatedAt, setLiveLogUpdatedAt] = useState(null);
   const [showLogFilters, setShowLogFilters] = useState(false);
   const [showServiceFilters, setShowServiceFilters] = useState(false);
-  const [logFilters, setLogFilters] = useState({});
-  const [serviceFilters, setServiceFilters] = useState({});
+  const [internalLogFilters, setInternalLogFilters] = useState({});
+  const [internalServiceFilters, setInternalServiceFilters] = useState({});
   const [logFilterCursor, setLogFilterCursor] = useState(0);
   const [serviceFilterCursor, setServiceFilterCursor] = useState(0);
   const [showAllServices, setShowAllServices] = useState(false);
@@ -259,6 +263,32 @@ export default function TextDashboard({
   const logFiltersModalRef = useRef(null);
   const serviceFiltersModalRef = useRef(null);
   const mockDiagnosticsModalRef = useRef(null);
+  const logFilters = controlledLogFilters ?? internalLogFilters;
+  const serviceFilters = controlledServiceFilters ?? internalServiceFilters;
+  const setLogFilters = useCallback(
+    (updater) => {
+      const nextFilters =
+        typeof updater === "function" ? updater(logFilters) : updater;
+      if (onLogFiltersChange) {
+        onLogFiltersChange(nextFilters);
+      } else {
+        setInternalLogFilters(nextFilters);
+      }
+    },
+    [logFilters, onLogFiltersChange]
+  );
+  const setServiceFilters = useCallback(
+    (updater) => {
+      const nextFilters =
+        typeof updater === "function" ? updater(serviceFilters) : updater;
+      if (onServiceFiltersChange) {
+        onServiceFiltersChange(nextFilters);
+      } else {
+        setInternalServiceFilters(nextFilters);
+      }
+    },
+    [serviceFilters, onServiceFiltersChange]
+  );
 
   // New refs for "SO" and "SE" combo
   const pendingSignOutRef = useRef(null);
@@ -377,13 +407,11 @@ export default function TextDashboard({
   }, [authHeaders, dashboard.logs, liveLogMinutes]);
 
   const openLiveLogs = useCallback(() => {
-    setLogFilters({});
     setShowLiveLogs(true);
     fetchLiveLogs();
   }, [fetchLiveLogs]);
 
   const refreshLiveLogs = useCallback(() => {
-    setLogFilters({});
     fetchLiveLogs();
   }, [fetchLiveLogs]);
 
@@ -979,6 +1007,12 @@ export default function TextDashboard({
   const visibleServices = sortedServices.slice(0, serviceLimit);
   const logSortLabel = getMode(logSortMode, LOG_SORT_MODES).label;
   const serviceSortLabel = getMode(serviceSortMode, SERVICE_SORT_MODES).label;
+  const hasActiveLogFilters = hasActiveFilters(logFilters);
+  const hasActiveServiceFilters = hasActiveFilters(serviceFilters);
+  const currentFilteredLogCount = hasActiveLogFilters
+    ? applyOptionFilters(currentFilterLogs, logFilters, LOG_FILTER_ACCESSORS).length
+    : 0;
+  const currentFilteredServiceCount = hasActiveServiceFilters ? filteredServices.length : 0;
 
   return (
     <div className="relative min-h-dvh w-full overflow-x-hidden bg-black p-3 font-mono text-white md:p-6">
@@ -1345,7 +1379,7 @@ export default function TextDashboard({
               <button
                 onClick={() => setShowServiceFilters(true)}
                 className={`px-2 py-1 border rounded text-xs hover:bg-cyan-400/10 hover:text-cyan-300 ${
-                  hasActiveFilters(serviceFilters)
+                  hasActiveServiceFilters
                     ? "border-cyan-400 text-cyan-300"
                     : "border-cyan-400/25 text-white/60"
                 }`}
@@ -1390,7 +1424,7 @@ export default function TextDashboard({
               <button
                 onClick={() => setShowLogFilters(true)}
                 className={`px-2 py-1 border rounded text-xs hover:bg-cyan-400/10 hover:text-cyan-300 ${
-                  hasActiveFilters(logFilters)
+                  hasActiveLogFilters
                     ? "border-cyan-400 text-cyan-300"
                     : "border-cyan-400/25 text-white/60"
                 }`}
@@ -1426,7 +1460,7 @@ export default function TextDashboard({
 
             {sortedPreviewLogs.length === 0 && (
               <div className="text-white/30">
-                {hasActiveFilters(logFilters) ? "No logs match the active filters" : "No logs available"}
+                {hasActiveLogFilters ? "No logs match the active filters" : "No logs available"}
               </div>
             )}
           </div>
@@ -1475,7 +1509,7 @@ export default function TextDashboard({
                   <button
                     onClick={() => setShowServiceFilters(true)}
                     className={`border px-2 py-1 hover:bg-cyan-400/10 hover:text-cyan-300 ${
-                      hasActiveFilters(serviceFilters)
+                      hasActiveServiceFilters
                         ? "border-cyan-400 text-cyan-300"
                         : "border-cyan-400/25 text-white/60"
                     }`}
@@ -1564,7 +1598,7 @@ export default function TextDashboard({
                   <button
                     onClick={() => setShowLogFilters(true)}
                     className={`border px-2 py-1 hover:bg-cyan-400/10 hover:text-cyan-300 ${
-                      hasActiveFilters(logFilters)
+                      hasActiveLogFilters
                         ? "border-cyan-400 text-cyan-300"
                         : "border-cyan-400/25 text-white/60"
                     }`}
@@ -1624,7 +1658,7 @@ export default function TextDashboard({
                   <div className="text-white/30">
                     {liveLogLoading
                       ? "Loading logs..."
-                      : hasActiveFilters(logFilters)
+                      : hasActiveLogFilters
                         ? "No logs match the active filters."
                         : "No logs available for this range."}
                   </div>
@@ -1658,7 +1692,7 @@ export default function TextDashboard({
                   <div className="text-sm font-bold text-cyan-300">LOG FILTERS</div>
                   <div className="text-xs text-white/40">
                     loaded: {currentFilterLogs.length} | filtered:{" "}
-                    {applyOptionFilters(currentFilterLogs, logFilters, LOG_FILTER_ACCESSORS).length}
+                    {currentFilteredLogCount}
                   </div>
                 </div>
                 <button
@@ -1757,7 +1791,7 @@ export default function TextDashboard({
                   <div className="text-sm font-bold text-cyan-300">SERVICE FILTERS</div>
                   <div className="text-xs text-white/40">
                     loaded: {dashboard.services?.length || 0} | filtered:{" "}
-                    {applyOptionFilters(dashboard.services || [], serviceFilters, SERVICE_FILTER_ACCESSORS).length}
+                    {currentFilteredServiceCount}
                   </div>
                 </div>
                 <button
