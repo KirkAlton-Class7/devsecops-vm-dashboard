@@ -187,7 +187,7 @@
     "id": 24,
     "text": "It’s Christmas. We’re going to Applebee’s after this!",
     "speaker": "Bowery King",
-    "author": "Chad Stahelski",
+    "author": "Derek Kolstad",
     "source": "John Wick: Chapter 2",
     "tags": ["humor"]
   },
@@ -195,7 +195,7 @@
     "id": 25,
     "text": "So be it. The path to paradise begins in hell.",
     "speaker": "The Director",
-    "author": "Chad Stahelski",
+    "author": "Derek Kolstad",
     "source": "John Wick 3",
     "tags": ["struggle", "journey"]
   },
@@ -1801,7 +1801,7 @@
   },
   {
     "id": 226,
-    "text": "Memory is like gravity . . . it just needs a little push.",
+    "text": "Madness is like gravity . . . it just needs a little push.",
     "speaker": "Joker",
     "author": "Christopher Nolan",
     "source": "The Dark Knight",
@@ -2238,5 +2238,61 @@
     "author": "Brendan Dell (@BrendanDell)",
     "source": "Harvard Just Caught AI Lying to Every Executive in America",
     "tags": ["strategy", "decisions", "tradeoffs", "business"]
+  },
+  {
+    "id": 280,
+    "text": "The Originator of the heavens and the earth. When He decrees a matter, He only says to it, ‘Be,’ and it is.",
+    "speaker": null,
+    "author": "Allah",
+    "source": "Quran 2:117",
+    "tags": ["speech", "creation", "language", "power"]
+  },
+{
+  "id": 281,
+  "text": "For He spoke, and it came to be; He commanded, and it stood firm.",
+  "speaker": null,
+  "author": "God",
+  "source": "Psalm 33:9",
+  "tags": ["speech", "language", "command", "power"]
+},
+  {
+    "id": 282,
+    "text": "So let it be written; so let it be done.",
+    "speaker": "Pharaoh Rameses II",
+    "author": "Cecil B. DeMille",
+    "source": "The Ten Commandments",
+    "tags": ["speech", "language", "writing", "power"]
+  },
+  {
+    "id": 283,
+    "text": "Death and life are in the power of the tongue, and those who love it and indulge it will eat its fruit and bear the consequences of their words.",
+    "speaker": null,
+    "author": "God",
+    "source": "Proverbs 18:21",
+    "tags": ["speech", "language", "choices", "power"]
+  },
+  {
+    "id": 284,
+    "text": "Never feel ashamed because it's never too late to improve",
+    "speaker": null,
+    "author": "@eighetta6581",
+    "source": "Comment on private livestream by @accountablecommentary",
+    "tags": ["selfimprovement", "growth", "mindset", "resilience"]
+  },
+  {
+    "id": 285,
+    "text": "When you pray for rain, you've gotta deal with the mud too.",
+    "speaker": "Robert McCall",
+    "author": "Richard Wenk",
+    "source": "The Equalizer (2014)",
+    "tags": ["consequences", "sacrifice", "success", "resilience"]
+  },
+  {
+    "id": 286,
+    "text": "If you die with cancer, it's not a loss, it's a draw. The cancer dies too",
+    "speaker": null,
+    "author": "@Technoblade",
+    "source": "null",
+    "tags": ["mortality", "optimism", "death", "perspective"]
   }
 ]
