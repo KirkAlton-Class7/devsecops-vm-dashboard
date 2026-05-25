@@ -56,7 +56,9 @@ resource "google_compute_instance" "vm_dashboard" {
   #     }
   #   )
 
-  tags = ["ssh", "http", "https", "http-server", "https-server"]
+  # tags = ["ssh", "http", "https", "http-server", "https-server"]
+  tags = ["vm-dashboard"]
+
 
   depends_on = [
     google_compute_subnetwork.private,

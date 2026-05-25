@@ -1,9 +1,6 @@
 # ----------------------------------------------------------------
-# SERVICE ACCOUNTS - IDENTITY LAYER
+# SERVICE ACCOUNTS
 # ----------------------------------------------------------------
-# REMEMBER:
-# Service Accounts = WHO you are
-# IAM Roles        = WHAT you can do
 
 # ----------------------------------------------------------------
 # SERVICE ACCOUNT - VM DASHBOARD
