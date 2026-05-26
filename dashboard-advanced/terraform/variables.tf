@@ -8,7 +8,7 @@
 variable "app" {
   type        = string
   description = "Application name (short)"
-  default     = "application-name" # Update with new application name
+  default     = "vm-dashboard"
 }
 
 # ----------------------------------------------------------------

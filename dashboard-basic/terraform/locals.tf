@@ -3,6 +3,8 @@
 # -----------------------------------------------------------------------------
 
 locals {
+  name_suffix         = lower(random_string.suffix.result)
+  bucket_suffix       = random_id.object_storage_suffix.hex
   env                 = lower(var.env)
   app                 = var.app
   name_prefix         = "${local.app}-${local.env}"

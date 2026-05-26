@@ -4,7 +4,7 @@
 
 variable "app" {
   description = "Application name used for resource name prefixes."
-  default     = "basic-vm-dashboard"
+  default     = "vm-dashboard"
   type        = string
 }
 
