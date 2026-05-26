@@ -7,7 +7,8 @@ Basic VM Dashboard is designed to run with minimal GCP setup.
 - GCP project
 - Compute Engine API
 - VM external IP
-- Firewall rule for TCP `80`
+- VM network tag `vm-dashboard`
+- Firewall rule targeting `vm-dashboard` for TCP `80`
 
 Enable the only required API:
 
@@ -17,7 +18,7 @@ gcloud services enable compute.googleapis.com
 
 ## Optional
 
-- TCP `443` firewall access for HTTPS
+- TCP `443` firewall access through the same `vm-dashboard` network tag for HTTPS
 - DNS record pointing a hostname to the VM external IP
 - Let’s Encrypt email metadata for Certbot
 - DNS access if you want to point a hostname at the VM external IP

@@ -10,8 +10,9 @@ The dashboard does not need Cloud Monitoring, BigQuery, Recommender, Secret Mana
 
 - A GCP project with Compute Engine available
 - A VM with an external IP
-- Firewall access to TCP `80`
-- Optional firewall access to TCP `443` for HTTPS
+- VM network tag `vm-dashboard`
+- Firewall access to TCP `80` through the `vm-dashboard` network tag
+- Optional firewall access to TCP `443` through the same tag for HTTPS
 
 Enable Compute Engine if needed:
 
@@ -74,21 +75,16 @@ gcloud compute instances create basic-vm-dashboard \
   --machine-type=e2-medium \
   --image-family=debian-11 \
   --image-project=debian-cloud \
-  --tags=http-server,https-server,ssh \
+  --tags=vm-dashboard \
   --metadata-from-file=startup-script=dashboard-basic/infra/startup/gcp_startup.sh
 ```
 
-Create simple firewall rules if your project does not already have them:
+Create a simple consolidated firewall rule if your project does not already have one:
 
 ```bash
-gcloud compute firewall-rules create allow-basic-dashboard-http \
-  --allow=tcp:80 \
-  --target-tags=http-server \
-  --source-ranges=0.0.0.0/0
-
-gcloud compute firewall-rules create allow-basic-dashboard-https \
-  --allow=tcp:443 \
-  --target-tags=https-server \
+gcloud compute firewall-rules create basic-vm-dashboard \
+  --allow=tcp:22,tcp:80,tcp:443 \
+  --target-tags=vm-dashboard \
   --source-ranges=0.0.0.0/0
 ```
 

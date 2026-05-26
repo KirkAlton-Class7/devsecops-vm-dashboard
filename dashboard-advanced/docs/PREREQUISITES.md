@@ -58,7 +58,7 @@ For a manual GCP Console VM deployment using `infra/startup/gcp_startup.sh`, you
 
 - A Debian 11 or Ubuntu 20.04/22.04 VM
 - A public external IP if you want browser access from the internet
-- Inbound firewall access on TCP `80`
+- Inbound firewall access on TCP `80` through the `vm-dashboard` network tag
 - Internet egress from the VM for package installs and GitHub clone
 - A service account attached to the VM with the roles listed in Stage 3
 - VM OAuth scopes that include `https://www.googleapis.com/auth/cloud-platform`
@@ -71,7 +71,7 @@ It does not configure DNS, HTTPS, Certbot, or a TLS certificate.
 
 For the Terraform-based HTTPS path, you also need:
 
-- Inbound firewall access on TCP `443`
+- Inbound firewall access on TCP `443` through the `vm-dashboard` network tag
 - A public DNS name, such as `dashboard.kirkdevsecops.com`
 - An AWS Route 53 public hosted zone for the root domain, or a manually managed DNS record
 - AWS credentials with permission to read the hosted zone and create/update the `A` record, if Terraform manages DNS

@@ -1,6 +1,26 @@
 # ----------------------------------------------------------------
 # VARIABLES
 # ----------------------------------------------------------------
+
+# ----------------------------------------------------------------
+# Input Application Name
+# ----------------------------------------------------------------
+variable "app" {
+  type        = string
+  description = "Application name (short)"
+  default     = "application-name" # Update with new application name
+}
+
+# ----------------------------------------------------------------
+# Input Environment
+# ----------------------------------------------------------------
+variable "env" {
+  type        = string
+  default     = "dev"
+  description = "Input environment name (dev, test, prod)."
+
+}
+
 variable "billing_account_id" {
   description = "The Google Cloud Billing Account ID used by the VM dashboard."
   default     = "01BB2F-8195CD-645BC0"

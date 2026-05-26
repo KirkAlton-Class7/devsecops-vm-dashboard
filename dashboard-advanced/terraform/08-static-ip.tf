@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------
 
 resource "google_compute_address" "vm_dashboard" {
-  name   = "vm-dashboard-ip"
+  name   = "${local.name_prefix}-vm-dashboard-ip"
   region = "us-central1"
 
   depends_on = [

@@ -1,39 +1,16 @@
 # ----------------------------------------------------------------
-# FIREWALL
+# Firewall Rule — Basic VM Dashboard
 # ----------------------------------------------------------------
 
-resource "google_compute_firewall" "allow_ssh" {
-  name    = "basic-vm-dashboard-allow-ssh"
+resource "google_compute_firewall" "vm_dashboard" {
+  name    = "${local.name_prefix}-vm-dashboard"
   network = google_compute_network.main.name
 
   allow {
     protocol = "tcp"
-    ports    = ["22"]
+    ports    = ["22", "80", "443"]
   }
 
   source_ranges = ["0.0.0.0/0"]
-}
-
-resource "google_compute_firewall" "allow_http" {
-  name    = "basic-vm-dashboard-allow-http"
-  network = google_compute_network.main.name
-
-  allow {
-    protocol = "tcp"
-    ports    = ["80"]
-  }
-
-  source_ranges = ["0.0.0.0/0"]
-}
-
-resource "google_compute_firewall" "allow_https" {
-  name    = "basic-vm-dashboard-allow-https"
-  network = google_compute_network.main.name
-
-  allow {
-    protocol = "tcp"
-    ports    = ["443"]
-  }
-
-  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["vm-dashboard"]
 }

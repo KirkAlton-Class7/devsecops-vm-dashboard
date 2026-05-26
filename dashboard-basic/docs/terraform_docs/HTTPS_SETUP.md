@@ -14,6 +14,8 @@ terraform apply \
 
 Open the `dashboard_http_url` output.
 
+The Terraform stack attaches network tag `vm-dashboard` to the VM and creates one consolidated firewall rule named `${local.name_prefix}-vm-dashboard` for SSH, HTTP, and HTTPS.
+
 ## HTTPS Deployment
 
 Point a hostname to the VM static IP. Use the `vm_external_ip` output to create your DNS `A` record with your DNS provider.

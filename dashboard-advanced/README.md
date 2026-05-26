@@ -41,17 +41,19 @@ This project supports both manual HTTP deployment and Terraform-managed HTTPS de
 
 | Deployment path | Result | Notes |
 | --- | --- | --- |
-| **HTTP ClickOps VM** | `http://<VM_EXTERNAL_IP>` | Use `infra/startup/gcp_startup.sh` as a GCP VM startup script. Requires APIs, IAM, service account scopes, and firewall port `80`. |
+| **HTTP ClickOps VM** | `http://<VM_EXTERNAL_IP>` | Use `infra/startup/gcp_startup.sh` as a GCP VM startup script. Requires APIs, IAM, service account scopes, and firewall port `80` on network tag `vm-dashboard`. |
 | **Terraform HTTPS** | `https://dashboard.<domain>` | Uses GCP for the VM/dashboard infrastructure and AWS Route 53 for DNS. Certbot runs on the VM to issue the Let’s Encrypt certificate. |
 
 ![Dashboard opened over HTTPS with the browser security indicator visible](docs/assets/02_https_dashboard_lock.png)
 
 The Terraform stack can manage:
 
-* GCP VM, VPC/subnet, NAT, firewall, static IP, service account, and IAM roles
+* GCP VMs, VPC/subnet, NAT, firewall, static IP, service account, and IAM roles
 * AWS Route 53 `A` record for the dashboard hostname
 * VM metadata used by the startup script for hostname, Let’s Encrypt email, and Secret Manager credential IDs
-* HTTPS firewall access on port `443`
+* Consolidated dashboard firewall access on network tag `vm-dashboard` for ports `22`, `80`, `443`, and `8080`
+* A separate prefixed `public-app` firewall rule and network tag `public-app` for the regular VM on ports `22` and `80`
+* Resource names prefixed with `local.name_prefix`, for example `${local.name_prefix}-vm-dashboard`
 
 Certificate private keys are intentionally **not** managed directly by Terraform. Certbot stores them on the VM under `/etc/letsencrypt`.
 

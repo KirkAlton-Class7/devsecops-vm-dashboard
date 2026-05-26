@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------
 
 resource "google_compute_network" "main" {
-  name                    = "basic-vm-dashboard-net"
+  name                    = "${local.name_prefix}-net"
   auto_create_subnetworks = true
   mtu                     = 1460
 

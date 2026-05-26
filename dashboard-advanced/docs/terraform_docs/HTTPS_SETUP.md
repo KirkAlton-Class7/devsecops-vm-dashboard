@@ -174,7 +174,7 @@ Terraform reserves a GCP static IP:
 
 ```hcl
 resource "google_compute_address" "vm_dashboard" {
-  name   = "vm-dashboard-ip"
+  name   = "${local.name_prefix}-vm-dashboard-ip"
   region = "us-central1"
 }
 ```
@@ -202,24 +202,43 @@ The dashboard needs:
 | `80` | HTTP dashboard access and Let’s Encrypt HTTP validation |
 | `443` | HTTPS dashboard access |
 | `22` | SSH access, if needed |
+| `8080` | Dashboard API access, if needed for direct troubleshooting |
 
-For HTTPS:
+Terraform keeps dashboard traffic scoped to instances with the `vm-dashboard` network tag:
 
 ```hcl
-resource "google_compute_firewall" "allow_https" {
-  name    = "allow-https"
+resource "google_compute_firewall" "vm_dashboard" {
+  name    = "${local.name_prefix}-vm-dashboard"
   network = google_compute_network.main.name
 
   allow {
     protocol = "tcp"
-    ports    = ["443"]
+    ports    = ["22", "80", "443", "8080"]
   }
 
   source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["vm-dashboard"]
 }
 ```
 
-![GCP firewall rules showing inbound TCP 80 and 443 allowed for the dashboard VM](../assets/41_gcp_firewall_http_https.png)
+The regular lab VM is intentionally separate. It uses the `public-app` network tag and a firewall rule named `${local.name_prefix}-public-app` that only opens SSH and HTTP:
+
+```hcl
+resource "google_compute_firewall" "public_app" {
+  name    = "${local.name_prefix}-public-app"
+  network = google_compute_network.main.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22", "80"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["public-app"]
+}
+```
+
+![GCP firewall rules showing inbound dashboard traffic scoped to the vm-dashboard network tag](../assets/41_gcp_firewall_http_https.png)
 
 ---
 

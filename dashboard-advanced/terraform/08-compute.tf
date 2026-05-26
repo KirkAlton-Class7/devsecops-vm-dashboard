@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------
 
 resource "google_compute_instance" "vm_dashboard" {
-  name                      = "vm-dashboard"
+  name                      = "${local.name_prefix}-vm-dashboard"
   machine_type              = "e2-medium"
   zone                      = "us-central1-a"
   allow_stopping_for_update = true
@@ -56,21 +56,21 @@ resource "google_compute_instance" "vm_dashboard" {
   #     }
   #   )
 
-  # tags = ["ssh", "http", "https", "http-server", "https-server"]
   tags = ["vm-dashboard"]
 
 
   depends_on = [
     google_compute_subnetwork.private,
     google_compute_router_nat.nat,
-    google_compute_address.vm_dashboard
+    google_compute_address.vm_dashboard,
+    google_secret_manager_secret_iam_member.vm_dashboard_auth_secret_accessor
   ]
 }
 
 
 # VM - VM Instance
 resource "google_compute_instance" "vm_instance" {
-  name                      = "vm-instance"
+  name                      = "${local.name_prefix}-vm-instance"
   machine_type              = "e2-medium"
   zone                      = "us-central1-a"
   allow_stopping_for_update = true # Allows Terraform to stop/start the VM for updates that require a stopped state (avoids recreation when possible)
@@ -108,7 +108,7 @@ resource "google_compute_instance" "vm_instance" {
   #     }
   #   )
 
-  tags = ["vm-dashboard"]
+  tags = ["public-app"]
 
   depends_on = [
     google_compute_subnetwork.private,

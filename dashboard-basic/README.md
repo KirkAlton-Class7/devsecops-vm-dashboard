@@ -31,8 +31,9 @@ Required VM settings:
 
 - Debian 11 image
 - External IP
-- Firewall allows TCP `80`
-- Optional: firewall allows TCP `443` when using HTTPS
+- VM network tag `vm-dashboard`
+- Firewall rule targets `vm-dashboard` and allows TCP `80`
+- Optional: same firewall rule allows TCP `443` when using HTTPS
 
 No custom service account or special dashboard IAM roles are required.
 
@@ -62,7 +63,7 @@ Terraform is included for portability. The stack creates:
 
 - Compute API enablement
 - Basic VPC
-- Firewall rules for SSH, HTTP, and HTTPS
+- One consolidated firewall rule targeting network tag `vm-dashboard` for SSH, HTTP, and HTTPS
 - Static external IP
 - One VM running the startup script
 - Optional Certbot HTTPS metadata

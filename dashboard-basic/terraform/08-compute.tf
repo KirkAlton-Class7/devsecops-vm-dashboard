@@ -3,11 +3,11 @@
 # ----------------------------------------------------------------
 
 resource "google_compute_instance" "vm_dashboard" {
-  name                      = "basic-vm-dashboard"
+  name                      = "${local.name_prefix}-vm-dashboard"
   machine_type              = var.machine_type
   zone                      = var.gcp_zone
   allow_stopping_for_update = true
-  tags                      = ["ssh", "http", "https", "http-server", "https-server"]
+  tags                      = ["vm-dashboard"]
 
   boot_disk {
     initialize_params {

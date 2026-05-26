@@ -2,6 +2,18 @@
 # VARIABLES
 # ----------------------------------------------------------------
 
+variable "app" {
+  description = "Application name used for resource name prefixes."
+  default     = "basic-vm-dashboard"
+  type        = string
+}
+
+variable "env" {
+  description = "Environment name used for resource name prefixes."
+  default     = "dev"
+  type        = string
+}
+
 variable "gcp_zone" {
   description = "Google Cloud zone for the VM."
   default     = "us-central1-a"

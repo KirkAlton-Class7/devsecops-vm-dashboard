@@ -92,6 +92,7 @@ gcloud compute instances create vm-dashboard \
   --image-project=debian-cloud \
   --service-account="vm-dashboard@${PROJECT_ID}.iam.gserviceaccount.com" \
   --scopes=https://www.googleapis.com/auth/cloud-platform \
+  --tags=vm-dashboard \
   --metadata-from-file=startup-script=dashboard-advanced/infra/startup/gcp_startup.sh \
   --metadata=dashboard-dev-auth-user-secret=vm-dashboard-dev-username,dashboard-dev-auth-password-secret=vm-dashboard-dev-password,dashboard-finops-auth-user-secret=vm-dashboard-finops-username,dashboard-finops-auth-password-secret=vm-dashboard-finops-password,dashboard-hostname=${FQDN},letsencrypt-staging=${STAGING_VAR},letsencrypt-email=${EMAIL}
 ```
@@ -131,7 +132,8 @@ The Terraform deployment can coordinate:
 
 - GCP VM creation
 - GCP static external IP
-- firewall rules for `80` and `443`
+- a consolidated firewall rule named `${local.name_prefix}-vm-dashboard` targeting network tag `vm-dashboard` for `22`, `80`, `443`, and `8080`
+- a separate firewall rule named `${local.name_prefix}-public-app` targeting network tag `public-app` for the regular VM on `22` and `80`
 - GCP service account and IAM roles
 - AWS Route 53 `A` record
 - instance metadata for the dashboard hostname, Let’s Encrypt email, and DevSecOps/FinOps Secret Manager IDs
@@ -156,7 +158,7 @@ Expected HTTPS URL: `https://dashboard.kirkdevsecops.com`
 
 - A public domain name, such as `kirkdevsecops.com`
 - A public DNS record pointing the dashboard hostname to the VM static IP
-- inbound firewall access for ports `80` and `443`
+- inbound firewall access for ports `80` and `443` through the `vm-dashboard` network tag
 - VM internet egress so Certbot can reach Let’s Encrypt
 - a Let’s Encrypt contact email
 - Nginx serving HTTP before Certbot runs
