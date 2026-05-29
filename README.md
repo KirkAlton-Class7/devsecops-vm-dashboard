@@ -1,24 +1,15 @@
 # VM Dashboard Collection
 
-This repository contains GCP VM dashboards for different lab sizes: a one-file starter, a basic React dashboard, and a full advanced DevSecOps/FinOps dashboard.
+This repository contains GCP VM dashboards for different scenarios: a one-file starter (HTTP), a basic React dashboard (HTTP), and an advanced production level dashboard (HTTPS).
 
 ## Dashboards
 
 | Dashboard | Best for | Deployment shape | Start here |
 | --- | --- | --- | --- |
-| **Dashboard Starter** | Fastest ClickOps VM proof-of-life page | Single startup script, nginx, port 80 | [dashboard-starter/README.md](dashboard-starter/README.md) |
+| **Dashboard Starter** | Fast ClickOps VM for sandbox, labs, and proof-of-life | Single startup script, nginx, port 80 | [dashboard-starter/README.md](dashboard-starter/README.md) |
 | **Basic VM Dashboard** | Simple VM health dashboard with a richer frontend | Static React build plus local dashboard API | [dashboard-basic/README.md](dashboard-basic/README.md) |
-| **Advanced DevSecOps VM Dashboard** | Full DevSecOps + FinOps labs, protected views, logs, snapshots, Secret Manager credentials, and optional Terraform HTTPS | Full app, infra, and Terraform workflow | [dashboard-advanced/README.md](dashboard-advanced/README.md) |
+| **Advanced DevSecOps VM Dashboard** | Advanced dashboard with detailed DevSecOps and FinOps data | Protected views, logs, Secret Manager credentials, HTTPS, and Terraform deployment | [dashboard-advanced/README.md](dashboard-advanced/README.md) |
 
-## Starter Metadata
-
-`dashboard-starter` only accepts one optional student-provided metadata key:
-
-| Key | Used for |
-| --- | --- |
-| `student_name` | Sidebar/student banner |
-
-All other values shown by the starter dashboard are read automatically from the VM, the GCE metadata server, or local Linux system files.
 
 ## Repository Layout
 
@@ -52,8 +43,8 @@ The Starter dashboard is self-contained and does not depend on shared assets.
 
 ## Choosing a Dashboard
 
-Use **Dashboard Starter** when you want the simplest possible VM dashboard: paste one startup script, optionally set `student_name`, allow HTTP, and open the VM external IP.
+Use **Dashboard Starter** when you want a quick, simple deployment for labs and sandboxing.
 
-Use **Basic VM Dashboard** when you want a richer dashboard experience while still avoiding Secret Manager, FinOps, logs, and custom service account requirements.
+Use **Basic VM Dashboard** when you want a richer dashboard experience without the complexities of Secret Manager, FinOps, logs, and additional service account requirements.
 
-Use **Advanced DevSecOps VM Dashboard** when you want the full protected dashboard experience, FinOps data, logs, Text Mode log workflows, Secret Manager backed Basic Auth, and Terraform HTTPS deployment.
+Use **Advanced DevSecOps VM Dashboard** when you want the full production grade dashboard experience with Secret Manager, FinOps data, logs, HTTPS and Terraform automation.
