@@ -216,7 +216,7 @@ cat > /var/www/html/metadata.json <<EOF
   },
   "services": [
     {"name": "nginx", "status": "healthy", "detail": "serving static dashboard on port 80"},
-    {"name": "metadata", "status": "healthy", "detail": "read from GCE metadata server only"},
+    {"name": "metadata", "status": "healthy", "detail": "read from GCE metadata server"},
     {"name": "healthz", "status": "healthy", "detail": "plain text readiness endpoint"}
   ],
   "endpoints": [
@@ -1016,6 +1016,13 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       return ["healthy", "warning", "critical"].includes(status) ? status : "warning";
     }
 
+    function resourceStateText(status) {
+      const cls = statusClass(status);
+      if (cls === "critical") return "Critical";
+      if (cls === "warning") return "Elevated";
+      return "Normal";
+    }
+
     function dot(status) {
       return `<span class="dot-wrap ${statusClass(status)}"><span class="dot"></span></span>`;
     }
@@ -1060,7 +1067,7 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       byId("uptimePill").innerHTML = `${icon("i-clock")}Uptime: ${esc(dashboard.health.uptime)}`;
 
       byId("overview").innerHTML = [
-        stat("Service", dashboard.health.status, dashboard.service, dashboard.health.status, "i-activity"),
+        stat("Resource State", resourceStateText(dashboard.health.status), "Status summary: memory and disk", dashboard.health.status, "i-activity"),
         stat("Load", dashboard.health.load_1m, `${dashboard.health.cpu_cores} CPU cores`, "healthy", "i-cpu"),
         stat("Memory", `${dashboard.health.ram_mb.use_pct}%`, `${dashboard.health.ram_mb.available} MB available`, dashboard.health.ram_mb.status, "i-cpu"),
         stat("Disk", `${dashboard.health.disk_root_mb.use_pct}%`, `${dashboard.health.disk_root_mb.available} MB available`, dashboard.health.disk_root_mb.status, "i-server")
