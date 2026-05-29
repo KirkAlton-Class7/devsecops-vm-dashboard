@@ -99,8 +99,37 @@ if [[ -z "$STUDENT_NAME" || "$STUDENT_NAME" == "unknown" ]]; then
   STUDENT_NAME="Anonymous Padawan"
 fi
 
+# Metadata: app_name (replaces old "headline") and tagline
+APP_NAME="$(md instance/attributes/app_name)"
+if [[ -z "$APP_NAME" || "$APP_NAME" == "unknown" ]]; then
+  APP_NAME="VM Dashboard - Starter"
+fi
+
+TAGLINE="$(md instance/attributes/tagline)"
+if [[ -z "$TAGLINE" || "$TAGLINE" == "unknown" ]]; then
+  TAGLINE="GCP deployment"
+fi
+
 OS_PRETTY="$(. /etc/os-release 2>/dev/null && echo "${PRETTY_NAME:-unknown}" || echo "unknown")"
-UPTIME="$(uptime -p 2>/dev/null || true)"
+
+# ----- UPTIME FIX (human-readable from /proc/uptime) -----
+if [[ -r /proc/uptime ]]; then
+  UPTIME_SEC=$(awk '{print int($1)}' /proc/uptime)
+  UPTIME_DAYS=$((UPTIME_SEC / 86400))
+  UPTIME_HOURS=$(( (UPTIME_SEC % 86400) / 3600 ))
+  UPTIME_MINS=$(( (UPTIME_SEC % 3600) / 60 ))
+  if [[ $UPTIME_DAYS -gt 0 ]]; then
+    UPTIME_HUMAN="${UPTIME_DAYS} day(s), ${UPTIME_HOURS} hour(s), ${UPTIME_MINS} minute(s)"
+  elif [[ $UPTIME_HOURS -gt 0 ]]; then
+    UPTIME_HUMAN="${UPTIME_HOURS} hour(s), ${UPTIME_MINS} minute(s)"
+  else
+    UPTIME_HUMAN="${UPTIME_MINS} minute(s)"
+  fi
+else
+  UPTIME_HUMAN="unknown"
+fi
+# ---------------------------------------------------------
+
 LOADAVG="$(awk '{print $1" "$2" "$3}' /proc/loadavg 2>/dev/null || echo "unknown")"
 LOAD_1M="$(awk '{print $1}' /proc/loadavg 2>/dev/null || echo "0")"
 CPU_CORES="$(nproc 2>/dev/null || echo "1")"
@@ -178,6 +207,8 @@ cat > /var/www/html/metadata.json <<EOF
   "service": "vm-dashboard",
   "variant": "devsecops",
   "student_name": $(json_string "$STUDENT_NAME"),
+  "app_name": $(json_string "$APP_NAME"),
+  "tagline": $(json_string "$TAGLINE"),
   "project_id": $(json_string "$PROJECT_ID"),
   "instance_id": $(json_string "$INSTANCE_ID"),
   "instance_name": $(json_string "$INSTANCE_NAME"),
@@ -195,7 +226,7 @@ cat > /var/www/html/metadata.json <<EOF
   },
   "health": {
     "status": $(json_string "$OVERALL_STATUS"),
-    "uptime": $(json_string "$UPTIME"),
+    "uptime": $(json_string "$UPTIME_HUMAN"),
     "load_avg": $(json_string "$LOADAVG"),
     "load_1m": $(json_string "$LOAD_1M"),
     "cpu_cores": $CPU_CORES,
@@ -220,7 +251,6 @@ cat > /var/www/html/metadata.json <<EOF
     {"name": "healthz", "status": "healthy", "detail": "plain text readiness endpoint"}
   ],
   "endpoints": [
-    {"name": "Dashboard", "path": "/"},
     {"name": "Health", "path": "/healthz"},
     {"name": "Metadata", "path": "/metadata"},
     {"name": "Dashboard API", "path": "/api/dashboard"}
@@ -230,7 +260,7 @@ cat > /var/www/html/metadata.json <<EOF
 EOF
 
 # ----------------------------------------------------------------------
-# Write index.html
+# Write index.html – glossy reflection removed, only shimmer line remains
 # ----------------------------------------------------------------------
 cat > /var/www/html/index.html <<'HTML_EOF'
 <!doctype html>
@@ -303,42 +333,27 @@ cat > /var/www/html/index.html <<'HTML_EOF'
 
     .app-shell {
       min-height: 100vh;
-      padding-left: 18rem;
+      padding-left: 0;
     }
 
-    .sidebar {
-      position: fixed;
-      inset: 0 auto 0 0;
-      z-index: 30;
-      width: 18rem;
-      overflow-y: auto;
-      overflow-x: hidden;
-      border-right: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(15, 23, 42, 0.97), rgba(2, 6, 23, 0.98));
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.34);
-    }
-
-    .sidebar-head {
-      position: relative;
-      padding: 1.5rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .sidebar-glow {
-      position: absolute;
-      top: -3rem;
-      right: -3rem;
-      width: 9rem;
-      height: 9rem;
-      border-radius: 999px;
-      background: linear-gradient(135deg, rgba(34, 211, 238, 0.20), rgba(168, 85, 247, 0.18));
-      filter: blur(28px);
-      pointer-events: none;
-    }
-
-    .eyebrow {
+    /* Student name - blue left, then purple, then cyan */
+    .student-name {
       margin: 0;
-      font-size: 0.74rem;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #3b82f6, #a855f7, #22d3ee);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      overflow-wrap: anywhere;
+    }
+
+    /* App name - cyan → purple */
+    .app-name {
+      margin: 0.25rem 0 0;
+      font-size: 0.9rem;
       font-weight: 800;
       letter-spacing: 0.20em;
       text-transform: uppercase;
@@ -346,52 +361,7 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      overflow-wrap: anywhere;
-    }
-
-    .sidebar-title {
-      position: relative;
-      margin: 0.35rem 0 0;
-      font-size: 1.24rem;
-      line-height: 1.16;
-      font-weight: 800;
-      background: linear-gradient(90deg, white, var(--slate-300));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    .nav {
-      padding: 1.5rem 1rem;
-    }
-
-    .nav-list {
-      display: grid;
-      gap: 0.55rem;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-
-    .nav a {
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-      min-height: 3rem;
-      padding: 0 1rem;
-      border: 1px solid transparent;
-      border-radius: 12px;
-      color: var(--slate-400);
-      font-size: 0.9rem;
-      font-weight: 600;
-      transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
-    }
-
-    .nav a:hover,
-    .nav a.active {
-      border-color: rgba(34, 211, 238, 0.30);
-      background: linear-gradient(90deg, rgba(34, 211, 238, 0.18), rgba(168, 85, 247, 0.14));
-      color: var(--cyan);
+      opacity: 0.9;
     }
 
     .icon {
@@ -411,14 +381,6 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       fill: none;
       stroke-linecap: round;
       stroke-linejoin: round;
-    }
-
-    .sidebar-foot {
-      padding: 1.5rem;
-      border-top: 1px solid var(--border);
-      color: var(--slate-500);
-      font-size: 0.76rem;
-      line-height: 1.6;
     }
 
     .main {
@@ -441,10 +403,14 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       position: absolute;
       top: 0;
       left: 0;
-      width: 45%;
+      width: 100%;
       height: 2px;
       background: linear-gradient(90deg, transparent, var(--cyan), var(--purple), var(--pink), transparent);
-      animation: shimmer 12s linear infinite;
+      transform: translateX(-100%);
+    }
+
+    .topbar.shimmer::before {
+      animation: shimmer 1.25s linear forwards;
     }
 
     .topbar-inner {
@@ -452,7 +418,7 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
-      padding: 1rem 1.5rem;
+      padding: 0.85rem 1.25rem;
     }
 
     .header-copy {
@@ -508,14 +474,14 @@ cat > /var/www/html/index.html <<'HTML_EOF'
 
     .content {
       display: grid;
-      gap: 1.5rem;
-      padding: 1.5rem;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
     }
 
     .summary {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 1rem;
+      gap: 0.85rem;
     }
 
     .stat-card,
@@ -553,8 +519,8 @@ cat > /var/www/html/index.html <<'HTML_EOF'
     }
 
     .stat-card {
-      min-height: 9.25rem;
-      padding: 1.25rem;
+      min-height: 7.25rem;
+      padding: 0.95rem;
     }
 
     .stat-top {
@@ -602,7 +568,7 @@ cat > /var/www/html/index.html <<'HTML_EOF'
     .critical .status-pill { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
 
     .stat-label {
-      margin: 1rem 0 0;
+      margin: 0.72rem 0 0;
       color: var(--slate-400);
       font-size: 0.84rem;
       font-weight: 700;
@@ -611,7 +577,7 @@ cat > /var/www/html/index.html <<'HTML_EOF'
     .stat-value {
       margin-top: 0.35rem;
       color: white;
-      font-size: 1.85rem;
+      font-size: 1.55rem;
       font-weight: 850;
       line-height: 1;
       overflow-wrap: anywhere;
@@ -628,16 +594,12 @@ cat > /var/www/html/index.html <<'HTML_EOF'
     .section-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 1.5rem;
-    }
-
-    .section-grid.two {
-      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      gap: 1rem;
     }
 
     .panel-header {
       position: relative;
-      padding: 1rem 1.25rem;
+      padding: 0.85rem 1rem;
       border-bottom: 1px solid var(--border);
     }
 
@@ -660,12 +622,12 @@ cat > /var/www/html/index.html <<'HTML_EOF'
 
     .panel-body {
       position: relative;
-      padding: 1.25rem;
+      padding: 1rem;
     }
 
     .kv {
       display: grid;
-      gap: 0.82rem;
+      gap: 0.65rem;
     }
 
     .row {
@@ -674,7 +636,7 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       justify-content: space-between;
       gap: 1rem;
       min-width: 0;
-      padding-bottom: 0.82rem;
+      padding-bottom: 0.65rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
@@ -698,48 +660,10 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       overflow-wrap: anywhere;
     }
 
-    .resource-stack {
+    .endpoint-grid {
       display: grid;
-      gap: 1.25rem;
-    }
-
-    .resource-item {
-      display: grid;
-      gap: 0.55rem;
-    }
-
-    .resource-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      color: var(--slate-300);
-      font-size: 0.88rem;
-      font-weight: 700;
-    }
-
-    .meter {
-      height: 0.52rem;
-      overflow: hidden;
-      border-radius: 999px;
-      background: rgba(51, 65, 85, 0.75);
-    }
-
-    .bar {
-      height: 100%;
-      width: var(--value, 0%);
-      border-radius: inherit;
-      background: linear-gradient(90deg, var(--cyan), var(--emerald));
-      box-shadow: 0 0 18px rgba(34, 211, 238, 0.36);
-    }
-
-    .bar.warning {
-      background: linear-gradient(90deg, var(--amber), #fb923c);
-      box-shadow: 0 0 18px rgba(245, 158, 11, 0.30);
-    }
-
-    .bar.critical {
-      background: linear-gradient(90deg, var(--red), #f43f5e);
-      box-shadow: 0 0 18px rgba(239, 68, 68, 0.30);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
     }
 
     .endpoint {
@@ -747,8 +671,8 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
-      min-height: 3.2rem;
-      padding: 0.85rem;
+      min-height: 2.85rem;
+      padding: 0.75rem;
       border: 1px solid rgba(255, 255, 255, 0.09);
       border-radius: 12px;
       background: rgba(255, 255, 255, 0.035);
@@ -830,20 +754,9 @@ cat > /var/www/html/index.html <<'HTML_EOF'
     }
 
     @media (max-width: 1180px) {
-      .app-shell { padding-left: 0; }
-      .sidebar {
-        position: relative;
-        width: 100%;
-        height: auto;
-        border-right: 0;
-        border-bottom: 1px solid var(--border);
-      }
-      .nav { padding: 1rem; }
-      .nav-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .sidebar-foot { display: none; }
       .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .section-grid,
-      .section-grid.two { grid-template-columns: 1fr; }
+      .section-grid { grid-template-columns: 1fr; }
+      .endpoint-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 720px) {
@@ -851,7 +764,6 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       .top-actions { justify-content: flex-start; }
       .content { padding: 0.9rem; gap: 0.9rem; }
       .summary { grid-template-columns: 1fr; }
-      .nav-list { grid-template-columns: 1fr 1fr; }
       .row,
       .endpoint { align-items: flex-start; flex-direction: column; }
       .value,
@@ -873,34 +785,13 @@ cat > /var/www/html/index.html <<'HTML_EOF'
   </svg>
 
   <div class="app-shell">
-    <aside class="sidebar">
-      <div class="sidebar-head">
-        <div class="sidebar-glow"></div>
-        <p class="eyebrow" id="studentName">Loading</p>
-        <h1 class="sidebar-title">Theo University</h1>
-      </div>
-      <nav class="nav" aria-label="Dashboard sections">
-        <ul class="nav-list">
-          <li><a class="active" href="#overview"><span class="icon"><svg><use href="#i-dashboard"></use></svg></span>Overview</a></li>
-          <li><a href="#vm-information"><span class="icon"><svg><use href="#i-server"></use></svg></span>VM Information</a></li>
-          <li><a href="#network"><span class="icon"><svg><use href="#i-network"></use></svg></span>Network</a></li>
-          <li><a href="#location"><span class="icon"><svg><use href="#i-location"></use></svg></span>Location</a></li>
-          <li><a href="#system-resources"><span class="icon"><svg><use href="#i-cpu"></use></svg></span>System Resources</a></li>
-          <li><a href="#monitoring-endpoints"><span class="icon"><svg><use href="#i-link"></use></svg></span>Monitoring Endpoints</a></li>
-          <li><a href="#services"><span class="icon"><svg><use href="#i-activity"></use></svg></span>Services</a></li>
-        </ul>
-      </nav>
-      <div class="sidebar-foot">
-        Basic nginx dashboard. Displays VM metadata and local Linux host metrics.
-      </div>
-    </aside>
-
     <main class="main">
-      <header class="topbar">
+      <header class="topbar" id="topbar">
         <div class="topbar-inner">
           <div class="header-copy">
-            <p class="eyebrow">VM Dashboard</p>
-            <p class="tagline" id="headline">GCP deployment loading</p>
+            <p class="student-name" id="studentNameDisplay"></p>
+            <p class="app-name" id="appNameDisplay"></p>
+            <p class="tagline" id="taglineText"></p>
           </div>
           <div class="top-actions">
             <span class="pill uptime" id="uptimePill"><span class="icon"><svg><use href="#i-clock"></use></svg></span>Uptime</span>
@@ -939,30 +830,12 @@ cat > /var/www/html/index.html <<'HTML_EOF'
           </article>
         </section>
 
-        <section class="section-grid two">
-          <article class="panel" id="system-resources">
-            <div class="panel-header">
-              <h2 class="panel-title">System Resources</h2>
-              <p class="panel-subtitle">CPU, memory, and disk snapshot</p>
-            </div>
-            <div class="panel-body resource-stack" id="resourceRows"></div>
-          </article>
-
-          <article class="panel" id="monitoring-endpoints">
-            <div class="panel-header">
-              <h2 class="panel-title">Monitoring Endpoints</h2>
-              <p class="panel-subtitle">Basic checks for humans and scripts</p>
-            </div>
-            <div class="panel-body kv" id="endpointRows"></div>
-          </article>
-        </section>
-
-        <section class="panel" id="services">
+        <section class="panel" id="monitoring-endpoints">
           <div class="panel-header">
-            <h2 class="panel-title">Services</h2>
-            <p class="panel-subtitle">Startup-script friendly local service health</p>
+            <h2 class="panel-title">Monitoring Endpoints</h2>
+            <p class="panel-subtitle">Basic checks for humans and scripts</p>
           </div>
-          <div class="panel-body kv" id="serviceRows"></div>
+          <div class="panel-body endpoint-grid" id="endpointRows"></div>
         </section>
       </section>
     </main>
@@ -974,6 +847,8 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       service: "vm-dashboard",
       variant: "devsecops",
       student_name: "Anonymous Padawan",
+      app_name: "VM Dashboard",
+      tagline: "GCP deployment",
       project_id: "unknown",
       instance_id: "unknown",
       instance_name: "unknown",
@@ -1023,10 +898,6 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       return "Normal";
     }
 
-    function dot(status) {
-      return `<span class="dot-wrap ${statusClass(status)}"><span class="dot"></span></span>`;
-    }
-
     function row(label, value) {
       return `<div class="row"><div class="key">${esc(label)}</div><div class="value">${esc(value)}</div></div>`;
     }
@@ -1046,28 +917,23 @@ cat > /var/www/html/index.html <<'HTML_EOF'
       `;
     }
 
-    function meter(label, used, total, pct, status, iconId) {
-      const cls = statusClass(status);
-      return `
-        <div class="resource-item">
-          <div class="resource-head"><span>${icon(iconId)} ${esc(label)}</span><span>${esc(pct)}%</span></div>
-          <div class="meter"><div class="bar ${cls}" style="--value:${Number(pct) || 0}%"></div></div>
-          <div class="stat-detail">${esc(used)} MB used / ${esc(total)} MB total</div>
-        </div>
-      `;
-    }
-
     function render(data) {
       dashboard = { ...fallback, ...data, network: { ...fallback.network, ...(data.network || {}) }, health: { ...fallback.health, ...(data.health || {}) } };
       dashboard.health.ram_mb = { ...fallback.health.ram_mb, ...(dashboard.health.ram_mb || {}) };
       dashboard.health.disk_root_mb = { ...fallback.health.disk_root_mb, ...(dashboard.health.disk_root_mb || {}) };
 
-      byId("studentName").textContent = dashboard.student_name;
-      byId("headline").textContent = `GCP deployment in ${dashboard.zone} | refreshed ${new Date().toLocaleTimeString()}`;
+      // Update page title and header elements
+      document.title = `${dashboard.student_name} - ${dashboard.app_name}`;
+      const studentElem = byId("studentNameDisplay");
+      if (studentElem) studentElem.textContent = dashboard.student_name;
+      const appElem = byId("appNameDisplay");
+      if (appElem) appElem.textContent = dashboard.app_name;
+      const taglineElem = byId("taglineText");
+      if (taglineElem) taglineElem.textContent = `${dashboard.tagline} | refreshed ${new Date().toLocaleTimeString()}`;
       byId("uptimePill").innerHTML = `${icon("i-clock")}Uptime: ${esc(dashboard.health.uptime)}`;
 
       byId("overview").innerHTML = [
-        stat("Resource State", resourceStateText(dashboard.health.status), "Status summary: memory and disk", dashboard.health.status, "i-activity"),
+        stat("Resource State", resourceStateText(dashboard.health.status), "Status summary: Memory and Disk", dashboard.health.status, "i-activity"),
         stat("Load", dashboard.health.load_1m, `${dashboard.health.cpu_cores} CPU cores`, "healthy", "i-cpu"),
         stat("Memory", `${dashboard.health.ram_mb.use_pct}%`, `${dashboard.health.ram_mb.available} MB available`, dashboard.health.ram_mb.status, "i-cpu"),
         stat("Disk", `${dashboard.health.disk_root_mb.use_pct}%`, `${dashboard.health.disk_root_mb.available} MB available`, dashboard.health.disk_root_mb.status, "i-server")
@@ -1098,29 +964,14 @@ cat > /var/www/html/index.html <<'HTML_EOF'
         row("Load Avg", dashboard.health.load_avg)
       ].join("");
 
-      byId("resourceRows").innerHTML = [
-        meter("Memory", dashboard.health.ram_mb.used, dashboard.health.ram_mb.total, dashboard.health.ram_mb.use_pct, dashboard.health.ram_mb.status, "i-cpu"),
-        meter("Root Disk", dashboard.health.disk_root_mb.used, dashboard.health.disk_root_mb.total, dashboard.health.disk_root_mb.use_pct, dashboard.health.disk_root_mb.status, "i-server"),
-        row("CPU Cores", dashboard.health.cpu_cores),
-        row("1m Load", dashboard.health.load_1m)
-      ].join("");
-
-      byId("endpointRows").innerHTML = (dashboard.endpoints || []).map((endpoint) => `
+      byId("endpointRows").innerHTML = (dashboard.endpoints || [])
+        .filter((endpoint) => ["Health", "Metadata", "Dashboard API"].includes(endpoint.name))
+        .map((endpoint) => `
         <a class="endpoint" href="${esc(endpoint.path)}">
           <strong>${icon("i-link")}${esc(endpoint.name)}</strong>
           <span>${esc(endpoint.path)}</span>
         </a>
       `).join("");
-
-      byId("serviceRows").innerHTML = (dashboard.services || []).map((service) => {
-        const cls = statusClass(service.status);
-        return `
-          <div class="endpoint ${cls}">
-            <strong>${dot(cls)}${esc(service.name)}</strong>
-            <span>${esc(service.detail)}</span>
-          </div>
-        `;
-      }).join("");
     }
 
     function showToast(message) {
@@ -1158,6 +1009,8 @@ cat > /var/www/html/index.html <<'HTML_EOF'
         "",
         `Service:       ${text(data.service)} (${text(data.health.status)})`,
         `Student:       ${text(data.student_name)}`,
+        `App Name:      ${text(data.app_name)}`,
+        `Tagline:       ${text(data.tagline)}`,
         `Project:       ${text(data.project_id)}`,
         `Instance:      ${text(data.instance_name)}`,
         `Machine:       ${text(data.machine_type)}`,
@@ -1195,6 +1048,28 @@ cat > /var/www/html/index.html <<'HTML_EOF'
         render(fallback);
       }
     }
+
+    // Shimmer effect: full‑width line runs for 1.25s every 20 seconds
+    let shimmerInterval = null;
+    function triggerShimmer() {
+      const topbar = document.getElementById('topbar');
+      if (!topbar) return;
+      topbar.classList.add('shimmer');
+      topbar.addEventListener('animationend', () => {
+        topbar.classList.remove('shimmer');
+      }, { once: true });
+    }
+
+    function startShimmerTimer() {
+      if (shimmerInterval) clearInterval(shimmerInterval);
+      triggerShimmer(); // run once immediately
+      shimmerInterval = setInterval(triggerShimmer, 20000);
+    }
+
+    // Start after page loads
+    window.addEventListener('DOMContentLoaded', () => {
+      startShimmerTimer();
+    });
 
     load();
   </script>

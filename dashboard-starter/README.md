@@ -1,6 +1,6 @@
-# Theo University VM Dashboard Starter
+# VM Dashboard - Starter
 
-`dashboard-starter` is the smallest VM dashboard in this repo. It is a single GCE startup script that installs nginx, writes a static dashboard, and exposes lightweight health and metadata endpoints on port 80.
+The starter dashboard is the simplest VM dashboard in this repo. It is a single GCE startup script that installs nginx, writes a static dashboard, and exposes basic health and metadata endpoints on port 80.
 
 It does not require Terraform, a git clone, custom IAM roles, Secret Manager, Cloud Billing access, HTTPS certificates, or a frontend build step.
 
@@ -10,13 +10,15 @@ It does not require Terraform, a git clone, custom IAM roles, Secret Manager, Cl
 
 ## Metadata
 
-The starter has one optional student-provided metadata key:
+The starter script supports three optional metadata keys:
 
 | Key | Example | Used for |
 | --- | --- | --- |
-| `student_name` | `Darth Malgus Jr` | Sidebar/student banner |
+| `student_name` | `Anonymous Padawan` | Student name header text |
+| `app_name` | `VM Dashboard` | Application name header text |
+| `tagline` | `GCP deployment for Theo University` | Tagline header text |
 
-Everything else is discovered automatically from the VM, the GCE metadata server, or local Linux system files.
+
 
 ## Deploy
 
@@ -26,24 +28,12 @@ In the GCP console:
 
 1. Create or edit a Compute Engine VM.
 2. Add the startup script from `infra/startup/gcp_startup.sh`.
-3. Optionally add metadata key `student_name`.
+3. Optional: Add metadata keys `student_name`, `app_name`, `tagline`
 4. Make sure HTTP traffic is allowed for the VM.
-5. Open `http://EXTERNAL_IP/`.
+5. Open `http://EXTERNAL_IP/`to view the dashboard.
 
 ## Endpoints
 
-- `/` - VM dashboard
 - `/healthz` - plain text health check
 - `/metadata` - JSON metadata and system snapshot
 - `/api/dashboard` - same JSON payload for dashboard-shaped clients
-
-## What It Installs
-
-- `nginx`
-- `curl`
-- `jq`
-- `ca-certificates`
-
-## Notes
-
-This starter intentionally stays basic: HTTP only on port 80, no port 8080 service, no HTTPS certificate, no Python API, no Node/Vite build, and no extra GCP permissions.
