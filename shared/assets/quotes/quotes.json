@@ -14,12 +14,9 @@
     "id": 2,
     "text": "It's no use going back to yesterday because I was a different person then.",
     "speaker": "Alice",
-    "author": null,
+    "author": "Lewis Carroll",
     "source": "Alice in Wonderland",
-    "tags": [
-      "growth",
-      "change"
-    ]
+    "tags": ["growth", "change", "reflection", "self-awareness"]
   },
   {
     "id": 3,
@@ -111,7 +108,7 @@
   },
   {
     "id": 11,
-    "text": "Don't wish the work were easier. Wish you were better.",
+    "text": "Don't wish it was easier. Wish you were better.",
     "speaker": "Jim Rohn",
     "author": null,
     "source": null,
@@ -2359,7 +2356,7 @@
   },
   {
     "id": 206,
-    "text": "You have to finish what you started... you have to.",
+    "text": "You have to finish what you started . . . you have to.",
     "speaker": null,
     "author": "Jamila Huston",
     "source": "Invasion",
@@ -3326,5 +3323,101 @@
       "death",
       "perspective"
     ]
+    {
+    "id": 287,
+    "text": "You can't be a master if you never learn . . . can you be a master when there's more to learn?",
+    "speaker": null,
+    "author": "Substantial",
+    "source": "Master Class",
+    "tags": ["growth", "learning", "mastery", "wisdom"]
+  },
+  {
+    "id": 288,
+    "text": "There are two types of pain in this world; pain that hurts, and pain that alters . . . you get to choose.",
+    "speaker": "Robert McCall",
+    "author": "Richard Wenk",
+    "source": "The Equalizer 2 (2018)",
+    "tags": ["choice", "growth", "adversity", "transformation"]
+  },
+  {
+  "id": 289,
+  "text": "Never attribute to malice that which can adequately be explained by stupidity.",
+  "speaker": "Robert J. Hanlon",
+  "author": "Robert J. Hanlon",
+  "source": "Murphy's Law Book Two: More Reasons Why Things Go Wrong! (1980)",
+  "tags": ["human-nature", "ignorance", "reasoning", "knowledge"]
+  },
+  {
+  "id": 290,
+  "text": "It is possible to commit no mistakes and still lose. That is not weakness, that is life.",
+  "speaker": "Captain Jean-Luc Picard",
+  "author": "Ronald D. Moore",
+  "source": "Star Trek: The Next Generation, 'Peak Performance' (1989)",
+  "tags": ["resilience", "failure", "perseverance", "acceptance"]
+  },
+  {
+  "id": 291,
+  "text": "Brick walls are there for a reason. They are not there to keep us out. They give us a chance to show how badly we want something. They are there to stop the people who don’t want it badly enough.",
+  "speaker": "Randy Pausch",
+  "author": "Randy Pausch and Jeffrey Zaslow",
+  "source": "The Last Lecture (2008)",
+  "tags": ["perseverance", "determination", "motivation", "obstacles"]
+  },
+  {
+  "id": 292,
+  "text": "Nothing will ever be as it was again . . .",
+  "speaker": "King Shaka",
+  "author": "Joshua Sinclair",
+  "source": "Shaka Zulu (1986)",
+  "tags": ["change", "consequence", "resolve", "decision"]
+  },
+  {
+    "id": 293,
+    "text": "Don't be lazy in learning.",
+    "speaker": null,
+    "author": "Jim Rohn",
+    "source": "The Major Key to Your Better Future Is You (1981)",
+    "tags": ["learning", "discipline", "self-improvement", "mindset"]
+  },
+  {
+    "id": 294,
+    "text": "Learn from your own experiences. One way to learn to do it right is to do it wrong.",
+    "speaker": null,
+    "author": "Jim Rohn",
+    "source": "The Major Key to Your Better Future Is You (1981)",
+    "tags": ["failure", "learning", "growth", "perseverance"]
+  },
+  {
+    "id": 295,
+    "text": "Study, learn, grow, change, develop. Never let it be said you didn't learn.",
+    "speaker": null,
+    "author": "Jim Rohn",
+    "source": "The Major Key to Your Better Future Is You (1981)",
+    "tags": ["study", "growth", "development", "learning"]
+  },
+  {
+    "id": 296,
+    "text": "If you wanna solve your problems, you gotta learn. If you wanna take advantage of an opportunity, you gotta learn.",
+    "speaker": null,
+    "author": "Jim Rohn",
+    "source": "The Major Key to Your Better Future Is You (1981)",
+    "tags": ["learning", "opportunity", "problem-solving", "success"]
+  },
+  {
+    "id": 297,
+    "text": "Don't ask for better seed and soil; all you got is what's available. Turn what you've got into the miracle of your future.",
+    "speaker": null,
+    "author": "Jim Rohn",
+    "source": "The Major Key to Your Better Future Is You (1981)",
+    "tags": ["resourcefulness", "responsibility", "mindset", "self-reliance"]
+  },
+  {
+    "id": 298,
+    "text": "Don't wish for less problems, wish for more skills.",
+    "speaker": null,
+    "author": "Jim Rohn",
+    "source": "The Art of Exceptional Living (1994)",
+    "tags": ["skills", "growth", "mindset", "self-improvement"]
+>>>>>>> 23f09726717a5b354da91288daee47e8c1861037
   }
 ]
