@@ -5,7 +5,10 @@
     "speaker": null,
     "author": "Will Rogers",
     "source": null,
-    "tags": ["listening", "wisdom"]
+    "tags": [
+      "listening",
+      "wisdom"
+    ]
   },
   {
     "id": 2,
@@ -13,7 +16,10 @@
     "speaker": "Alice",
     "author": null,
     "source": "Alice in Wonderland",
-    "tags": ["growth", "change"]
+    "tags": [
+      "growth",
+      "change"
+    ]
   },
   {
     "id": 3,
@@ -21,7 +27,10 @@
     "speaker": "Richard Rodgers & Oscar Hammerstein II",
     "author": null,
     "source": "The Sound of Music",
-    "tags": ["action", "motivation"]
+    "tags": [
+      "action",
+      "motivation"
+    ]
   },
   {
     "id": 4,
@@ -29,7 +38,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["resilience", "discipline"]
+    "tags": [
+      "resilience",
+      "discipline"
+    ]
   },
   {
     "id": 5,
@@ -37,7 +49,10 @@
     "speaker": null,
     "author": "Quiara Alegría Hudes",
     "source": null,
-    "tags": ["reflection", "insight"]
+    "tags": [
+      "reflection",
+      "insight"
+    ]
   },
   {
     "id": 6,
@@ -45,7 +60,10 @@
     "speaker": null,
     "author": "Chinua Achebe",
     "source": null,
-    "tags": ["life", "consequences"]
+    "tags": [
+      "life",
+      "consequences"
+    ]
   },
   {
     "id": 7,
@@ -53,7 +71,10 @@
     "speaker": "Ezra Taft Benson",
     "author": null,
     "source": null,
-    "tags": ["inner struggle", "mental strength"]
+    "tags": [
+      "inner struggle",
+      "mental strength"
+    ]
   },
   {
     "id": 8,
@@ -61,7 +82,10 @@
     "speaker": null,
     "author": "Aristotle",
     "source": null,
-    "tags": ["creativity", "genius"]
+    "tags": [
+      "creativity",
+      "genius"
+    ]
   },
   {
     "id": 9,
@@ -69,7 +93,10 @@
     "speaker": "Albus Dumbledore",
     "author": "J.K. Rowling",
     "source": "Harry Potter and the Sorcerer's Stone",
-    "tags": ["fear", "psychology"]
+    "tags": [
+      "fear",
+      "psychology"
+    ]
   },
   {
     "id": 10,
@@ -77,7 +104,10 @@
     "speaker": "Roy T. Bennett",
     "author": null,
     "source": null,
-    "tags": ["self-belief", "motivation"]
+    "tags": [
+      "self-belief",
+      "motivation"
+    ]
   },
   {
     "id": 11,
@@ -85,7 +115,10 @@
     "speaker": "Jim Rohn",
     "author": null,
     "source": null,
-    "tags": ["growth", "discipline"]
+    "tags": [
+      "growth",
+      "discipline"
+    ]
   },
   {
     "id": 12,
@@ -93,7 +126,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["value", "exchange"]
+    "tags": [
+      "value",
+      "exchange"
+    ]
   },
   {
     "id": 13,
@@ -101,7 +137,10 @@
     "speaker": "Demrezel",
     "author": "Isaac Asimov",
     "source": "The Foundation",
-    "tags": ["decision-making", "reflection"]
+    "tags": [
+      "decision-making",
+      "reflection"
+    ]
   },
   {
     "id": 14,
@@ -109,7 +148,10 @@
     "speaker": null,
     "author": "Heraclitus",
     "source": "Fragments",
-    "tags": ["mind", "philosophy"]
+    "tags": [
+      "mind",
+      "philosophy"
+    ]
   },
   {
     "id": 15,
@@ -117,7 +159,10 @@
     "speaker": null,
     "author": "Rabindranath Tagore",
     "source": null,
-    "tags": ["action", "courage"]
+    "tags": [
+      "action",
+      "courage"
+    ]
   },
   {
     "id": 16,
@@ -125,7 +170,10 @@
     "speaker": "Salvor Hardin",
     "author": "Isaac Asimov",
     "source": "The Foundation",
-    "tags": ["strategy", "adaptability"]
+    "tags": [
+      "strategy",
+      "adaptability"
+    ]
   },
   {
     "id": 17,
@@ -133,7 +181,9 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["perseverance"]
+    "tags": [
+      "perseverance"
+    ]
   },
   {
     "id": 18,
@@ -141,7 +191,10 @@
     "speaker": "Andrew Ryan",
     "author": "Irrational Games",
     "source": "BioShock",
-    "tags": ["choices", "identity"]
+    "tags": [
+      "choices",
+      "identity"
+    ]
   },
   {
     "id": 19,
@@ -149,7 +202,10 @@
     "speaker": "Samurai Jack",
     "author": "Genndy Tartakovsky",
     "source": "Samurai Jack",
-    "tags": ["resilience", "optimism"]
+    "tags": [
+      "resilience",
+      "optimism"
+    ]
   },
   {
     "id": 20,
@@ -157,7 +213,10 @@
     "speaker": "Cypher",
     "author": "Lana Wachowski, Lilly Wachowski",
     "source": "The Matrix",
-    "tags": ["learning", "failure"]
+    "tags": [
+      "learning",
+      "failure"
+    ]
   },
   {
     "id": 21,
@@ -165,7 +224,10 @@
     "speaker": "Cypher",
     "author": "Lana Wachowski, Lilly Wachowski",
     "source": "The Matrix",
-    "tags": ["adaptation", "experience"]
+    "tags": [
+      "adaptation",
+      "experience"
+    ]
   },
   {
     "id": 22,
@@ -173,7 +235,10 @@
     "speaker": null,
     "author": "Vince Lombardi",
     "source": null,
-    "tags": ["excellence", "growth"]
+    "tags": [
+      "excellence",
+      "growth"
+    ]
   },
   {
     "id": 23,
@@ -181,7 +246,10 @@
     "speaker": "Trinity",
     "author": "Lana Wachowski, Lilly Wachowski",
     "source": "The Matrix",
-    "tags": ["purpose", "curiosity"]
+    "tags": [
+      "purpose",
+      "curiosity"
+    ]
   },
   {
     "id": 24,
@@ -189,7 +257,9 @@
     "speaker": "Bowery King",
     "author": "Derek Kolstad",
     "source": "John Wick: Chapter 2",
-    "tags": ["humor"]
+    "tags": [
+      "humor"
+    ]
   },
   {
     "id": 25,
@@ -197,7 +267,10 @@
     "speaker": "The Director",
     "author": "Derek Kolstad",
     "source": "John Wick 3",
-    "tags": ["struggle", "journey"]
+    "tags": [
+      "struggle",
+      "journey"
+    ]
   },
   {
     "id": 26,
@@ -205,7 +278,10 @@
     "speaker": "Jennifer Lau",
     "author": "Apple Fitness+",
     "source": null,
-    "tags": ["growth", "challenge"]
+    "tags": [
+      "growth",
+      "challenge"
+    ]
   },
   {
     "id": 27,
@@ -213,7 +289,10 @@
     "speaker": null,
     "author": "Robert Collier",
     "source": null,
-    "tags": ["consistency", "success"]
+    "tags": [
+      "consistency",
+      "success"
+    ]
   },
   {
     "id": 28,
@@ -221,7 +300,10 @@
     "speaker": null,
     "author": "Norman Cousins",
     "source": null,
-    "tags": ["purpose", "regret"]
+    "tags": [
+      "purpose",
+      "regret"
+    ]
   },
   {
     "id": 29,
@@ -229,7 +311,10 @@
     "speaker": null,
     "author": "Chuck Norris",
     "source": null,
-    "tags": ["discipline", "goals"]
+    "tags": [
+      "discipline",
+      "goals"
+    ]
   },
   {
     "id": 30,
@@ -237,7 +322,10 @@
     "speaker": null,
     "author": "Friedrich Nietzsche",
     "source": null,
-    "tags": ["purpose", "resilience"]
+    "tags": [
+      "purpose",
+      "resilience"
+    ]
   },
   {
     "id": 31,
@@ -245,7 +333,10 @@
     "speaker": null,
     "author": "Zig Ziglar",
     "source": null,
-    "tags": ["success", "determination"]
+    "tags": [
+      "success",
+      "determination"
+    ]
   },
   {
     "id": 32,
@@ -253,7 +344,10 @@
     "speaker": null,
     "author": "Newt Gingrich",
     "source": null,
-    "tags": ["perseverance", "effort"]
+    "tags": [
+      "perseverance",
+      "effort"
+    ]
   },
   {
     "id": 33,
@@ -261,7 +355,10 @@
     "speaker": null,
     "author": "Albert Einstein",
     "source": null,
-    "tags": ["curiosity", "learning"]
+    "tags": [
+      "curiosity",
+      "learning"
+    ]
   },
   {
     "id": 34,
@@ -269,7 +366,9 @@
     "speaker": null,
     "author": "Winston Churchill",
     "source": null,
-    "tags": ["resilience"]
+    "tags": [
+      "resilience"
+    ]
   },
   {
     "id": 35,
@@ -277,7 +376,10 @@
     "speaker": null,
     "author": "Benjamin Franklin",
     "source": null,
-    "tags": ["quality", "value"]
+    "tags": [
+      "quality",
+      "value"
+    ]
   },
   {
     "id": 36,
@@ -285,7 +387,10 @@
     "speaker": null,
     "author": "Miles Davis",
     "source": null,
-    "tags": ["learning", "risk"]
+    "tags": [
+      "learning",
+      "risk"
+    ]
   },
   {
     "id": 37,
@@ -293,7 +398,10 @@
     "speaker": null,
     "author": "Henry Ford",
     "source": null,
-    "tags": ["action", "reputation"]
+    "tags": [
+      "action",
+      "reputation"
+    ]
   },
   {
     "id": 38,
@@ -301,7 +409,10 @@
     "speaker": null,
     "author": "Kurt Vonnegut",
     "source": "Mother Night",
-    "tags": ["identity", "behavior"]
+    "tags": [
+      "identity",
+      "behavior"
+    ]
   },
   {
     "id": 39,
@@ -309,7 +420,10 @@
     "speaker": null,
     "author": "Jerzy Gregorek",
     "source": null,
-    "tags": ["discipline", "choices"]
+    "tags": [
+      "discipline",
+      "choices"
+    ]
   },
   {
     "id": 40,
@@ -317,7 +431,10 @@
     "speaker": "Jimmy",
     "author": "Penny Marshall",
     "source": "A League of Their Own",
-    "tags": ["difficulty", "greatness"]
+    "tags": [
+      "difficulty",
+      "greatness"
+    ]
   },
   {
     "id": 41,
@@ -325,7 +442,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["discipline", "future", "focus"]
+    "tags": [
+      "discipline",
+      "future",
+      "focus"
+    ]
   },
   {
     "id": 42,
@@ -333,7 +454,11 @@
     "speaker": null,
     "author": "The Lead Attorney",
     "source": null,
-    "tags": ["learning", "teaching", "growth"]
+    "tags": [
+      "learning",
+      "teaching",
+      "growth"
+    ]
   },
   {
     "id": 43,
@@ -341,7 +466,11 @@
     "speaker": "Piccolo",
     "author": "Akira Toriyama",
     "source": "Dragon Ball Super",
-    "tags": ["reality", "battle", "risk"]
+    "tags": [
+      "reality",
+      "battle",
+      "risk"
+    ]
   },
   {
     "id": 44,
@@ -349,7 +478,11 @@
     "speaker": null,
     "author": "John F. Kennedy",
     "source": null,
-    "tags": ["politics", "conflict", "power"]
+    "tags": [
+      "politics",
+      "conflict",
+      "power"
+    ]
   },
   {
     "id": 45,
@@ -357,7 +490,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["self-reliance", "strength", "mindset"]
+    "tags": [
+      "self-reliance",
+      "strength",
+      "mindset"
+    ]
   },
   {
     "id": 46,
@@ -365,7 +502,11 @@
     "speaker": "Mob",
     "author": "ONE",
     "source": "Mob Psycho 100",
-    "tags": ["courage", "fear", "growth"]
+    "tags": [
+      "courage",
+      "fear",
+      "growth"
+    ]
   },
   {
     "id": 47,
@@ -373,7 +514,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["wisdom", "boundaries", "intellect"]
+    "tags": [
+      "wisdom",
+      "boundaries",
+      "intellect"
+    ]
   },
   {
     "id": 48,
@@ -381,7 +526,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["life", "resilience", "optimism"]
+    "tags": [
+      "life",
+      "resilience",
+      "optimism"
+    ]
   },
   {
     "id": 49,
@@ -389,7 +538,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["growth", "self-improvement"]
+    "tags": [
+      "growth",
+      "self-improvement"
+    ]
   },
   {
     "id": 50,
@@ -397,7 +549,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["belief", "optimism", "mindset"]
+    "tags": [
+      "belief",
+      "optimism",
+      "mindset"
+    ]
   },
   {
     "id": 51,
@@ -405,7 +561,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["reflection", "philosophy", "uncertainty"]
+    "tags": [
+      "reflection",
+      "philosophy",
+      "uncertainty"
+    ]
   },
   {
     "id": 52,
@@ -413,7 +573,11 @@
     "speaker": null,
     "author": "Jim Rohn",
     "source": null,
-    "tags": ["discipline", "control", "time"]
+    "tags": [
+      "discipline",
+      "control",
+      "time"
+    ]
   },
   {
     "id": 53,
@@ -421,7 +585,10 @@
     "speaker": null,
     "author": "John Mason",
     "source": null,
-    "tags": ["individuality", "identity"]
+    "tags": [
+      "individuality",
+      "identity"
+    ]
   },
   {
     "id": 54,
@@ -429,7 +596,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["success", "risk", "action"]
+    "tags": [
+      "success",
+      "risk",
+      "action"
+    ]
   },
   {
     "id": 55,
@@ -437,7 +608,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["discipline", "choices", "hardship"]
+    "tags": [
+      "discipline",
+      "choices",
+      "hardship"
+    ]
   },
   {
     "id": 56,
@@ -445,7 +620,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["presence", "life", "experience"]
+    "tags": [
+      "presence",
+      "life",
+      "experience"
+    ]
   },
   {
     "id": 57,
@@ -453,7 +632,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["perseverance", "fight", "determination"]
+    "tags": [
+      "perseverance",
+      "fight",
+      "determination"
+    ]
   },
   {
     "id": 58,
@@ -461,7 +644,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["thinking", "curiosity", "learning"]
+    "tags": [
+      "thinking",
+      "curiosity",
+      "learning"
+    ]
   },
   {
     "id": 59,
@@ -469,7 +656,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["resilience", "mindset", "life"]
+    "tags": [
+      "resilience",
+      "mindset",
+      "life"
+    ]
   },
   {
     "id": 60,
@@ -477,7 +668,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["authenticity", "self-control"]
+    "tags": [
+      "authenticity",
+      "self-control"
+    ]
   },
   {
     "id": 61,
@@ -485,7 +679,11 @@
     "speaker": "Lord Ichimonji",
     "author": "Akira Kurosawa",
     "source": "Ran",
-    "tags": ["power", "influence", "transformation"]
+    "tags": [
+      "power",
+      "influence",
+      "transformation"
+    ]
   },
   {
     "id": 62,
@@ -493,7 +691,10 @@
     "speaker": "Vados",
     "author": "Akira Toriyama",
     "source": "Dragon Ball Super",
-    "tags": ["strategy", "efficiency"]
+    "tags": [
+      "strategy",
+      "efficiency"
+    ]
   },
   {
     "id": 63,
@@ -501,7 +702,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["accountability", "action"]
+    "tags": [
+      "accountability",
+      "action"
+    ]
   },
   {
     "id": 64,
@@ -509,7 +713,10 @@
     "speaker": "Wudan Master",
     "author": "Ang Lee",
     "source": "Crouching Tiger Hidden Dragon",
-    "tags": ["impermanence", "philosophy"]
+    "tags": [
+      "impermanence",
+      "philosophy"
+    ]
   },
   {
     "id": 65,
@@ -517,7 +724,11 @@
     "speaker": "Stranger",
     "author": "Isao Takahata",
     "source": "Princess Kaguya",
-    "tags": ["cycles", "life", "change"]
+    "tags": [
+      "cycles",
+      "life",
+      "change"
+    ]
   },
   {
     "id": 66,
@@ -525,7 +736,10 @@
     "speaker": "The Emperor",
     "author": "Genndy Tartakovsky",
     "source": "Samurai Jack",
-    "tags": ["strength", "inner strength"]
+    "tags": [
+      "strength",
+      "inner strength"
+    ]
   },
   {
     "id": 67,
@@ -533,7 +747,10 @@
     "speaker": null,
     "author": "Jeff James",
     "source": null,
-    "tags": ["freedom", "vulnerability"]
+    "tags": [
+      "freedom",
+      "vulnerability"
+    ]
   },
   {
     "id": 68,
@@ -541,7 +758,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["strategy", "learning"]
+    "tags": [
+      "strategy",
+      "learning"
+    ]
   },
   {
     "id": 69,
@@ -549,7 +769,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["time", "mortality"]
+    "tags": [
+      "time",
+      "mortality"
+    ]
   },
   {
     "id": 70,
@@ -557,7 +780,11 @@
     "speaker": "Jinta",
     "author": "Motoo Nakanihi",
     "source": "Kijin Gentoushou",
-    "tags": ["time", "discipline", "urgency"]
+    "tags": [
+      "time",
+      "discipline",
+      "urgency"
+    ]
   },
   {
     "id": 71,
@@ -565,7 +792,11 @@
     "speaker": "The Emperor",
     "author": "Genndy Tartakovsky",
     "source": "Samurai Jack",
-    "tags": ["evil", "warning", "wisdom"]
+    "tags": [
+      "evil",
+      "warning",
+      "wisdom"
+    ]
   },
   {
     "id": 72,
@@ -573,7 +804,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["power", "corruption", "wealth"]
+    "tags": [
+      "power",
+      "corruption",
+      "wealth"
+    ]
   },
   {
     "id": 73,
@@ -581,7 +816,11 @@
     "speaker": "Captain Sheridan",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["resilience", "pride", "strength"]
+    "tags": [
+      "resilience",
+      "pride",
+      "strength"
+    ]
   },
   {
     "id": 74,
@@ -589,7 +828,11 @@
     "speaker": "Delenn",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["dignity", "composure", "character"]
+    "tags": [
+      "dignity",
+      "composure",
+      "character"
+    ]
   },
   {
     "id": 75,
@@ -597,7 +840,11 @@
     "speaker": "Captain Montoya",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["death", "philosophy", "acceptance"]
+    "tags": [
+      "death",
+      "philosophy",
+      "acceptance"
+    ]
   },
   {
     "id": 76,
@@ -605,7 +852,11 @@
     "speaker": "G'Kar",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["truth", "spirituality", "philosophy"]
+    "tags": [
+      "truth",
+      "spirituality",
+      "philosophy"
+    ]
   },
   {
     "id": 77,
@@ -613,7 +864,11 @@
     "speaker": "G'Kar",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["truth", "journey", "enlightenment"]
+    "tags": [
+      "truth",
+      "journey",
+      "enlightenment"
+    ]
   },
   {
     "id": 78,
@@ -621,7 +876,12 @@
     "speaker": "Lennier",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["action", "uncertainty", "courage", "trying"]
+    "tags": [
+      "action",
+      "uncertainty",
+      "courage",
+      "trying"
+    ]
   },
   {
     "id": 79,
@@ -629,7 +889,11 @@
     "speaker": "Captain Sheridan",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["problem-solving", "strategy", "focus"]
+    "tags": [
+      "problem-solving",
+      "strategy",
+      "focus"
+    ]
   },
   {
     "id": 80,
@@ -637,7 +901,11 @@
     "speaker": "Bo",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["resilience", "strength", "responsibility"]
+    "tags": [
+      "resilience",
+      "strength",
+      "responsibility"
+    ]
   },
   {
     "id": 81,
@@ -645,7 +913,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["truth", "ignorance", "human-nature"]
+    "tags": [
+      "truth",
+      "ignorance",
+      "human-nature"
+    ]
   },
   {
     "id": 82,
@@ -653,7 +925,11 @@
     "speaker": "Captain Sheridan",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["choices", "consequences", "responsibility"]
+    "tags": [
+      "choices",
+      "consequences",
+      "responsibility"
+    ]
   },
   {
     "id": 83,
@@ -661,7 +937,11 @@
     "speaker": "Neroon",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["understanding", "growth", "mindset"]
+    "tags": [
+      "understanding",
+      "growth",
+      "mindset"
+    ]
   },
   {
     "id": 84,
@@ -669,7 +949,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["psychology", "bias", "human-nature"]
+    "tags": [
+      "psychology",
+      "bias",
+      "human-nature"
+    ]
   },
   {
     "id": 85,
@@ -677,7 +961,11 @@
     "speaker": "Lorien",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["leadership", "teaching", "growth"]
+    "tags": [
+      "leadership",
+      "teaching",
+      "growth"
+    ]
   },
   {
     "id": 86,
@@ -685,7 +973,11 @@
     "speaker": "Lorien",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["reason", "emotion", "balance"]
+    "tags": [
+      "reason",
+      "emotion",
+      "balance"
+    ]
   },
   {
     "id": 87,
@@ -693,7 +985,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["language", "power", "creation"]
+    "tags": [
+      "language",
+      "power",
+      "creation"
+    ]
   },
   {
     "id": 88,
@@ -701,7 +997,11 @@
     "speaker": "Mr. Garibaldi",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["entropy", "inevitability", "life"]
+    "tags": [
+      "entropy",
+      "inevitability",
+      "life"
+    ]
   },
   {
     "id": 89,
@@ -709,7 +1009,11 @@
     "speaker": "Lorien",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["time", "opportunity", "urgency"]
+    "tags": [
+      "time",
+      "opportunity",
+      "urgency"
+    ]
   },
   {
     "id": 90,
@@ -717,7 +1021,11 @@
     "speaker": "G'Kar",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["collective", "existence", "philosophy"]
+    "tags": [
+      "collective",
+      "existence",
+      "philosophy"
+    ]
   },
   {
     "id": 91,
@@ -725,7 +1033,11 @@
     "speaker": "G'Kar",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["hope", "despair", "philosophy"]
+    "tags": [
+      "hope",
+      "despair",
+      "philosophy"
+    ]
   },
   {
     "id": 92,
@@ -733,7 +1045,11 @@
     "speaker": "Dr. Stephen Franklin",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["self-awareness", "identity", "reflection"]
+    "tags": [
+      "self-awareness",
+      "identity",
+      "reflection"
+    ]
   },
   {
     "id": 93,
@@ -741,7 +1057,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["death", "life", "philosophy"]
+    "tags": [
+      "death",
+      "life",
+      "philosophy"
+    ]
   },
   {
     "id": 94,
@@ -749,7 +1069,11 @@
     "speaker": "Delenn",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["struggle", "conflict", "endurance"]
+    "tags": [
+      "struggle",
+      "conflict",
+      "endurance"
+    ]
   },
   {
     "id": 95,
@@ -757,7 +1081,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["self-awareness", "truth", "accountability"]
+    "tags": [
+      "self-awareness",
+      "truth",
+      "accountability"
+    ]
   },
   {
     "id": 96,
@@ -765,7 +1093,11 @@
     "speaker": "Susan Ivanova",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["reality", "truth", "urgency"]
+    "tags": [
+      "reality",
+      "truth",
+      "urgency"
+    ]
   },
   {
     "id": 97,
@@ -773,7 +1105,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["accountability", "consequences", "responsibility"]
+    "tags": [
+      "accountability",
+      "consequences",
+      "responsibility"
+    ]
   },
   {
     "id": 98,
@@ -781,7 +1117,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["knowledge", "responsibility", "learning"]
+    "tags": [
+      "knowledge",
+      "responsibility",
+      "learning"
+    ]
   },
   {
     "id": 99,
@@ -789,7 +1129,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["success", "discipline", "mindset"]
+    "tags": [
+      "success",
+      "discipline",
+      "mindset"
+    ]
   },
   {
     "id": 100,
@@ -797,7 +1141,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["focus", "discipline", "learning"]
+    "tags": [
+      "focus",
+      "discipline",
+      "learning"
+    ]
   },
   {
     "id": 101,
@@ -805,7 +1153,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["life", "urgency", "purpose"]
+    "tags": [
+      "life",
+      "urgency",
+      "purpose"
+    ]
   },
   {
     "id": 102,
@@ -813,7 +1165,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["reality", "problem-solving", "accountability"]
+    "tags": [
+      "reality",
+      "problem-solving",
+      "accountability"
+    ]
   },
   {
     "id": 103,
@@ -821,7 +1177,11 @@
     "speaker": "Father Theo",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["forgiveness", "growth", "virtue"]
+    "tags": [
+      "forgiveness",
+      "growth",
+      "virtue"
+    ]
   },
   {
     "id": 104,
@@ -829,7 +1189,11 @@
     "speaker": "Captain Sheridan",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["justice", "revenge", "forgiveness"]
+    "tags": [
+      "justice",
+      "revenge",
+      "forgiveness"
+    ]
   },
   {
     "id": 105,
@@ -837,7 +1201,11 @@
     "speaker": "Captain Sheridan",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["knowledge", "survival", "awareness"]
+    "tags": [
+      "knowledge",
+      "survival",
+      "awareness"
+    ]
   },
   {
     "id": 106,
@@ -845,7 +1213,11 @@
     "speaker": "Captain Sheridan",
     "author": "J. Michael Straczynski",
     "source": "Babylon 5",
-    "tags": ["creation", "hope", "imagination"]
+    "tags": [
+      "creation",
+      "hope",
+      "imagination"
+    ]
   },
   {
     "id": 107,
@@ -853,7 +1225,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["thinking", "wisdom", "curiosity"]
+    "tags": [
+      "thinking",
+      "wisdom",
+      "curiosity"
+    ]
   },
   {
     "id": 108,
@@ -861,7 +1237,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["hope", "resilience", "optimism"]
+    "tags": [
+      "hope",
+      "resilience",
+      "optimism"
+    ]
   },
   {
     "id": 109,
@@ -869,7 +1249,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["choices", "identity", "responsibility"]
+    "tags": [
+      "choices",
+      "identity",
+      "responsibility"
+    ]
   },
   {
     "id": 110,
@@ -877,7 +1261,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["change", "hope", "determination"]
+    "tags": [
+      "change",
+      "hope",
+      "determination"
+    ]
   },
   {
     "id": 111,
@@ -885,7 +1273,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["impermanence", "life", "presence"]
+    "tags": [
+      "impermanence",
+      "life",
+      "presence"
+    ]
   },
   {
     "id": 112,
@@ -893,7 +1285,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["learning", "growth", "life"]
+    "tags": [
+      "learning",
+      "growth",
+      "life"
+    ]
   },
   {
     "id": 113,
@@ -901,7 +1297,10 @@
     "speaker": null,
     "author": "Kylie W.",
     "source": null,
-    "tags": ["learning", "awareness"]
+    "tags": [
+      "learning",
+      "awareness"
+    ]
   },
   {
     "id": 114,
@@ -909,7 +1308,10 @@
     "speaker": null,
     "author": "Alberto S.",
     "source": null,
-    "tags": ["growth", "identity"]
+    "tags": [
+      "growth",
+      "identity"
+    ]
   },
   {
     "id": 115,
@@ -917,7 +1319,11 @@
     "speaker": null,
     "author": "Jiddu Krishnamurti",
     "source": null,
-    "tags": ["time", "growth", "philosophy"]
+    "tags": [
+      "time",
+      "growth",
+      "philosophy"
+    ]
   },
   {
     "id": 116,
@@ -925,7 +1331,10 @@
     "speaker": null,
     "author": "Tavis Smiley",
     "source": null,
-    "tags": ["change", "motivation"]
+    "tags": [
+      "change",
+      "motivation"
+    ]
   },
   {
     "id": 117,
@@ -933,7 +1342,10 @@
     "speaker": null,
     "author": "Tim Black",
     "source": null,
-    "tags": ["discipline", "accountability"]
+    "tags": [
+      "discipline",
+      "accountability"
+    ]
   },
   {
     "id": 118,
@@ -941,7 +1353,10 @@
     "speaker": null,
     "author": "Linkin Park",
     "source": null,
-    "tags": ["emotion", "mental-health"]
+    "tags": [
+      "emotion",
+      "mental-health"
+    ]
   },
   {
     "id": 119,
@@ -949,7 +1364,11 @@
     "speaker": null,
     "author": "Dr. Martin Luther King Jr.",
     "source": null,
-    "tags": ["progress", "action", "change"]
+    "tags": [
+      "progress",
+      "action",
+      "change"
+    ]
   },
   {
     "id": 120,
@@ -957,7 +1376,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["resilience", "life"]
+    "tags": [
+      "resilience",
+      "life"
+    ]
   },
   {
     "id": 121,
@@ -965,7 +1387,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["discipline", "resilience", "success"]
+    "tags": [
+      "discipline",
+      "resilience",
+      "success"
+    ]
   },
   {
     "id": 122,
@@ -973,7 +1399,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["perspective", "reflection"]
+    "tags": [
+      "perspective",
+      "reflection"
+    ]
   },
   {
     "id": 123,
@@ -981,7 +1410,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["time", "life", "urgency"]
+    "tags": [
+      "time",
+      "life",
+      "urgency"
+    ]
   },
   {
     "id": 124,
@@ -989,7 +1422,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["patience", "growth", "nature"]
+    "tags": [
+      "patience",
+      "growth",
+      "nature"
+    ]
   },
   {
     "id": 125,
@@ -997,7 +1434,10 @@
     "speaker": null,
     "author": "Antoine de Saint-Exupéry",
     "source": null,
-    "tags": ["goals", "planning"]
+    "tags": [
+      "goals",
+      "planning"
+    ]
   },
   {
     "id": 126,
@@ -1005,7 +1445,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["pace", "individuality"]
+    "tags": [
+      "pace",
+      "individuality"
+    ]
   },
   {
     "id": 127,
@@ -1013,7 +1456,10 @@
     "speaker": null,
     "author": "Audrey Hepburn",
     "source": null,
-    "tags": ["possibility", "mindset"]
+    "tags": [
+      "possibility",
+      "mindset"
+    ]
   },
   {
     "id": 128,
@@ -1021,7 +1467,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["agency", "life", "action"]
+    "tags": [
+      "agency",
+      "life",
+      "action"
+    ]
   },
   {
     "id": 129,
@@ -1029,7 +1479,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["pain", "growth", "emotion"]
+    "tags": [
+      "pain",
+      "growth",
+      "emotion"
+    ]
   },
   {
     "id": 130,
@@ -1037,7 +1491,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["action", "procrastination"]
+    "tags": [
+      "action",
+      "procrastination"
+    ]
   },
   {
     "id": 131,
@@ -1045,7 +1502,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["self-limitation", "goals"]
+    "tags": [
+      "self-limitation",
+      "goals"
+    ]
   },
   {
     "id": 132,
@@ -1053,7 +1513,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["fear", "courage", "metaphor"]
+    "tags": [
+      "fear",
+      "courage",
+      "metaphor"
+    ]
   },
   {
     "id": 133,
@@ -1061,7 +1525,11 @@
     "speaker": null,
     "author": "George Herbert",
     "source": null,
-    "tags": ["necessity", "drive", "power"]
+    "tags": [
+      "necessity",
+      "drive",
+      "power"
+    ]
   },
   {
     "id": 134,
@@ -1069,7 +1537,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["discipline", "freedom"]
+    "tags": [
+      "discipline",
+      "freedom"
+    ]
   },
   {
     "id": 135,
@@ -1077,7 +1548,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["strategy", "wealth"]
+    "tags": [
+      "strategy",
+      "wealth"
+    ]
   },
   {
     "id": 136,
@@ -1085,7 +1559,11 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["strategy", "mindset", "competition"]
+    "tags": [
+      "strategy",
+      "mindset",
+      "competition"
+    ]
   },
   {
     "id": 137,
@@ -1093,7 +1571,11 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["strategy", "competition", "efficiency"]
+    "tags": [
+      "strategy",
+      "competition",
+      "efficiency"
+    ]
   },
   {
     "id": 138,
@@ -1101,7 +1583,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["mindset", "self-worth", "growth"]
+    "tags": [
+      "mindset",
+      "self-worth",
+      "growth"
+    ]
   },
   {
     "id": 139,
@@ -1109,7 +1595,11 @@
     "speaker": null,
     "author": "Mostofa Adib Shakib",
     "source": null,
-    "tags": ["learning", "growth", "adaptability"]
+    "tags": [
+      "learning",
+      "growth",
+      "adaptability"
+    ]
   },
   {
     "id": 140,
@@ -1117,7 +1607,10 @@
     "speaker": "Master Roshi",
     "author": "Akira Toriyama",
     "source": "Dragon Ball",
-    "tags": ["psychology", "understanding"]
+    "tags": [
+      "psychology",
+      "understanding"
+    ]
   },
   {
     "id": 141,
@@ -1125,7 +1618,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["consequences", "warning"]
+    "tags": [
+      "consequences",
+      "warning"
+    ]
   },
   {
     "id": 142,
@@ -1133,7 +1629,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["precision", "standards"]
+    "tags": [
+      "precision",
+      "standards"
+    ]
   },
   {
     "id": 143,
@@ -1141,7 +1640,10 @@
     "speaker": null,
     "author": "Dom Toretto",
     "source": "The Fast and the Furious",
-    "tags": ["family", "loyalty"]
+    "tags": [
+      "family",
+      "loyalty"
+    ]
   },
   {
     "id": 144,
@@ -1149,7 +1651,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["courage", "confrontation"]
+    "tags": [
+      "courage",
+      "confrontation"
+    ]
   },
   {
     "id": 145,
@@ -1157,7 +1662,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["learning", "humility", "growth"]
+    "tags": [
+      "learning",
+      "humility",
+      "growth"
+    ]
   },
   {
     "id": 146,
@@ -1165,7 +1674,11 @@
     "speaker": null,
     "author": "Jules Williams",
     "source": null,
-    "tags": ["innovation", "path", "creation"]
+    "tags": [
+      "innovation",
+      "path",
+      "creation"
+    ]
   },
   {
     "id": 147,
@@ -1173,7 +1686,11 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["effort", "mindset", "limits"]
+    "tags": [
+      "effort",
+      "mindset",
+      "limits"
+    ]
   },
   {
     "id": 148,
@@ -1181,7 +1698,12 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["action", "risk", "trying", "failure"]
+    "tags": [
+      "action",
+      "risk",
+      "trying",
+      "failure"
+    ]
   },
   {
     "id": 149,
@@ -1189,7 +1711,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["competition", "survival", "strategy"]
+    "tags": [
+      "competition",
+      "survival",
+      "strategy"
+    ]
   },
   {
     "id": 150,
@@ -1197,7 +1723,12 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["action", "failure", "trying", "determination"]
+    "tags": [
+      "action",
+      "failure",
+      "trying",
+      "determination"
+    ]
   },
   {
     "id": 151,
@@ -1205,7 +1736,10 @@
     "speaker": null,
     "author": "Ruby",
     "source": null,
-    "tags": ["acceptance", "mindset"]
+    "tags": [
+      "acceptance",
+      "mindset"
+    ]
   },
   {
     "id": 152,
@@ -1213,7 +1747,10 @@
     "speaker": null,
     "author": "Unknown",
     "source": null,
-    "tags": ["sacrifice", "goals"]
+    "tags": [
+      "sacrifice",
+      "goals"
+    ]
   },
   {
     "id": 153,
@@ -1221,7 +1758,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["strength", "control", "metaphor"]
+    "tags": [
+      "strength",
+      "control",
+      "metaphor"
+    ]
   },
   {
     "id": 154,
@@ -1229,7 +1770,10 @@
     "speaker": null,
     "author": "Jules Williams",
     "source": null,
-    "tags": ["wealth", "career"]
+    "tags": [
+      "wealth",
+      "career"
+    ]
   },
   {
     "id": 155,
@@ -1237,7 +1781,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["failure", "society"]
+    "tags": [
+      "failure",
+      "society"
+    ]
   },
   {
     "id": 156,
@@ -1245,7 +1792,10 @@
     "speaker": "Korin",
     "author": "Akira Toriyama",
     "source": "Dragon Ball",
-    "tags": ["focus", "discipline"]
+    "tags": [
+      "focus",
+      "discipline"
+    ]
   },
   {
     "id": 157,
@@ -1253,7 +1803,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["resilience", "hope"]
+    "tags": [
+      "resilience",
+      "hope"
+    ]
   },
   {
     "id": 158,
@@ -1261,7 +1814,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["self-reliance", "growth"]
+    "tags": [
+      "self-reliance",
+      "growth"
+    ]
   },
   {
     "id": 159,
@@ -1269,7 +1825,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["consistency", "discipline"]
+    "tags": [
+      "consistency",
+      "discipline"
+    ]
   },
   {
     "id": 160,
@@ -1277,7 +1836,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["success", "traits"]
+    "tags": [
+      "success",
+      "traits"
+    ]
   },
   {
     "id": 161,
@@ -1285,7 +1847,10 @@
     "speaker": "Goku",
     "author": "Akira Toriyama",
     "source": "Dragon Ball",
-    "tags": ["growth", "fear"]
+    "tags": [
+      "growth",
+      "fear"
+    ]
   },
   {
     "id": 162,
@@ -1293,7 +1858,10 @@
     "speaker": "Grandpa Gohan",
     "author": "Akira Toriyama",
     "source": "Dragon Ball",
-    "tags": ["change", "life"]
+    "tags": [
+      "change",
+      "life"
+    ]
   },
   {
     "id": 163,
@@ -1301,15 +1869,23 @@
     "speaker": "Master Roshi",
     "author": "Akira Toriyama",
     "source": "Dragon Ball",
-    "tags": ["truth", "self-awareness"]
+    "tags": [
+      "truth",
+      "self-awareness"
+    ]
   },
   {
-    "id": 163,
+    "id": 287,
     "text": "Fail forward, hold the line, and you will always prevail.",
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["resilience", "perseverance", "success", "failure"]
+    "tags": [
+      "resilience",
+      "perseverance",
+      "success",
+      "failure"
+    ]
   },
   {
     "id": 164,
@@ -1317,7 +1893,11 @@
     "speaker": null,
     "author": null,
     "source": "Proverbs 19:20",
-    "tags": ["wisdom", "discipline", "learning"]
+    "tags": [
+      "wisdom",
+      "discipline",
+      "learning"
+    ]
   },
   {
     "id": 165,
@@ -1325,7 +1905,10 @@
     "speaker": "Tambourine",
     "author": "Akira Toriyama",
     "source": "Dragon Ball",
-    "tags": ["planning", "strategy"]
+    "tags": [
+      "planning",
+      "strategy"
+    ]
   },
   {
     "id": 166,
@@ -1333,7 +1916,10 @@
     "speaker": "Master Roshi",
     "author": "Akira Toriyama",
     "source": "Dragon Ball",
-    "tags": ["problem-solving", "mindset"]
+    "tags": [
+      "problem-solving",
+      "mindset"
+    ]
   },
   {
     "id": 167,
@@ -1341,7 +1927,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["patience", "progress"]
+    "tags": [
+      "patience",
+      "progress"
+    ]
   },
   {
     "id": 168,
@@ -1349,7 +1938,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["execution", "consistency", "discipline"]
+    "tags": [
+      "execution",
+      "consistency",
+      "discipline"
+    ]
   },
   {
     "id": 169,
@@ -1357,7 +1950,10 @@
     "speaker": null,
     "author": "Kevin Willocks",
     "source": null,
-    "tags": ["mindset", "self-awareness"]
+    "tags": [
+      "mindset",
+      "self-awareness"
+    ]
   },
   {
     "id": 170,
@@ -1365,7 +1961,10 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["success", "consistency"]
+    "tags": [
+      "success",
+      "consistency"
+    ]
   },
   {
     "id": 171,
@@ -1373,7 +1972,11 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["perseverance", "resilience", "determination"]
+    "tags": [
+      "perseverance",
+      "resilience",
+      "determination"
+    ]
   },
   {
     "id": 172,
@@ -1381,7 +1984,10 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["support", "learning"]
+    "tags": [
+      "support",
+      "learning"
+    ]
   },
   {
     "id": 173,
@@ -1389,7 +1995,10 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["loyalty", "support"]
+    "tags": [
+      "loyalty",
+      "support"
+    ]
   },
   {
     "id": 174,
@@ -1397,7 +2006,10 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["purpose", "impact"]
+    "tags": [
+      "purpose",
+      "impact"
+    ]
   },
   {
     "id": 175,
@@ -1405,7 +2017,10 @@
     "speaker": null,
     "author": "Breylon Lawrence-Williams",
     "source": null,
-    "tags": ["pressure", "growth"]
+    "tags": [
+      "pressure",
+      "growth"
+    ]
   },
   {
     "id": 176,
@@ -1413,7 +2028,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["self-investment", "growth"]
+    "tags": [
+      "self-investment",
+      "growth"
+    ]
   },
   {
     "id": 177,
@@ -1421,7 +2039,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["mindset", "success"]
+    "tags": [
+      "mindset",
+      "success"
+    ]
   },
   {
     "id": 178,
@@ -1429,7 +2050,11 @@
     "speaker": "Master Mutaito",
     "author": "Akira Toriyama",
     "source": "Dragon Ball",
-    "tags": ["discipline", "focus", "success"]
+    "tags": [
+      "discipline",
+      "focus",
+      "success"
+    ]
   },
   {
     "id": 179,
@@ -1437,7 +2062,11 @@
     "speaker": null,
     "author": "The Math Sorcerer",
     "source": null,
-    "tags": ["perseverance", "mindset", "resilience"]
+    "tags": [
+      "perseverance",
+      "mindset",
+      "resilience"
+    ]
   },
   {
     "id": 180,
@@ -1445,7 +2074,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["existence", "life"]
+    "tags": [
+      "existence",
+      "life"
+    ]
   },
   {
     "id": 181,
@@ -1453,7 +2085,10 @@
     "speaker": "Kyle Ardil",
     "author": "Apple Fitness+",
     "source": null,
-    "tags": ["responsibility", "discipline"]
+    "tags": [
+      "responsibility",
+      "discipline"
+    ]
   },
   {
     "id": 182,
@@ -1461,7 +2096,10 @@
     "speaker": null,
     "author": "Napoleon Hill",
     "source": null,
-    "tags": ["mindset", "control"]
+    "tags": [
+      "mindset",
+      "control"
+    ]
   },
   {
     "id": 183,
@@ -1469,7 +2107,10 @@
     "speaker": null,
     "author": "Napoleon Hill",
     "source": null,
-    "tags": ["self-control", "discipline"]
+    "tags": [
+      "self-control",
+      "discipline"
+    ]
   },
   {
     "id": 184,
@@ -1477,7 +2118,11 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["focus", "attraction", "mindset"]
+    "tags": [
+      "focus",
+      "attraction",
+      "mindset"
+    ]
   },
   {
     "id": 185,
@@ -1485,7 +2130,11 @@
     "speaker": null,
     "author": "David Dallas",
     "source": "Bourdain",
-    "tags": ["time", "urgency", "planning"]
+    "tags": [
+      "time",
+      "urgency",
+      "planning"
+    ]
   },
   {
     "id": 186,
@@ -1493,7 +2142,10 @@
     "speaker": "Kami (disguised as Shen)",
     "author": "Akira Toriyama",
     "source": "Dragon Ball",
-    "tags": ["perception", "strategy"]
+    "tags": [
+      "perception",
+      "strategy"
+    ]
   },
   {
     "id": 187,
@@ -1501,7 +2153,10 @@
     "speaker": "Yamcha",
     "author": "Akira Toriyama",
     "source": "Dragon Ball",
-    "tags": ["inner-strength", "power"]
+    "tags": [
+      "inner-strength",
+      "power"
+    ]
   },
   {
     "id": 188,
@@ -1509,7 +2164,10 @@
     "speaker": null,
     "author": "Christopher Webb",
     "source": null,
-    "tags": ["opportunity", "success"]
+    "tags": [
+      "opportunity",
+      "success"
+    ]
   },
   {
     "id": 189,
@@ -1517,7 +2175,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["hope", "resilience"]
+    "tags": [
+      "hope",
+      "resilience"
+    ]
   },
   {
     "id": 190,
@@ -1525,7 +2186,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["mental-health", "healing"]
+    "tags": [
+      "mental-health",
+      "healing"
+    ]
   },
   {
     "id": 191,
@@ -1533,7 +2197,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["accountability", "self-awareness"]
+    "tags": [
+      "accountability",
+      "self-awareness"
+    ]
   },
   {
     "id": 192,
@@ -1541,7 +2208,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["life", "urgency"]
+    "tags": [
+      "life",
+      "urgency"
+    ]
   },
   {
     "id": 193,
@@ -1549,7 +2219,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["love", "choice"]
+    "tags": [
+      "love",
+      "choice"
+    ]
   },
   {
     "id": 194,
@@ -1557,7 +2230,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["accountability", "growth"]
+    "tags": [
+      "accountability",
+      "growth"
+    ]
   },
   {
     "id": 195,
@@ -1565,7 +2241,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["choices", "responsibility"]
+    "tags": [
+      "choices",
+      "responsibility"
+    ]
   },
   {
     "id": 196,
@@ -1573,7 +2252,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["learning", "failure"]
+    "tags": [
+      "learning",
+      "failure"
+    ]
   },
   {
     "id": 197,
@@ -1581,7 +2263,10 @@
     "speaker": "Master Roshi",
     "author": "Akira Toriyama",
     "source": "Dragon Ball Super",
-    "tags": ["balance", "discipline"]
+    "tags": [
+      "balance",
+      "discipline"
+    ]
   },
   {
     "id": 198,
@@ -1589,7 +2274,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["pain", "learning"]
+    "tags": [
+      "pain",
+      "learning"
+    ]
   },
   {
     "id": 199,
@@ -1597,7 +2285,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["practice", "learning"]
+    "tags": [
+      "practice",
+      "learning"
+    ]
   },
   {
     "id": 200,
@@ -1605,7 +2296,11 @@
     "speaker": null,
     "author": "Paul Zikopoulos, Christopher Bienko",
     "source": "Cloud Without Compromise",
-    "tags": ["technology", "business", "strategy"]
+    "tags": [
+      "technology",
+      "business",
+      "strategy"
+    ]
   },
   {
     "id": 201,
@@ -1613,7 +2308,10 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["community", "support"]
+    "tags": [
+      "community",
+      "support"
+    ]
   },
   {
     "id": 202,
@@ -1621,7 +2319,10 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["silence", "strength"]
+    "tags": [
+      "silence",
+      "strength"
+    ]
   },
   {
     "id": 203,
@@ -1629,7 +2330,10 @@
     "speaker": null,
     "author": "Yahshua Ball",
     "source": null,
-    "tags": ["learning", "discipline"]
+    "tags": [
+      "learning",
+      "discipline"
+    ]
   },
   {
     "id": 204,
@@ -1637,7 +2341,10 @@
     "speaker": null,
     "author": "Ed Wilson",
     "source": null,
-    "tags": ["comfort", "growth"]
+    "tags": [
+      "comfort",
+      "growth"
+    ]
   },
   {
     "id": 205,
@@ -1645,7 +2352,10 @@
     "speaker": null,
     "author": "Blk Muzlim",
     "source": null,
-    "tags": ["learning", "understanding"]
+    "tags": [
+      "learning",
+      "understanding"
+    ]
   },
   {
     "id": 206,
@@ -1653,7 +2363,10 @@
     "speaker": null,
     "author": "Jamila Huston",
     "source": "Invasion",
-    "tags": ["completion", "discipline"]
+    "tags": [
+      "completion",
+      "discipline"
+    ]
   },
   {
     "id": 207,
@@ -1661,7 +2374,10 @@
     "speaker": "Nikhil Kapoor",
     "author": "Simon Kinberg, David Weil",
     "source": "Invasion",
-    "tags": ["mindset", "thoughts"]
+    "tags": [
+      "mindset",
+      "thoughts"
+    ]
   },
   {
     "id": 208,
@@ -1669,7 +2385,10 @@
     "speaker": "Sherica Holman",
     "author": "Apple Fitness+",
     "source": null,
-    "tags": ["practice", "goals"]
+    "tags": [
+      "practice",
+      "goals"
+    ]
   },
   {
     "id": 209,
@@ -1677,7 +2396,10 @@
     "speaker": "Sherica Holman",
     "author": "Apple Fitness+",
     "source": null,
-    "tags": ["consistency", "practice"]
+    "tags": [
+      "consistency",
+      "practice"
+    ]
   },
   {
     "id": 211,
@@ -1685,7 +2407,10 @@
     "speaker": null,
     "author": "Michael Churchill",
     "source": null,
-    "tags": ["discipline", "accountability"]
+    "tags": [
+      "discipline",
+      "accountability"
+    ]
   },
   {
     "id": 212,
@@ -1693,7 +2418,10 @@
     "speaker": null,
     "author": "Jim Rohn",
     "source": null,
-    "tags": ["discipline", "regret"]
+    "tags": [
+      "discipline",
+      "regret"
+    ]
   },
   {
     "id": 213,
@@ -1701,7 +2429,10 @@
     "speaker": null,
     "author": "Robert Collier",
     "source": null,
-    "tags": ["success", "consistency"]
+    "tags": [
+      "success",
+      "consistency"
+    ]
   },
   {
     "id": 214,
@@ -1709,7 +2440,11 @@
     "speaker": null,
     "author": "Colin Powell",
     "source": null,
-    "tags": ["success", "discipline", "learning"]
+    "tags": [
+      "success",
+      "discipline",
+      "learning"
+    ]
   },
   {
     "id": 215,
@@ -1717,7 +2452,10 @@
     "speaker": null,
     "author": "Bo Bennett",
     "source": null,
-    "tags": ["success", "identity"]
+    "tags": [
+      "success",
+      "identity"
+    ]
   },
   {
     "id": 216,
@@ -1725,7 +2463,10 @@
     "speaker": null,
     "author": "Bo Bennett",
     "source": null,
-    "tags": ["goals", "action"]
+    "tags": [
+      "goals",
+      "action"
+    ]
   },
   {
     "id": 217,
@@ -1733,7 +2474,10 @@
     "speaker": null,
     "author": "Somebody’s Grandpa",
     "source": null,
-    "tags": ["economy", "cycles"]
+    "tags": [
+      "economy",
+      "cycles"
+    ]
   },
   {
     "id": 218,
@@ -1741,7 +2485,10 @@
     "speaker": null,
     "author": "Norman Cousins",
     "source": null,
-    "tags": ["purpose", "regret"]
+    "tags": [
+      "purpose",
+      "regret"
+    ]
   },
   {
     "id": 219,
@@ -1749,7 +2496,11 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["technology", "career", "strategy"]
+    "tags": [
+      "technology",
+      "career",
+      "strategy"
+    ]
   },
   {
     "id": 220,
@@ -1757,7 +2508,10 @@
     "speaker": null,
     "author": "Paul Zikopoulos, Christopher Bienko",
     "source": "Cloud Without Compromise",
-    "tags": ["teaching", "learning"]
+    "tags": [
+      "teaching",
+      "learning"
+    ]
   },
   {
     "id": 221,
@@ -1765,7 +2519,10 @@
     "speaker": null,
     "author": "Glorio",
     "source": "Dragon Ball Daima",
-    "tags": ["encouragement", "growth"]
+    "tags": [
+      "encouragement",
+      "growth"
+    ]
   },
   {
     "id": 222,
@@ -1773,7 +2530,10 @@
     "speaker": null,
     "author": "Izaya Orihara",
     "source": "Durarara",
-    "tags": ["growth", "life"]
+    "tags": [
+      "growth",
+      "life"
+    ]
   },
   {
     "id": 223,
@@ -1781,7 +2541,10 @@
     "speaker": null,
     "author": "Yahshua Ball",
     "source": null,
-    "tags": ["growth", "stagnation"]
+    "tags": [
+      "growth",
+      "stagnation"
+    ]
   },
   {
     "id": 224,
@@ -1789,7 +2552,10 @@
     "speaker": null,
     "author": "Glenn Harrold",
     "source": null,
-    "tags": ["growth", "resilience"]
+    "tags": [
+      "growth",
+      "resilience"
+    ]
   },
   {
     "id": 225,
@@ -1797,7 +2563,10 @@
     "speaker": null,
     "author": "Paul Zikopoulos, Christopher Bienko",
     "source": "Cloud Without Compromise",
-    "tags": ["change", "adaptability"]
+    "tags": [
+      "change",
+      "adaptability"
+    ]
   },
   {
     "id": 226,
@@ -1805,7 +2574,10 @@
     "speaker": "Joker",
     "author": "Christopher Nolan",
     "source": "The Dark Knight",
-    "tags": ["memory", "psychology"]
+    "tags": [
+      "memory",
+      "psychology"
+    ]
   },
   {
     "id": 227,
@@ -1813,7 +2585,10 @@
     "speaker": null,
     "author": null,
     "source": "Luke 12:2-3",
-    "tags": ["truth", "accountability"]
+    "tags": [
+      "truth",
+      "accountability"
+    ]
   },
   {
     "id": 228,
@@ -1821,7 +2596,10 @@
     "speaker": null,
     "author": "Kirk Alton",
     "source": null,
-    "tags": ["strategy", "timing"]
+    "tags": [
+      "strategy",
+      "timing"
+    ]
   },
   {
     "id": 229,
@@ -1829,7 +2607,10 @@
     "speaker": null,
     "author": "Sydney J. Harris",
     "source": null,
-    "tags": ["reflection", "mindfulness"]
+    "tags": [
+      "reflection",
+      "mindfulness"
+    ]
   },
   {
     "id": 230,
@@ -1837,7 +2618,10 @@
     "speaker": null,
     "author": "Mao Zedong",
     "source": null,
-    "tags": ["thinking", "openness"]
+    "tags": [
+      "thinking",
+      "openness"
+    ]
   },
   {
     "id": 231,
@@ -1845,7 +2629,10 @@
     "speaker": null,
     "author": "Paul Zikopoulos, Christopher Bienko",
     "source": "Cloud Without Compromise",
-    "tags": ["technology", "humor"]
+    "tags": [
+      "technology",
+      "humor"
+    ]
   },
   {
     "id": 232,
@@ -1853,7 +2640,10 @@
     "speaker": null,
     "author": "Unknown",
     "source": null,
-    "tags": ["learning", "memory"]
+    "tags": [
+      "learning",
+      "memory"
+    ]
   },
   {
     "id": 233,
@@ -1861,7 +2651,10 @@
     "author": "Chica Umino",
     "speaker": "Rei Kiriyama",
     "source": "March Comes in Like a Lion",
-    "tags": ["inner-strength", "emotion"]
+    "tags": [
+      "inner-strength",
+      "emotion"
+    ]
   },
   {
     "id": 234,
@@ -1869,7 +2662,10 @@
     "speaker": "Okuyasu Yokomizo",
     "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
-    "tags": ["strategy", "chess"]
+    "tags": [
+      "strategy",
+      "chess"
+    ]
   },
   {
     "id": 235,
@@ -1877,7 +2673,10 @@
     "speaker": null,
     "author": "Kirk Alton",
     "source": null,
-    "tags": ["learning", "strategy"]
+    "tags": [
+      "learning",
+      "strategy"
+    ]
   },
   {
     "id": 236,
@@ -1885,7 +2684,10 @@
     "speaker": "Smith",
     "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
-    "tags": ["self-awareness", "mastery"]
+    "tags": [
+      "self-awareness",
+      "mastery"
+    ]
   },
   {
     "id": 237,
@@ -1893,7 +2695,10 @@
     "speaker": "Smith",
     "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
-    "tags": ["uncertainty", "competition"]
+    "tags": [
+      "uncertainty",
+      "competition"
+    ]
   },
   {
     "id": 238,
@@ -1901,7 +2706,12 @@
     "speaker": "Kai Shimada",
     "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
-    "tags": ["perseverance", "resilience", "trying", "determination"]
+    "tags": [
+      "perseverance",
+      "resilience",
+      "trying",
+      "determination"
+    ]
   },
   {
     "id": 239,
@@ -1909,7 +2719,10 @@
     "speaker": "Rei Kiriyama",
     "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
-    "tags": ["resilience", "recovery"]
+    "tags": [
+      "resilience",
+      "recovery"
+    ]
   },
   {
     "id": 240,
@@ -1917,7 +2730,10 @@
     "speaker": "Takashi Hayashida",
     "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
-    "tags": ["action", "anxiety"]
+    "tags": [
+      "action",
+      "anxiety"
+    ]
   },
   {
     "id": 241,
@@ -1925,7 +2741,10 @@
     "speaker": null,
     "author": "Serge’s Drill Sergeant",
     "source": null,
-    "tags": ["accountability", "resilience"]
+    "tags": [
+      "accountability",
+      "resilience"
+    ]
   },
   {
     "id": 242,
@@ -1933,7 +2752,10 @@
     "speaker": null,
     "author": "Ross Agginie",
     "source": null,
-    "tags": ["learning", "process"]
+    "tags": [
+      "learning",
+      "process"
+    ]
   },
   {
     "id": 243,
@@ -1941,7 +2763,10 @@
     "speaker": null,
     "author": "Paul Zikopoulos, Christopher Bienko",
     "source": "Cloud Without Compromise",
-    "tags": ["teaching", "learning"]
+    "tags": [
+      "teaching",
+      "learning"
+    ]
   },
   {
     "id": 244,
@@ -1949,7 +2774,10 @@
     "speaker": "Kai Shimada",
     "author": "Chica Umino",
     "source": "March Comes in Like a Lion",
-    "tags": ["practice", "learning"]
+    "tags": [
+      "practice",
+      "learning"
+    ]
   },
   {
     "id": 245,
@@ -1957,7 +2785,10 @@
     "speaker": null,
     "author": "Unknown",
     "source": null,
-    "tags": ["reflection", "silence"]
+    "tags": [
+      "reflection",
+      "silence"
+    ]
   },
   {
     "id": 246,
@@ -1965,7 +2796,10 @@
     "speaker": "Diana Taverner",
     "author": "Will Smith",
     "source": "Slow Horses",
-    "tags": ["strategy", "awareness"]
+    "tags": [
+      "strategy",
+      "awareness"
+    ]
   },
   {
     "id": 247,
@@ -1973,7 +2807,10 @@
     "speaker": "Jackson Lamb",
     "author": "Will Smith",
     "source": "Slow Horses",
-    "tags": ["realism", "philosophy"]
+    "tags": [
+      "realism",
+      "philosophy"
+    ]
   },
   {
     "id": 248,
@@ -1981,15 +2818,21 @@
     "speaker": "Bakari Williams",
     "author": "Apple Fitness+",
     "source": null,
-    "tags": ["preparation", "success"]
+    "tags": [
+      "preparation",
+      "success"
+    ]
   },
   {
-  "id": 249,
-  "text": "If fate doesn't make you laugh, then you just don't get the joke.",
-  "speaker": "Karla",
-  "author": "Gregory David Roberts",
-  "source": "Shantaram",
-  "tags": ["fate", "wisdom"]
+    "id": 249,
+    "text": "If fate doesn't make you laugh, then you just don't get the joke.",
+    "speaker": "Karla",
+    "author": "Gregory David Roberts",
+    "source": "Shantaram",
+    "tags": [
+      "fate",
+      "wisdom"
+    ]
   },
   {
     "id": 250,
@@ -1997,7 +2840,13 @@
     "speaker": "Khader Bhai & Lin",
     "author": "Gregory David Roberts",
     "source": "Shantaram",
-    "tags": ["fear", "guilt", "despair", "wealth", "poverty"]
+    "tags": [
+      "fear",
+      "guilt",
+      "despair",
+      "wealth",
+      "poverty"
+    ]
   },
   {
     "id": 251,
@@ -2005,7 +2854,11 @@
     "speaker": "Lin",
     "author": "Gregory David Roberts",
     "source": "Shantaram",
-    "tags": ["fate", "warning", "wisdom"]
+    "tags": [
+      "fate",
+      "warning",
+      "wisdom"
+    ]
   },
   {
     "id": 252,
@@ -2013,7 +2866,12 @@
     "speaker": "Didier",
     "author": "Gregory David Roberts",
     "source": "Shantaram",
-    "tags": ["politics", "business", "power", "cynicism"]
+    "tags": [
+      "politics",
+      "business",
+      "power",
+      "cynicism"
+    ]
   },
   {
     "id": 253,
@@ -2021,7 +2879,12 @@
     "speaker": "Abdullah",
     "author": "Gregory David Roberts",
     "source": "Shantaram",
-    "tags": ["courage", "power", "fear", "strength"]
+    "tags": [
+      "courage",
+      "power",
+      "fear",
+      "strength"
+    ]
   },
   {
     "id": 254,
@@ -2029,7 +2892,12 @@
     "speaker": "Lin",
     "author": "Gregory David Roberts",
     "source": "Shantaram",
-    "tags": ["money", "values", "family", "purpose"]
+    "tags": [
+      "money",
+      "values",
+      "family",
+      "purpose"
+    ]
   },
   {
     "id": 255,
@@ -2037,7 +2905,12 @@
     "speaker": "King Henry",
     "author": "William Shakespeare",
     "source": "Henry V - Act 4, scene 3",
-    "tags": ["mindset", "readiness", "focus", "determination"]
+    "tags": [
+      "mindset",
+      "readiness",
+      "focus",
+      "determination"
+    ]
   },
   {
     "id": 256,
@@ -2045,7 +2918,12 @@
     "speaker": null,
     "author": null,
     "source": "Apache proverb",
-    "tags": ["action", "humility", "strength", "discipline"]
+    "tags": [
+      "action",
+      "humility",
+      "strength",
+      "discipline"
+    ]
   },
   {
     "id": 257,
@@ -2053,7 +2931,12 @@
     "speaker": null,
     "author": null,
     "source": "Dakota proverb",
-    "tags": ["legacy", "impact", "character", "responsibility"]
+    "tags": [
+      "legacy",
+      "impact",
+      "character",
+      "responsibility"
+    ]
   },
   {
     "id": 258,
@@ -2061,7 +2944,12 @@
     "speaker": null,
     "author": null,
     "source": "Proverb (origin uncertain)",
-    "tags": ["learning", "teaching", "experience", "understanding"]
+    "tags": [
+      "learning",
+      "teaching",
+      "experience",
+      "understanding"
+    ]
   },
   {
     "id": 259,
@@ -2069,7 +2957,12 @@
     "speaker": null,
     "author": null,
     "source": "Arapaho proverb",
-    "tags": ["curiosity", "learning", "knowledge", "growth"]
+    "tags": [
+      "curiosity",
+      "learning",
+      "knowledge",
+      "growth"
+    ]
   },
   {
     "id": 260,
@@ -2077,7 +2970,12 @@
     "speaker": null,
     "author": null,
     "source": "Cherokee proverb",
-    "tags": ["strategy", "strength", "competition", "awareness"]
+    "tags": [
+      "strategy",
+      "strength",
+      "competition",
+      "awareness"
+    ]
   },
   {
     "id": 261,
@@ -2085,7 +2983,12 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["patience", "consistency", "growth", "perseverance"]
+    "tags": [
+      "patience",
+      "consistency",
+      "growth",
+      "perseverance"
+    ]
   },
   {
     "id": 262,
@@ -2093,7 +2996,12 @@
     "speaker": null,
     "author": null,
     "source": "Hopi proverb",
-    "tags": ["teamwork", "cooperation", "unity", "strength"]
+    "tags": [
+      "teamwork",
+      "cooperation",
+      "unity",
+      "strength"
+    ]
   },
   {
     "id": 263,
@@ -2101,7 +3009,12 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["survival", "desperation", "instinct", "adaptation"]
+    "tags": [
+      "survival",
+      "desperation",
+      "instinct",
+      "adaptation"
+    ]
   },
   {
     "id": 264,
@@ -2109,7 +3022,12 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["courage", "fear", "weakness", "awareness"]
+    "tags": [
+      "courage",
+      "fear",
+      "weakness",
+      "awareness"
+    ]
   },
   {
     "id": 265,
@@ -2117,7 +3035,12 @@
     "speaker": null,
     "author": null,
     "source": "Winnebago proverb",
-    "tags": ["self-reliance", "independence", "responsibility", "preparation"]
+    "tags": [
+      "self-reliance",
+      "independence",
+      "responsibility",
+      "preparation"
+    ]
   },
   {
     "id": 266,
@@ -2125,7 +3048,12 @@
     "speaker": "Hidetora Ichimonji",
     "author": "Akira Kurosawa",
     "source": "Ran",
-    "tags": ["madness", "chaos", "perception", "reality"]
+    "tags": [
+      "madness",
+      "chaos",
+      "perception",
+      "reality"
+    ]
   },
   {
     "id": 267,
@@ -2133,7 +3061,12 @@
     "speaker": null,
     "author": null,
     "source": null,
-    "tags": ["indifference", "apathy", "detachment", "finality"]
+    "tags": [
+      "indifference",
+      "apathy",
+      "detachment",
+      "finality"
+    ]
   },
   {
     "id": 268,
@@ -2141,15 +3074,25 @@
     "speaker": null,
     "author": "@manospherehighlightsdaily",
     "source": null,
-    "tags": ["self-reliance", "discernment", "skepticism", "critical-thinking"]
+    "tags": [
+      "self-reliance",
+      "discernment",
+      "skepticism",
+      "critical-thinking"
+    ]
   },
   {
-  "id": 269,
-  "text": "Remember, all things change if given time; so give it time.",
-  "speaker": null,
-  "author": "Dr. T Hasan Johnson",
-  "source": "Canceled, Erased, and Broken: How Allegations Destroyed Justin Fairfax (43:49)",
-  "tags": ["patience", "change", "time", "resilience"]
+    "id": 269,
+    "text": "Remember, all things change if given time; so give it time.",
+    "speaker": null,
+    "author": "Dr. T Hasan Johnson",
+    "source": "Canceled, Erased, and Broken: How Allegations Destroyed Justin Fairfax (43:49)",
+    "tags": [
+      "patience",
+      "change",
+      "time",
+      "resilience"
+    ]
   },
   {
     "id": 270,
@@ -2157,7 +3100,11 @@
     "speaker": null,
     "author": "Dr. T Hasan Johnson",
     "source": "Canceled, Erased, and Broken: How Allegations Destroyed Justin Fairfax (44:20)",
-    "tags": ["impermanence", "change", "time"]
+    "tags": [
+      "impermanence",
+      "change",
+      "time"
+    ]
   },
   {
     "id": 271,
@@ -2165,7 +3112,12 @@
     "speaker": null,
     "author": "Marcus Aurelius",
     "source": "Meditations 5:20",
-    "tags": ["perseverance", "action", "obstacles", "determination"]
+    "tags": [
+      "perseverance",
+      "action",
+      "obstacles",
+      "determination"
+    ]
   },
   {
     "id": 272,
@@ -2173,7 +3125,12 @@
     "speaker": null,
     "author": "@HistoryStudent (19:55)",
     "source": "Views From Other Black Men",
-    "tags": ["justice", "hate", "integrity", "righteousness"]
+    "tags": [
+      "justice",
+      "hate",
+      "integrity",
+      "righteousness"
+    ]
   },
   {
     "id": 273,
@@ -2181,7 +3138,12 @@
     "speaker": null,
     "author": "Robert F. Kennedy",
     "source": null,
-    "tags": ["failure", "courage", "risk", "achievement"]
+    "tags": [
+      "failure",
+      "courage",
+      "risk",
+      "achievement"
+    ]
   },
   {
     "id": 274,
@@ -2189,7 +3151,12 @@
     "speaker": null,
     "author": "Theo WAF",
     "source": null,
-    "tags": ["persistence", "discipline", "resilience", "mindset"]
+    "tags": [
+      "persistence",
+      "discipline",
+      "resilience",
+      "mindset"
+    ]
   },
   {
     "id": 275,
@@ -2197,7 +3164,12 @@
     "speaker": "Andrew Cooper",
     "author": "Jonathan Trooper",
     "source": "Your Friends & Neighbors",
-    "tags": ["morality", "consequence", "ethics", "warning"]
+    "tags": [
+      "morality",
+      "consequence",
+      "ethics",
+      "warning"
+    ]
   },
   {
     "id": 276,
@@ -2205,7 +3177,12 @@
     "speaker": "Michael Jackson",
     "author": "Michael Jackson, Shmuley Boteach",
     "source": "Oxford Union Speech, Oxford University, 2001",
-    "tags": ["healing", "personal-growth", "children", "humanity"]
+    "tags": [
+      "healing",
+      "personal-growth",
+      "children",
+      "humanity"
+    ]
   },
   {
     "id": 277,
@@ -2213,7 +3190,12 @@
     "speaker": "Michael Jackson",
     "author": "Michael Jackson, Shmuley Boteach",
     "source": "Oxford Union Speech, Oxford University, 2001",
-    "tags": ["forgiveness", "parents", "healing", "family"]
+    "tags": [
+      "forgiveness",
+      "parents",
+      "healing",
+      "family"
+    ]
   },
   {
     "id": 278,
@@ -2221,7 +3203,12 @@
     "speaker": null,
     "author": "Sunshine Shoulders (@calroach1)",
     "source": "COWARDICE Is The Reason Men Struggle In The West!",
-    "tags": ["fear", "cowardice", "self-mastery", "agency"]
+    "tags": [
+      "fear",
+      "cowardice",
+      "self-mastery",
+      "agency"
+    ]
   },
   {
     "id": 279,
@@ -2229,7 +3216,12 @@
     "speaker": null,
     "author": "Sunshine Shoulders (@calroach1)",
     "source": "COWARDICE Is The Reason Men Struggle In The West!",
-    "tags": ["courage", "fear", "bravery", "action"]
+    "tags": [
+      "courage",
+      "fear",
+      "bravery",
+      "action"
+    ]
   },
   {
     "id": 280,
@@ -2237,31 +3229,51 @@
     "speaker": null,
     "author": "Brendan Dell (@BrendanDell)",
     "source": "Harvard Just Caught AI Lying to Every Executive in America",
-    "tags": ["strategy", "decisions", "tradeoffs", "business"]
+    "tags": [
+      "strategy",
+      "decisions",
+      "tradeoffs",
+      "business"
+    ]
   },
   {
-    "id": 280,
+    "id": 288,
     "text": "The Originator of the heavens and the earth. When He decrees a matter, He only says to it, ‘Be,’ and it is.",
     "speaker": null,
     "author": "Allah",
     "source": "Quran 2:117",
-    "tags": ["speech", "creation", "language", "power"]
+    "tags": [
+      "speech",
+      "creation",
+      "language",
+      "power"
+    ]
   },
-{
-  "id": 281,
-  "text": "For He spoke, and it came to be; He commanded, and it stood firm.",
-  "speaker": null,
-  "author": "God",
-  "source": "Psalm 33:9",
-  "tags": ["speech", "language", "command", "power"]
-},
+  {
+    "id": 281,
+    "text": "For He spoke, and it came to be; He commanded, and it stood firm.",
+    "speaker": null,
+    "author": "God",
+    "source": "Psalm 33:9",
+    "tags": [
+      "speech",
+      "language",
+      "command",
+      "power"
+    ]
+  },
   {
     "id": 282,
     "text": "So let it be written; so let it be done.",
     "speaker": "Pharaoh Rameses II",
     "author": "Cecil B. DeMille",
     "source": "The Ten Commandments",
-    "tags": ["speech", "language", "writing", "power"]
+    "tags": [
+      "speech",
+      "language",
+      "writing",
+      "power"
+    ]
   },
   {
     "id": 283,
@@ -2269,7 +3281,12 @@
     "speaker": null,
     "author": "God",
     "source": "Proverbs 18:21",
-    "tags": ["speech", "language", "choices", "power"]
+    "tags": [
+      "speech",
+      "language",
+      "choices",
+      "power"
+    ]
   },
   {
     "id": 284,
@@ -2277,7 +3294,12 @@
     "speaker": null,
     "author": "@eighetta6581",
     "source": "Comment on private livestream by @accountablecommentary",
-    "tags": ["selfimprovement", "growth", "mindset", "resilience"]
+    "tags": [
+      "selfimprovement",
+      "growth",
+      "mindset",
+      "resilience"
+    ]
   },
   {
     "id": 285,
@@ -2285,7 +3307,12 @@
     "speaker": "Robert McCall",
     "author": "Richard Wenk",
     "source": "The Equalizer (2014)",
-    "tags": ["consequences", "sacrifice", "success", "resilience"]
+    "tags": [
+      "consequences",
+      "sacrifice",
+      "success",
+      "resilience"
+    ]
   },
   {
     "id": 286,
@@ -2293,6 +3320,11 @@
     "speaker": null,
     "author": "@Technoblade",
     "source": "null",
-    "tags": ["mortality", "optimism", "death", "perspective"]
+    "tags": [
+      "mortality",
+      "optimism",
+      "death",
+      "perspective"
+    ]
   }
 ]
